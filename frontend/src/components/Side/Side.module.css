@@ -1,0 +1,24 @@
+.side {
+    border-left: 1px solid #ccc;
+}
+.side .title {
+    padding: 10px 45px;
+    font-weight: bold;
+    text-align: right;
+    font-size: 20px;
+}
+.side ul {
+}
+.side ul .item {
+    list-style-type: none;
+    padding: 7px;
+    font-size: 20px;
+    transition: all 0.5 ease;
+    cursor: pointer;
+}
+.side ul .item:hover {
+    background-color: rgb(213, 209, 209);
+}
+.side ul .item.selected {
+    background-color: rgb(213, 209, 209);
+}

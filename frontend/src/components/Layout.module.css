@@ -1,0 +1,5 @@
+.body {
+    height: calc(100vh - 113px);
+    display: grid;
+    grid-template-columns: 400px auto;
+}
