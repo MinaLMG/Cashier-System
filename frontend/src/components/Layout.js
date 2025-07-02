@@ -11,12 +11,17 @@ export default function Layout() {
     const [selected, setSelected] = useState("");
     function changeSelected(ch) {
         setSelected(ch);
+        console.log(ch);
     }
     return (
         <Fragment>
             <Header></Header>
             <div className={classes["body"]}>
-                <Side onSelect={changeSelected} actions={actions}></Side>
+                <Side
+                    selected={selected}
+                    onSelect={changeSelected}
+                    actions={actions}
+                ></Side>
                 <Content selected={selected}></Content>
             </div>
             ;

@@ -18,6 +18,7 @@
 }
 .side ul .item:hover {
     background-color: rgb(213, 209, 209);
+    width: 101%;
 }
 .side ul .item.selected {
     background-color: rgb(213, 209, 209);
