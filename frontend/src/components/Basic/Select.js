@@ -4,6 +4,7 @@ export default function Select(props) {
     return (
         <div className="form-floating mb-3">
             <select
+                disabled={props.disabled}
                 className={`form-select ${classes.select}`}
                 aria-label="Default select example"
                 value={props.value}

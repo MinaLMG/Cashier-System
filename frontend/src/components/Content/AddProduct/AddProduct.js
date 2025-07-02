@@ -3,29 +3,240 @@ import axios from "axios";
 import Select from "../../Basic/Select";
 import TextInput from "../../Basic/TextInput";
 import classes from "./AddProduct.module.css";
-import { FaPlus } from "react-icons/fa6";
+import { FaPlus, FaMinus } from "react-icons/fa6";
 import Button from "../../Basic/Button";
 
 export default function AddProduct() {
     const [product, setProduct] = useState({
         name: "",
         "min-stock": "",
-        volumes: [{}],
+        conversions: [{ from: "", to: "", value: 1 }],
+        values: [],
+        error: "ادخل الوحدة الاساسية",
     });
-    const [volumes, setVolumes] = useState([]);
 
-    // Fetch volumes on mount using Axios
+    const [volumes, setVolumes] = useState([]);
+    const [isSubmittable, setIsSubmittable] = useState(false);
+    const [submitError, setSubmitError] = useState(
+        "الرجاء إكمال الحقول المطلوبة"
+    );
+
     useEffect(() => {
         axios
             .get(process.env.REACT_APP_BACKEND + "volumes")
-            .then((res) => {
-                setVolumes(res.data);
-                console.log(res.data);
-            })
-            .catch((err) => {
-                console.error("Failed to fetch volumes:", err);
-            });
+            .then((res) => setVolumes(res.data))
+            .catch((err) => console.error("Failed to fetch volumes:", err));
     }, []);
+
+    useEffect(() => {
+        validateForSubmit(product.conversions);
+    }, [product.conversions, product.name]);
+
+    const validateForSubmit = (conversions) => {
+        try {
+            if (!product.name.trim()) {
+                throw new Error("اسم المنتج مطلوب");
+            }
+
+            const graph = {};
+            const involvedIds = new Set();
+
+            conversions.forEach(({ from, to, value }, index) => {
+                const isLast = index === conversions.length - 1;
+                const isFirst = index === 0;
+
+                if (isFirst && !from) {
+                    throw new Error("الوحدة الأساسية مطلوبة.");
+                }
+
+                if (!isFirst && !isLast) {
+                    if (!from || !to || !value || value <= 0) {
+                        throw new Error("أكمل كل الحقول في الصفوف الوسطى.");
+                    }
+                }
+
+                if (from && to && value && value > 0) {
+                    if (!graph[from]) graph[from] = [];
+                    if (!graph[to]) graph[to] = [];
+
+                    graph[from].push({ node: to, weight: value });
+                    graph[to].push({ node: from, weight: 1 / value });
+
+                    involvedIds.add(from);
+                    involvedIds.add(to);
+                }
+            });
+
+            const baseId = conversions[0]?.from;
+            if (!baseId) throw new Error("الوحدة الأساسية غير معرّفة");
+
+            // Check graph connectivity
+            const visitedCheck = {};
+            const stack = [baseId];
+            while (stack.length) {
+                const node = stack.pop();
+                if (visitedCheck[node]) continue;
+                visitedCheck[node] = true;
+                for (const edge of graph[node] || []) {
+                    stack.push(edge.node);
+                }
+            }
+
+            for (const id of involvedIds) {
+                if (!visitedCheck[id]) {
+                    throw new Error("سلسلة التحويل غير مكتملة أو غير متصلة.");
+                }
+            }
+
+            setIsSubmittable(true);
+            setSubmitError("");
+        } catch (err) {
+            setIsSubmittable(false);
+            setSubmitError(err.message);
+        }
+    };
+
+    const updateValues = (conversions) => {
+        try {
+            const graph = {};
+            const involvedIds = new Set();
+
+            conversions.forEach(({ from, to, value }) => {
+                if (from && to && value && value > 0) {
+                    if (!graph[from]) graph[from] = [];
+                    if (!graph[to]) graph[to] = [];
+
+                    graph[from].push({ node: to, weight: value });
+                    graph[to].push({ node: from, weight: 1 / value });
+
+                    involvedIds.add(from);
+                    involvedIds.add(to);
+                }
+            });
+
+            const baseId = conversions[0]?.from;
+            const baseVolume = volumes.find((v) => v._id === baseId);
+            if (!baseId || !baseVolume) {
+                throw new Error("الوحدة الأساسية غير صالحة أو غير موجودة.");
+            }
+
+            const visited = {};
+            const values = [];
+            const queue = [{ id: baseId, value: 1 }];
+            visited[baseId] = 1;
+
+            while (queue.length > 0) {
+                const { id, value } = queue.shift();
+                const volume = volumes.find((v) => v._id === id);
+                if (volume) values.push({ name: volume.name, val: value });
+
+                for (const edge of graph[id] || []) {
+                    if (!(edge.node in visited)) {
+                        const newValue = value / edge.weight;
+                        visited[edge.node] = newValue;
+                        queue.push({ id: edge.node, value: newValue });
+                    }
+                }
+            }
+
+            values.sort((a, b) => a.val - b.val);
+            setProduct((prev) => ({ ...prev, values, error: "" }));
+        } catch (err) {
+            setProduct((prev) => ({
+                ...prev,
+                values: [],
+                error: err.message,
+            }));
+        }
+    };
+
+    const handleConversionChange = (index, field, value) => {
+        const updated = [...product.conversions];
+
+        if (
+            (field === "from" && updated[index].to === value) ||
+            (field === "to" && updated[index].from === value)
+        ) {
+            setProduct((prev) => ({
+                ...prev,
+                error: "لا يمكن اختيار نفس الحجم في الخانتين",
+            }));
+            return;
+        }
+
+        if (field === "from") {
+            const isDuplicate = updated.some(
+                (c, i) => i !== index && c.from === value
+            );
+            if (isDuplicate) {
+                setProduct((prev) => ({
+                    ...prev,
+                    error: "تم اختيار هذا الحجم بالفعل كحجم أساسى في صف آخر",
+                }));
+                return;
+            }
+        }
+
+        updated[index][field] = value;
+        setProduct((prev) => ({
+            ...prev,
+            conversions: updated,
+            error: "",
+        }));
+
+        updateValues(updated);
+    };
+
+    const handleAddRow = () => {
+        const last = product.conversions.at(-1);
+        const isFirst = product.conversions.length === 1;
+
+        if (isFirst && !last?.from) {
+            setProduct((prev) => ({
+                ...prev,
+                error: "يجب اختيار الحجم الأساسى أولاً قبل إضافة صف جديد",
+            }));
+            return;
+        }
+
+        if (
+            !isFirst &&
+            (!last?.from || !last?.to || !last?.value || last.value <= 0)
+        ) {
+            setProduct((prev) => ({
+                ...prev,
+                error: "يرجى إكمال الصف الأخير قبل إضافة صف جديد",
+            }));
+            return;
+        }
+
+        setProduct((prev) => ({
+            ...prev,
+            conversions: [...prev.conversions, { from: "", to: "", value: "" }],
+            error: "",
+        }));
+    };
+
+    const removeRow = (index) => {
+        if (product.conversions.length === 1) {
+            setProduct((prev) => ({
+                ...prev,
+                error: "لا يمكن حذف الصف الوحيد المتاح",
+            }));
+            return;
+        }
+
+        const updated = [...product.conversions];
+        updated.splice(index, 1);
+
+        setProduct((prev) => ({
+            ...prev,
+            conversions: updated,
+            error: "",
+        }));
+
+        updateValues(updated);
+    };
 
     return (
         <div className={classes.add}>
@@ -36,27 +247,35 @@ export default function AddProduct() {
                     label="اسم المنتج"
                     id="product-name"
                     value={product.name}
-                    onchange={(e) => {
-                        setProduct({ ...product, name: e });
-                    }}
+                    onchange={(e) => setProduct({ ...product, name: e })}
                 />
             </div>
 
             <div style={{ width: "50%" }}>
                 <div className={classes.table}>
-                    <div> الكمية بتاعتنا </div>
-                    <div>كام وحدة </div>
+                    <div> الوحدة بتاعتنا </div>
+                    <div>كام </div>
                     <div>من ايه؟ </div>
                     <div></div>
-                    {product.volumes.map((vol, index) => (
-                        <Fragment>
+
+                    {product.conversions.map((row, index) => (
+                        <Fragment key={index}>
                             <div>
                                 <Select
-                                    title="الحجم الكبير"
+                                    title="الوحدة"
+                                    value={row.from}
+                                    onchange={(val) =>
+                                        handleConversionChange(
+                                            index,
+                                            "from",
+                                            val
+                                        )
+                                    }
                                     options={volumes.map((v) => ({
                                         value: v._id,
                                         label: v.name,
                                     }))}
+                                    disabled={false}
                                 />
                             </div>
                             <div>
@@ -64,36 +283,64 @@ export default function AddProduct() {
                                     type="number"
                                     placeholder="كام"
                                     label="كام"
-                                    id="package-size"
-                                    value={product["package-size"]}
-                                    onchange={(e) => {
-                                        setProduct({
-                                            ...product,
-                                            "package-size": e,
-                                        });
-                                    }}
+                                    id={`value-${index}`}
+                                    value={row.value}
+                                    onchange={(e) =>
+                                        handleConversionChange(
+                                            index,
+                                            "value",
+                                            Number(e)
+                                        )
+                                    }
+                                    disabled={index === 0}
                                 />
                             </div>
                             <div>
-                                <Select
-                                    title="الحجم الصغير"
-                                    options={volumes.map((v) => ({
-                                        value: v._id,
-                                        label: v.name,
-                                    }))}
-                                />
+                                {index > 0 && (
+                                    <Select
+                                        title="من"
+                                        value={row.to}
+                                        onchange={(val) =>
+                                            handleConversionChange(
+                                                index,
+                                                "to",
+                                                val
+                                            )
+                                        }
+                                        options={volumes.map((v) => ({
+                                            value: v._id,
+                                            label: v.name,
+                                        }))}
+                                        disabled={index === 0}
+                                    />
+                                )}
                             </div>
                             <div>
-                                <FaPlus
-                                    color="white"
-                                    size="3em"
-                                    className={classes["plus-icon"]}
-                                />
+                                {index === product.conversions.length - 1 && (
+                                    <FaPlus
+                                        className={classes["plus-icon"]}
+                                        size="2.5em"
+                                        onClick={handleAddRow}
+                                    />
+                                )}
+                                {index > 0 && (
+                                    <FaMinus
+                                        className={classes["minus-icon"]}
+                                        size="2.5em"
+                                        onClick={() => removeRow(index)}
+                                    />
+                                )}
                             </div>
                         </Fragment>
                     ))}
                 </div>
             </div>
+
+            {product.error && (
+                <div style={{ color: "red", marginTop: "10px" }}>
+                    {product.error}
+                </div>
+            )}
 
             <div style={{ width: "50%" }}>
                 <TextInput
@@ -103,20 +350,24 @@ export default function AddProduct() {
                     id="product-min"
                     value={product["min-stock"]}
                     onchange={(e) => {
-                        setProduct({
-                            ...product,
-                            "min-stock": e,
-                        });
+                        setProduct({ ...product, "min-stock": e });
                     }}
                 />
             </div>
-            <div style={{ padding: "auto" }}>
+
+            <div style={{ padding: "auto", marginTop: "15px" }}>
                 <Button
                     content="حفظ"
-                    disabled={false}
-                    onClick={() => {}}
-                    className=""
+                    disabled={!isSubmittable}
+                    onClick={() => {
+                        console.log("Saving product", product);
+                    }}
                 />
+                {!isSubmittable && (
+                    <div style={{ color: "red", marginTop: "10px" }}>
+                        ⚠️ {submitError}
+                    </div>
+                )}
             </div>
         </div>
     );

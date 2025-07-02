@@ -5,6 +5,7 @@ export default function TextInput(props) {
         <Fragment>
             <div className="form-floating mb-3" dir="rtl">
                 <input
+                    disabled={props.disabled}
                     type={props.type}
                     class="form-control"
                     placeholder={props.placeholder}

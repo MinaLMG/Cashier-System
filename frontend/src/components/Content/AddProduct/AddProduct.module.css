@@ -5,7 +5,7 @@
 .table {
     width: 100%;
     display: grid;
-    grid-template-columns: auto 125px auto 100px;
+    grid-template-columns: auto 125px auto 130px;
     grid-gap: 5px;
 }
 .table {
@@ -15,12 +15,23 @@
 .plus-icon {
     color: white;
     cursor: pointer;
-    margin-bottom: 0.625rem;
+    margin-top: 11px;
     margin-right: 20px;
     border-radius: 5px;
     background-color: green;
 }
 .plus-icon:hover {
+    opacity: 0.8;
+}
+.minus-icon {
+    color: white;
+    cursor: pointer;
+    margin-top: 11px;
+    margin-right: 20px;
+    border-radius: 5px;
+    background-color: red;
+}
+.minus-icon:hover {
     opacity: 0.8;
 }
 .save {
