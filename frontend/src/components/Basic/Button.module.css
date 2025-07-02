@@ -1,0 +1,16 @@
+.btn {
+    padding: 10px 25px;
+    border-radius: 10px;
+    outline: none;
+    border: 1px solid #ccc;
+    background-color: #203749;
+    font-size: large;
+    color: white;
+    font-weight: bold;
+    transition: all 0.1s ease;
+}
+.btn:hover {
+    padding: 11px 26px;
+    border-radius: 11px;
+    opacity: 0.9;
+}

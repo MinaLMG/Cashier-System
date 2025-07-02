@@ -11,7 +11,6 @@ export default function Layout() {
     const [selected, setSelected] = useState("");
     function changeSelected(ch) {
         setSelected(ch);
-        console.log(ch);
     }
     return (
         <Fragment>

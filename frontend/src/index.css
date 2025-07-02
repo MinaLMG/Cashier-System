@@ -21,3 +21,6 @@ code {
     right: 0;
     left: auto;
 }
+.form-floating select.form-select {
+    padding-top: 3px;
+}

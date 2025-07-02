@@ -18,7 +18,6 @@ export default function Side(props) {
                                                 : ""
                                         }`}
                                         onClick={() => {
-                                            console.log(ta);
                                             props.onSelect(ta);
                                         }}
                                     >

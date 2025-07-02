@@ -2,3 +2,34 @@
     padding: 50px;
     /* display: flex; */
 }
+.table {
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto 125px auto 100px;
+    grid-gap: 5px;
+}
+.table {
+    padding: 0 10px;
+}
+
+.plus-icon {
+    color: white;
+    cursor: pointer;
+    margin-bottom: 0.625rem;
+    margin-right: 20px;
+    border-radius: 5px;
+    background-color: green;
+}
+.plus-icon:hover {
+    opacity: 0.8;
+}
+.save {
+    padding: 10px 25px;
+    border-radius: 10px;
+    outline: none;
+    border: 1px solid #ccc;
+    background-color: #203749;
+    font-size: large;
+    color: white;
+    font-weight: bold;
+}
