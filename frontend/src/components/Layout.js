@@ -5,7 +5,10 @@ import Side from "./Side/Side";
 import Content from "./Content/Content";
 export default function Layout() {
     const actions = [
-        { title: "بضاعة المخزن", tasks: ["زود بضاعة", "اعرض كل البضاعة"] },
+        {
+            title: "بضاعة المخزن",
+            tasks: ["زود منتج", "عدل منتج", "اعرض كل البضاعة"],
+        },
         { title: "الفواتير", tasks: ["زود فاتورة", "اعرض كل الفواتير"] },
     ];
     const [selected, setSelected] = useState("");

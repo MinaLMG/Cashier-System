@@ -1,13 +1,31 @@
 const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema({
-    name: { type: String, required: true, unique: true },
-    category: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Category",
+    name: {
+        type: String,
+        required: true,
+        unique: true,
     },
-    min_stock: { type: Number, default: 0 },
-    default_volume: { type: mongoose.Schema.Types.ObjectId, ref: "Volume" },
+    min_stock: {
+        type: Number,
+    },
+    conversions: [
+        {
+            from: {
+                type: String,
+            },
+            to: {
+                type: String,
+            },
+            value: {
+                type: Number,
+            },
+            barcode: {
+                type: String,
+                default: "",
+            },
+        },
+    ],
 });
 
 module.exports = mongoose.model("Product", productSchema);

@@ -85,13 +85,14 @@ exports.createFullProduct = async (req, res) => {
         // 🚨 Check for duplicate barcodes in the request body
         const seen = new Set();
         for (const conv of conversions) {
-            if (conv.barcode) {
-                if (seen.has(conv.barcode)) {
+            const barcode = conv.barcode?.trim();
+            if (barcode) {
+                if (seen.has(barcode)) {
                     return res.status(400).json({
-                        error: `الباركود "${conv.barcode}" مكرر `,
+                        error: `الباركود "${barcode}" مكرر داخل نفس الطلب`,
                     });
                 }
-                seen.add(conv.barcode);
+                seen.add(barcode);
             }
         }
 
@@ -99,6 +100,7 @@ exports.createFullProduct = async (req, res) => {
         const newProduct = await Product.create({
             name,
             min_stock: minStock,
+            conversions,
         });
 
         // Step 2: Prepare hasVolume entries
@@ -108,12 +110,13 @@ exports.createFullProduct = async (req, res) => {
                 product: newProduct._id,
                 volume: id,
                 value: val,
-                barcode: conversion?.barcode || "",
+                barcode: conversion?.barcode?.trim() || null,
             };
         });
 
         // Step 3: Try inserting hasVolumes
         try {
+            console.log("we are here", volumeRecords);
             await HasVolume.insertMany(volumeRecords);
         } catch (volumeErr) {
             await Promise.all([
@@ -155,5 +158,175 @@ exports.createFullProduct = async (req, res) => {
 
         console.error("createFullProduct error:", err);
         return res.status(500).json({ error: "حدث خطأ أثناء حفظ المنتج" });
+    }
+};
+
+exports.updateFullProduct = async (req, res) => {
+    const productId = req.params.id;
+    const { name, "min-stock": minStock, conversions, values } = req.body;
+
+    if (!name || !conversions?.length || !values?.length) {
+        return res.status(400).json({ error: "بيانات المنتج غير مكتملة" });
+    }
+
+    // Step 0: Check for duplicate barcodes inside the request itself
+    const seen = new Set();
+    const duplicateInRequest = conversions
+        .map((c) => c.barcode?.trim())
+        .filter(Boolean) // filters out empty and null
+        .find((b) => {
+            if (seen.has(b)) return true;
+            seen.add(b);
+            return false;
+        });
+
+    if (duplicateInRequest) {
+        return res.status(400).json({
+            error: `الباركود "${duplicateInRequest}" مكرر داخل نفس المنتج`,
+        });
+    }
+
+    let oldProduct = null;
+    let oldHasVolumes = [];
+
+    try {
+        // Step 1: Backup current product and volume state
+        oldProduct = await Product.findById(productId);
+        if (!oldProduct) {
+            return res.status(404).json({ error: "المنتج غير موجود" });
+        }
+
+        oldHasVolumes = await HasVolume.find({ product: productId });
+
+        // Step 2: Update product info
+        await Product.findByIdAndUpdate(productId, {
+            name,
+            min_stock: minStock,
+            conversions,
+        });
+
+        // Step 3: Prepare updates, inserts, and deletion tracking
+        const updates = [];
+        const inserts = [];
+        const volumeIdsToKeep = new Set();
+
+        for (const val of values) {
+            const conversion = conversions.find((c) => c.from === val.id);
+            if (!conversion) continue;
+
+            volumeIdsToKeep.add(val.id);
+
+            const existing = oldHasVolumes.find(
+                (hv) => hv.volume.toString() === val.id
+            );
+
+            if (existing) {
+                // Update
+                updates.push({
+                    updateOne: {
+                        filter: { _id: existing._id },
+                        update: {
+                            $set: {
+                                value: val.val,
+                                barcode: conversion.barcode?.trim() || null,
+                            },
+                        },
+                    },
+                });
+            } else {
+                // New volume to insert
+                inserts.push({
+                    product: productId,
+                    volume: val.id,
+                    value: val.val,
+                    barcode: conversion.barcode?.trim() || null,
+                });
+            }
+        }
+
+        // Step 4: Apply updates
+        if (updates.length > 0) {
+            await HasVolume.bulkWrite(updates);
+        }
+
+        // Step 5: Insert new ones
+        let insertedDocs = [];
+        if (inserts.length > 0) {
+            insertedDocs = await HasVolume.insertMany(inserts);
+        }
+
+        // Step 6: Delete removed volumes
+        const oldVolumeIds = oldHasVolumes.map((v) => v.volume.toString());
+        const volumeIdsToDelete = oldVolumeIds.filter(
+            (id) => !volumeIdsToKeep.has(id)
+        );
+
+        if (volumeIdsToDelete.length > 0) {
+            await HasVolume.deleteMany({
+                product: productId,
+                volume: { $in: volumeIdsToDelete },
+            });
+        }
+
+        return res.status(200).json({
+            message: "تم تعديل المنتج بكل التحويلات",
+        });
+    } catch (err) {
+        console.error("updateFullProduct error:", err);
+
+        // === Manual Rollback ===
+        try {
+            // 1. Revert product info
+            if (oldProduct) {
+                await Product.findByIdAndUpdate(
+                    productId,
+                    oldProduct.toObject()
+                );
+            }
+
+            // 2. Remove newly added volumes
+            const insertedIds = (
+                Array.isArray(insertedDocs) ? insertedDocs : []
+            ).map((doc) => doc._id);
+            if (insertedIds.length > 0) {
+                await HasVolume.deleteMany({ _id: { $in: insertedIds } });
+            }
+
+            // 3. Restore deleted or edited volumes (upsert ensures restoration)
+            const restoreOps = oldHasVolumes.map((doc) => ({
+                updateOne: {
+                    filter: { _id: doc._id },
+                    update: {
+                        $set: {
+                            product: doc.product,
+                            volume: doc.volume,
+                            value: doc.value,
+                            barcode: doc.barcode,
+                        },
+                    },
+                    upsert: true,
+                },
+            }));
+
+            if (restoreOps.length > 0) {
+                await HasVolume.bulkWrite(restoreOps);
+            }
+        } catch (rollbackErr) {
+            console.error("❌ Rollback failed:", rollbackErr);
+        }
+
+        // === Error feedback to frontend ===
+        if (err.code === 11000 && err.keyPattern?.barcode) {
+            const duplicateBarcode = err.keyValue?.barcode;
+            return res.status(400).json({
+                error: duplicateBarcode
+                    ? `الباركود "${duplicateBarcode}" مستخدم من قبل في منتج آخر`
+                    : "باركود مكرر مستخدم من قبل",
+            });
+        }
+
+        return res.status(500).json({
+            error: "حدث خطأ أثناء تعديل المنتج، يرجى المحاولة لاحقاً",
+        });
     }
 };
