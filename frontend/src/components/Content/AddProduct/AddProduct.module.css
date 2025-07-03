@@ -5,7 +5,7 @@
 .table {
     width: 100%;
     display: grid;
-    grid-template-columns: auto 125px auto 130px;
+    grid-template-columns: auto 125px auto 200px 130px;
     grid-gap: 5px;
 }
 .table {

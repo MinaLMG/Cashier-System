@@ -12,8 +12,8 @@ const hasVolumeSchema = new mongoose.Schema({
         required: true,
     },
     value: { type: Number, required: true },
-    barcode: { type: String },
-    sale_price: { type: Number, required: true },
+    barcode: { type: String, unique: true },
+    sale_price: { type: Number },
 });
 
 module.exports = mongoose.model("HasVolume", hasVolumeSchema);

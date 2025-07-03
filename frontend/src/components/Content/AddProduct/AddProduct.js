@@ -10,7 +10,7 @@ export default function AddProduct() {
     const [product, setProduct] = useState({
         name: "",
         "min-stock": "",
-        conversions: [{ from: "", to: "", value: 1 }],
+        conversions: [{ from: "", to: "", value: 1, barcode: "" }],
         values: [],
         error: "ادخل الوحدة الاساسية",
     });
@@ -20,6 +20,11 @@ export default function AddProduct() {
     const [submitError, setSubmitError] = useState(
         "الرجاء إكمال الحقول المطلوبة"
     );
+    const [submitMessage, setSubmitMessage] = useState({
+        text: "",
+        isError: false,
+    });
+    const [errorsAppearing, setErrorsAppearing] = useState(true);
 
     useEffect(() => {
         axios
@@ -128,7 +133,12 @@ export default function AddProduct() {
             while (queue.length > 0) {
                 const { id, value } = queue.shift();
                 const volume = volumes.find((v) => v._id === id);
-                if (volume) values.push({ name: volume.name, val: value });
+                if (volume)
+                    values.push({
+                        id: volume._id,
+                        name: volume.name,
+                        val: value,
+                    });
 
                 for (const edge of graph[id] || []) {
                     if (!(edge.node in visited)) {
@@ -153,30 +163,31 @@ export default function AddProduct() {
     const handleConversionChange = (index, field, value) => {
         const updated = [...product.conversions];
 
-        if (
-            (field === "from" && updated[index].to === value) ||
-            (field === "to" && updated[index].from === value)
-        ) {
-            setProduct((prev) => ({
-                ...prev,
-                error: "لا يمكن اختيار نفس الحجم في الخانتين",
-            }));
-            return;
-        }
-
-        if (field === "from") {
-            const isDuplicate = updated.some(
-                (c, i) => i !== index && c.from === value
-            );
-            if (isDuplicate) {
+        if (field !== "barcode") {
+            if (
+                (field === "from" && updated[index].to === value) ||
+                (field === "to" && updated[index].from === value)
+            ) {
                 setProduct((prev) => ({
                     ...prev,
-                    error: "تم اختيار هذا الحجم بالفعل كحجم أساسى في صف آخر",
+                    error: "لا يمكن اختيار نفس الحجم في الخانتين",
                 }));
                 return;
             }
-        }
 
+            if (field === "from") {
+                const isDuplicate = updated.some(
+                    (c, i) => i !== index && c.from === value
+                );
+                if (isDuplicate) {
+                    setProduct((prev) => ({
+                        ...prev,
+                        error: "تم اختيار هذا الحجم بالفعل كحجم أساسى في صف آخر",
+                    }));
+                    return;
+                }
+            }
+        }
         updated[index][field] = value;
         setProduct((prev) => ({
             ...prev,
@@ -184,7 +195,7 @@ export default function AddProduct() {
             error: "",
         }));
 
-        updateValues(updated);
+        if (field !== "barcode") updateValues(updated);
     };
 
     const handleAddRow = () => {
@@ -212,7 +223,10 @@ export default function AddProduct() {
 
         setProduct((prev) => ({
             ...prev,
-            conversions: [...prev.conversions, { from: "", to: "", value: "" }],
+            conversions: [
+                ...prev.conversions,
+                { from: "", to: "", value: "", barcode: "" },
+            ],
             error: "",
         }));
     };
@@ -251,11 +265,12 @@ export default function AddProduct() {
                 />
             </div>
 
-            <div style={{ width: "50%" }}>
+            <div style={{ width: "70%" }}>
                 <div className={classes.table}>
                     <div> الوحدة بتاعتنا </div>
                     <div>كام </div>
                     <div>من ايه؟ </div>
+                    <div>الباركود</div>
                     <div></div>
 
                     {product.conversions.map((row, index) => (
@@ -316,6 +331,22 @@ export default function AddProduct() {
                                 )}
                             </div>
                             <div>
+                                <TextInput
+                                    type="text"
+                                    placeholder="باركود"
+                                    label="باركود"
+                                    id={`barcode-${index}`}
+                                    value={row.barcode || ""}
+                                    onchange={(e) =>
+                                        handleConversionChange(
+                                            index,
+                                            "barcode",
+                                            e
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div>
                                 {index === product.conversions.length - 1 && (
                                     <FaPlus
                                         className={classes["plus-icon"]}
@@ -336,7 +367,7 @@ export default function AddProduct() {
                 </div>
             </div>
 
-            {product.error && (
+            {errorsAppearing && product.error && (
                 <div style={{ color: "red", marginTop: "10px" }}>
                     {product.error}
                 </div>
@@ -361,11 +392,66 @@ export default function AddProduct() {
                     disabled={!isSubmittable}
                     onClick={() => {
                         console.log("Saving product", product);
+
+                        axios
+                            .post(
+                                `${process.env.REACT_APP_BACKEND}products/full`,
+                                product
+                            )
+                            .then((res) => {
+                                // Reset product state to initial
+                                setProduct({
+                                    name: "",
+                                    "min-stock": "",
+                                    conversions: [
+                                        { from: "", to: "", value: 1 },
+                                    ],
+                                    values: [],
+                                    error: "ادخل الوحدة الاساسية",
+                                });
+
+                                // Show success message
+                                setSubmitMessage({
+                                    text: "تم حفظ المنتج بنجاح",
+                                    isError: false,
+                                });
+                                setErrorsAppearing(false);
+                                setTimeout(() => {
+                                    setErrorsAppearing(true);
+                                }, 5000);
+                            })
+                            .catch((err) => {
+                                setSubmitMessage({
+                                    text:
+                                        err.response?.data?.error ||
+                                        "حدث خطأ أثناء حفظ المنتج، حاول مرة أخرى.",
+                                    isError: true,
+                                });
+                            });
+                        // Auto-clear message after 3 seconds
+
+                        setTimeout(() => {
+                            setSubmitMessage({
+                                text: "",
+                                isError: false,
+                            });
+                        }, 5000);
                     }}
                 />
-                {!isSubmittable && (
+                {errorsAppearing && !isSubmittable && (
                     <div style={{ color: "red", marginTop: "10px" }}>
                         ⚠️ {submitError}
+                    </div>
+                )}
+                {submitMessage.text && (
+                    <div
+                        style={{
+                            marginTop: "10px",
+                            fontWeight: "bold",
+                            color: submitMessage.isError ? "red" : "green",
+                        }}
+                    >
+                        {submitMessage.text}
                     </div>
                 )}
             </div>

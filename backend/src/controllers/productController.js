@@ -1,4 +1,5 @@
 const Product = require("../models/Product");
+const HasVolume = require("../models/HasVolume");
 
 exports.getAllProducts = async (req, res) => {
     try {
@@ -57,12 +58,102 @@ exports.updateProduct = async (req, res) => {
 
 exports.deleteProduct = async (req, res) => {
     try {
+        // Step 1: Delete the product
         const product = await Product.findByIdAndDelete(req.params.id);
-        if (!product)
-            return res.status(404).json({ error: "Product not found." });
+        if (!product) {
+            return res.status(404).json({ error: "المنتج غير موجود" });
+        }
 
-        res.status(200).json({ message: "Product deleted." });
+        // Step 2: Delete related HasVolume entries
+        await HasVolume.deleteMany({ product: product._id });
+
+        res.status(200).json({ message: "تم حذف المنتج وجميع تحويلاته" });
     } catch (err) {
-        res.status(500).json({ error: "Failed to delete product." });
+        console.error("deleteProduct error:", err);
+        res.status(500).json({ error: "فشل في حذف المنتج" });
+    }
+};
+
+exports.createFullProduct = async (req, res) => {
+    try {
+        const { name, "min-stock": minStock, conversions, values } = req.body;
+
+        if (!name || !conversions?.length) {
+            return res.status(400).json({ error: "بيانات المنتج غير مكتملة" });
+        }
+
+        // 🚨 Check for duplicate barcodes in the request body
+        const seen = new Set();
+        for (const conv of conversions) {
+            if (conv.barcode) {
+                if (seen.has(conv.barcode)) {
+                    return res.status(400).json({
+                        error: `الباركود "${conv.barcode}" مكرر `,
+                    });
+                }
+                seen.add(conv.barcode);
+            }
+        }
+
+        // Step 1: Create the product
+        const newProduct = await Product.create({
+            name,
+            min_stock: minStock,
+        });
+
+        // Step 2: Prepare hasVolume entries
+        const volumeRecords = values.map(({ id, val }) => {
+            const conversion = conversions.find((c) => c.from === id);
+            return {
+                product: newProduct._id,
+                volume: id,
+                value: val,
+                barcode: conversion?.barcode || "",
+            };
+        });
+
+        // Step 3: Try inserting hasVolumes
+        try {
+            await HasVolume.insertMany(volumeRecords);
+        } catch (volumeErr) {
+            await Promise.all([
+                Product.findByIdAndDelete(newProduct._id),
+                HasVolume.deleteMany({ product: newProduct._id }),
+            ]);
+
+            // 🧠 Check if it's a duplicate barcode in DB
+            if (volumeErr.code === 11000 && volumeErr.writeErrors?.length) {
+                const duplicateBarcodeError = volumeErr.writeErrors.find((e) =>
+                    e.err?.errmsg?.includes("barcode_1")
+                );
+
+                if (duplicateBarcodeError) {
+                    const msg = duplicateBarcodeError.err?.errmsg || "";
+                    const matched = msg.match(/dup key: { barcode: "(.*?)" }/);
+                    const barcode = matched?.[1];
+
+                    return res.status(400).json({
+                        error: barcode
+                            ? `الباركود "${barcode}" مستخدم من قبل`
+                            : "باركود مكرر مستخدم من قبل",
+                    });
+                }
+            }
+
+            throw volumeErr; // fallback
+        }
+
+        return res.status(201).json({
+            message: "تم إنشاء المنتج بكل التحويلات",
+            product: newProduct,
+        });
+    } catch (err) {
+        // Handle duplicate product name
+        if (err.code === 11000 && err.keyPattern?.name) {
+            return res.status(400).json({ error: "اسم المنتج موجود بالفعل" });
+        }
+
+        console.error("createFullProduct error:", err);
+        return res.status(500).json({ error: "حدث خطأ أثناء حفظ المنتج" });
     }
 };
