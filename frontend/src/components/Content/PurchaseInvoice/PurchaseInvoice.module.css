@@ -15,8 +15,6 @@
 }
 
 .tools {
-    display: flex;
-    height: 74px;
     align-items: center;
 }
 .edit,
@@ -36,4 +34,7 @@
 
 .remove {
     color: #848484;
+}
+.error {
+    color: red;
 }
