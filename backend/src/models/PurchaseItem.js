@@ -19,8 +19,8 @@ const purchaseItemSchema = new mongoose.Schema({
     quantity: { type: Number, required: true },
     expiry: { type: Date },
     buy_price: { type: Number, required: true },
-    walkin_price: { type: Number },
-    pharmacy_price: { type: Number },
+    walkin_price: { type: Number, required: true },
+    pharmacy_price: { type: Number, required: true },
     remaining_quantity: { type: Number },
 });
 

@@ -3,171 +3,278 @@ import axios from "axios";
 import TextInput from "../../Basic/TextInput";
 import classes from "./PurchaseInvoice.module.css";
 import Select from "../../Basic/Select";
-import { FaEdit } from "react-icons/fa";
-import { MdDelete } from "react-icons/md";
-import { IoMdAddCircle } from "react-icons/io";
-// ... previous imports
+import Button from "../../Basic/Button";
+import InvoiceRow from "./InvoiceRow";
+
+// Main Component
 export default function PurchaseInvoice() {
     const [suppliers, setSuppliers] = useState([]);
-    const [volumes, setVolumes] = useState([]);
     const [products, setProducts] = useState([]);
     const [invoice, setInvoice] = useState({
         date: new Date(Date.now()).toISOString().split("T")[0],
-        supplier: "",
+        supplier: null,
         rows: [
             {
-                product: "",
+                product: null,
                 quantity: "",
-                volume: "",
+                volume: null,
                 buy_price: "",
                 phar_price: "",
                 cust_price: "",
                 expiry: "",
-                rest: "",
+                remaining: "",
             },
         ],
+        cost: "0",
     });
-    const [rowErrors, setRowErrors] = useState({});
-    useEffect(() => {
-        axios
-            .get(process.env.REACT_APP_BACKEND + "suppliers")
-            .then((res) => setSuppliers(res.data))
-            .catch((err) => console.error("Failed to fetch suppliers:", err));
-        axios
-            .get(process.env.REACT_APP_BACKEND + "volumes")
-            .then((res) => setVolumes(res.data))
-            .catch((err) => console.error("Failed to fetch volumes:", err));
-        axios
-            .get(process.env.REACT_APP_BACKEND + "products/full")
-            .then((res) => setProducts(res.data))
-            .catch((err) => console.error("Failed to fetch products:", err));
-    }, []);
 
+    const [rowErrors, setRowErrors] = useState({});
+    const [submitMessage, setSubmitMessage] = useState({
+        text: "",
+        isError: false,
+    });
+    const [submitError, setSubmitError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isFormValid, setIsFormValid] = useState(false);
+    // Fetch initial data
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [suppliersRes, productsRes] = await Promise.all([
+                    axios.get(`${process.env.REACT_APP_BACKEND}suppliers`),
+                    axios.get(`${process.env.REACT_APP_BACKEND}products/full`),
+                ]);
+                setSuppliers(suppliersRes.data);
+                setProducts(productsRes.data);
+            } catch (err) {
+                console.error("Failed to fetch data:", err);
+            }
+        };
+        fetchData();
+    }, []);
+    useEffect(() => {
+        // Get all rows except possibly the last one
+        const rowsToValidate = invoice.rows.slice(0, -1);
+
+        // Check if:
+        // 1. At least one valid row exists
+        // 2. All rows (except possibly last) are valid
+        const hasAtLeastOneValidRow = invoice.rows.some(
+            (row) => !validateRow(row)
+        );
+        const allNonLastRowsValid = rowsToValidate.every(
+            (row) => !validateRow(row)
+        );
+
+        setIsFormValid(
+            invoice.date && hasAtLeastOneValidRow && allNonLastRowsValid
+        );
+    }, [invoice]);
+    useEffect(() => {
+        let total = 0;
+        invoice.rows.forEach((row) => {
+            const quantity = Number(row.quantity);
+            const buyPrice = Number(row.buy_price);
+            const pharPrice = Number(row.phar_price);
+            const walkinPrice = Number(row.cust_price);
+
+            // Only add if the row is valid
+            if (
+                row.product &&
+                row.volume &&
+                !isNaN(quantity) &&
+                quantity > 0 &&
+                !isNaN(buyPrice) &&
+                !isNaN(pharPrice) &&
+                !isNaN(walkinPrice) &&
+                buyPrice > 0
+            ) {
+                total += quantity * buyPrice;
+            }
+        });
+
+        setInvoice((prev) => ({ ...prev, cost: total }));
+    }, [invoice.rows]);
+    // Unified validation logic
+    const validateRow = (row) => {
+        const errors = {};
+
+        // Required fields
+        if (!row.product) errors.product = "اختر المنتج";
+        if (!row.volume) errors.volume = "اختر العبوة";
+
+        // Numeric fields validation
+        if (!row.quantity || isNaN(row.quantity) || Number(row.quantity) <= 0) {
+            errors.quantity = "ادخل كمية صحيحة";
+        }
+
+        // Price validation
+        const buyPrice = Number(row.buy_price);
+        const pharPrice = Number(row.phar_price);
+        const custPrice = Number(row.cust_price);
+
+        if (isNaN(buyPrice) || buyPrice <= 0)
+            errors.buy_price = "سعر شراء غير صحيح";
+        if (isNaN(pharPrice) || pharPrice <= 0)
+            errors.phar_price = "سعر صيدلية غير صحيح";
+        if (isNaN(custPrice) || custPrice <= 0)
+            errors.cust_price = "سعر زبون غير صحيح";
+
+        if (pharPrice < buyPrice) {
+            errors.phar_price = "يجب أن يكون سعر الصيدلية ≥ سعر الشراء";
+        }
+
+        if (custPrice < pharPrice) {
+            errors.cust_price = "يجب أن يكون سعر الزبون ≥ سعر الصيدلية";
+        }
+
+        return Object.keys(errors).length ? errors : null;
+    };
+
+    const canAddNewRow = invoice.rows.every((row, i) => !validateRow(row));
+
+    // Handler functions
     const handleRowChange = (index, key, value) => {
         const updatedRows = [...invoice.rows];
         updatedRows[index][key] = value;
         setInvoice((prev) => ({ ...prev, rows: updatedRows }));
     };
 
-    const getVolumesForProduct = (productId) => {
-        const product = products.find((p) => p._id === productId);
-        return product
-            ? product.values.map((v) => ({
-                  value: v.id,
-                  label: v.name,
-              }))
-            : [];
-    };
-
-    const isRowValid = (row) => {
-        return (
-            row.product &&
-            row.quantity &&
-            row.volume &&
-            row.buy_price &&
-            row.phar_price &&
-            row.cust_price &&
-            Number(row.buy_price) <= Number(row.phar_price) &&
-            Number(row.phar_price) <= Number(row.cust_price)
-        );
-    };
-    function validateRow(row) {
-        const errors = {};
-
-        if (!row.name) errors.name = "اختر المنتج";
-        if (!row.volume) errors.volume = "اختر العبوة";
-        if (!row.quantity) errors.quantity = "ادخل الكمية";
-        if (!row.buy_price) errors.buy_price = "ادخل سعر الشراء";
-        if (!row.phar_price) errors.phar_price = "ادخل سعر البيع للصيدلية";
-        if (!row.cust_price) errors.cust_price = "ادخل سعر البيع للزبون";
-
-        if (
-            row.buy_price &&
-            row.phar_price &&
-            parseFloat(row.phar_price) < parseFloat(row.buy_price)
-        ) {
-            errors.phar_price = "سعر الصيدلية أقل من سعر الشراء";
-        }
-
-        if (
-            row.phar_price &&
-            row.cust_price &&
-            parseFloat(row.cust_price) < parseFloat(row.phar_price)
-        ) {
-            errors.cust_price = "سعر الزبون أقل من سعر الصيدلية";
-        }
-
-        return Object.keys(errors).length ? errors : null;
-    }
-
-    const canAddNewRow = invoice.rows.every((r, i) => isRowValid(r));
-
     const addRow = () => {
         const errors = {};
-
         invoice.rows.forEach((row, index) => {
             const rowError = validateRow(row);
             if (rowError) errors[index] = rowError;
         });
 
-        if (Object.keys(errors).length > 0) {
+        if (Object.keys(errors).length) {
             setRowErrors(errors);
             return;
         }
 
-        // Clear old errors
-        setRowErrors({});
-
-        // Add a new row
         setInvoice((prev) => ({
             ...prev,
-            rows: [...prev.rows, {}],
+            rows: [
+                ...prev.rows,
+                {
+                    product: null,
+                    quantity: "",
+                    volume: null,
+                    buy_price: "",
+                    phar_price: "",
+                    cust_price: "",
+                    expiry: "",
+                    remaining: "",
+                },
+            ],
         }));
+        setRowErrors({});
     };
 
     const removeRow = (index) => {
-        const updated = [...invoice.rows];
-        updated.splice(index, 1);
-        setInvoice((prev) => ({ ...prev, rows: updated }));
+        setInvoice((prev) => ({
+            ...prev,
+            rows: prev.rows.filter((_, i) => i !== index),
+        }));
+    };
+
+    const handleSubmit = async () => {
+        console.log(invoice);
+        // Filter out invalid rows (including empty last row)
+        const validRows = invoice.rows.filter((row) => !validateRow(row));
+
+        if (!invoice.date || validRows.length === 0) {
+            setSubmitError("⚠️ يجب إدخال بيانات صحيحة لصف واحد على الأقل");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await axios.post(
+                `${process.env.REACT_APP_BACKEND}purchase-invoices/full`,
+                {
+                    ...invoice,
+                    rows: validRows.map((row) => ({
+                        ...row,
+                        product: row.product,
+                        expiry_date: row.expiry,
+                    })),
+                }
+            );
+            setSubmitMessage({ text: "تم حفظ الفاتورة بنجاح", isError: false });
+
+            // Reset form but keep supplier
+            setInvoice((prev) => ({
+                date: new Date(Date.now()).toISOString().split("T")[0],
+                supplier: prev.supplier,
+                rows: [
+                    {
+                        product: "",
+                        quantity: "",
+                        volume: "",
+                        buy_price: "",
+                        phar_price: "",
+                        cust_price: "",
+                        expiry: "",
+                        remaining: "",
+                    },
+                ],
+            }));
+        } catch (err) {
+            let errorMsg = "❌ حدث خطأ أثناء حفظ الفاتورة";
+            if (err.response?.status === 401) {
+                errorMsg = "غير مصرح بالعملية - يرجى تسجيل الدخول";
+            } else if (err.response?.status === 403) {
+                errorMsg = "ليس لديك صلاحية لهذه العملية";
+            } else if (err.response?.data?.error) {
+                errorMsg = err.response.data.error;
+            }
+
+            setSubmitMessage({ text: errorMsg, isError: true });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
         <div className={classes.container}>
-            <div style={{ width: "10%", marginRight: "2.5%" }}>
-                <TextInput
-                    type="date"
-                    placeholder="تاريخ الفاتورة"
-                    label="تاريخ الفاتورة"
-                    id={`date`}
-                    value={invoice.date}
-                    onchange={(e) =>
-                        setInvoice((prev) => ({ ...prev, date: e }))
-                    }
-                    disabled={false}
-                />
-            </div>
-            <div style={{ width: "50%", marginRight: "2.5%" }}>
-                <Select
-                    title="المورّد"
-                    value={invoice.supplier}
-                    onchange={(val) =>
-                        setInvoice((prev) => ({ ...prev, supplier: val }))
-                    }
-                    options={suppliers.map((s) => ({
-                        value: s._id,
-                        label: s.name,
-                    }))}
-                    disabled={false}
-                />
+            {/* Invoice Header */}
+            <div style={{ display: "flex", marginBottom: "20px" }}>
+                <div style={{ width: "10%", marginRight: "2.5%" }}>
+                    <TextInput
+                        type="date"
+                        label="تاريخ الفاتورة"
+                        value={invoice.date}
+                        onchange={(e) =>
+                            setInvoice((prev) => ({ ...prev, date: e }))
+                        }
+                    />
+                </div>
+                <div style={{ width: "50%", marginRight: "2.5%" }}>
+                    <Select
+                        title="المورّد"
+                        value={invoice.supplier}
+                        onchange={(val) =>
+                            setInvoice((prev) => ({ ...prev, supplier: val }))
+                        }
+                        options={suppliers.map((s) => ({
+                            value: s._id,
+                            label: s.name,
+                        }))}
+                    />
+                </div>
             </div>
 
+            {/* Invoice Table */}
             <div style={{ width: "95%", margin: "20px auto" }}>
                 <table
                     className={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
                 >
                     <thead>
                         <tr>
-                            <th className={classes.head} scope="col"></th>
+                            <th className={classes.head} scope="col">
+                                #
+                            </th>
                             <th
                                 className={classes.head}
                                 scope="col"
@@ -226,215 +333,63 @@ export default function PurchaseInvoice() {
                     </thead>
                     <tbody>
                         {invoice.rows.map((row, i) => (
-                            <tr key={i}>
-                                <th className={classes.item} scope="row">
-                                    {i + 1}
-                                </th>
-
-                                {/* اسم المنتج */}
-                                <td className={classes.item}>
-                                    <Select
-                                        className={classes["no-margin"]}
-                                        title="اسم المنتج"
-                                        value={row.name}
-                                        onchange={(val) =>
-                                            handleRowChange(i, "name", val)
-                                        }
-                                        options={products.map((p) => ({
-                                            value: p._id,
-                                            label: p.name,
-                                        }))}
-                                        disabled={false}
-                                    />
-                                    {rowErrors[i]?.name && (
-                                        <div className={classes.error}>
-                                            {rowErrors[i].name}
-                                        </div>
-                                    )}
-                                </td>
-
-                                {/* الكمية */}
-                                <td className={classes.item}>
-                                    <TextInput
-                                        className={classes["no-margin"]}
-                                        type="number"
-                                        placeholder="الكمية"
-                                        label="الكمية"
-                                        id={`quantity` + i}
-                                        value={row.quantity}
-                                        onchange={(val) =>
-                                            handleRowChange(i, "quantity", val)
-                                        }
-                                        disabled={false}
-                                    />
-                                    {rowErrors[i]?.quantity && (
-                                        <div className={classes.error}>
-                                            {rowErrors[i].quantity}
-                                        </div>
-                                    )}
-                                </td>
-
-                                {/* العبوة */}
-                                <td className={classes.item}>
-                                    <Select
-                                        className={classes["no-margin"]}
-                                        title="العبوة"
-                                        value={row.volume}
-                                        onchange={(val) =>
-                                            handleRowChange(i, "volume", val)
-                                        }
-                                        options={
-                                            row.name
-                                                ? products
-                                                      .find(
-                                                          (p) =>
-                                                              p._id === row.name
-                                                      )
-                                                      ?.values.map((v) => ({
-                                                          value: v.id,
-                                                          label: v.name,
-                                                      })) ?? []
-                                                : []
-                                        }
-                                        disabled={!row.name}
-                                    />
-                                    {rowErrors[i]?.volume && (
-                                        <div className={classes.error}>
-                                            {rowErrors[i].volume}
-                                        </div>
-                                    )}
-                                </td>
-
-                                {/* سعر الشراء */}
-                                <td className={classes.item}>
-                                    <TextInput
-                                        className={classes["no-margin"]}
-                                        type="number"
-                                        placeholder="سعر الشراء"
-                                        label="سعر الشراء"
-                                        id={`buy_price` + i}
-                                        value={row["buy_price"]}
-                                        onchange={(val) =>
-                                            handleRowChange(i, "buy_price", val)
-                                        }
-                                        disabled={false}
-                                    />
-                                    {rowErrors[i]?.buy_price && (
-                                        <div className={classes.error}>
-                                            {rowErrors[i].buy_price}
-                                        </div>
-                                    )}
-                                </td>
-
-                                {/* سعر البيع للصيدلية */}
-                                <td className={classes.item}>
-                                    <TextInput
-                                        className={classes["no-margin"]}
-                                        type="number"
-                                        placeholder="سعر البيع للصيدلية"
-                                        label="سعر البيع للصيدلية"
-                                        id={`phar_price` + i}
-                                        value={row["phar_price"]}
-                                        onchange={(val) =>
-                                            handleRowChange(
-                                                i,
-                                                "phar_price",
-                                                val
-                                            )
-                                        }
-                                        disabled={false}
-                                    />
-                                    {rowErrors[i]?.phar_price && (
-                                        <div className={classes.error}>
-                                            {rowErrors[i].phar_price}
-                                        </div>
-                                    )}
-                                </td>
-
-                                {/* سعر البيع للزبون */}
-                                <td className={classes.item}>
-                                    <TextInput
-                                        className={classes["no-margin"]}
-                                        type="number"
-                                        placeholder="سعر البيع للزبون"
-                                        label="سعر البيع للزبون"
-                                        id={`cust_price` + i}
-                                        value={row["cust_price"]}
-                                        onchange={(val) =>
-                                            handleRowChange(
-                                                i,
-                                                "cust_price",
-                                                val
-                                            )
-                                        }
-                                        disabled={false}
-                                    />
-                                    {rowErrors[i]?.cust_price && (
-                                        <div className={classes.error}>
-                                            {rowErrors[i].cust_price}
-                                        </div>
-                                    )}
-                                </td>
-
-                                {/* تاريخ الصلاحية */}
-                                <td className={classes.item}>
-                                    <TextInput
-                                        className={classes["no-margin"]}
-                                        type="date"
-                                        placeholder="تاريخ الانتهاء"
-                                        label="تاريخ الانتهاء"
-                                        id={`expiry_date_${i}`}
-                                        value={row.expiry_date}
-                                        onchange={(val) =>
-                                            handleRowChange(
-                                                i,
-                                                "expiry_date",
-                                                val
-                                            )
-                                        }
-                                        disabled={false}
-                                    />
-                                </td>
-
-                                {/* الباقي */}
-                                <td className={classes.item}>
-                                    <TextInput
-                                        className={classes["no-margin"]}
-                                        type="number"
-                                        placeholder="الباقى"
-                                        label="الباقى"
-                                        id={`rest_${i}`}
-                                        value={row["rest"]}
-                                        onchange={(val) =>
-                                            handleRowChange(i, "rest", val)
-                                        }
-                                        disabled={false}
-                                    />
-                                </td>
-
-                                {/* أدوات التحكم */}
-                                <td
-                                    className={`${classes.item} ${classes.tools}`}
-                                >
-                                    {i === invoice.rows.length - 1 && (
-                                        <IoMdAddCircle
-                                            onClick={addRow}
-                                            className={classes.add}
-                                        />
-                                    )}
-                                    {invoice.rows.length > 1 &&
-                                        i !== invoice.rows.length - 1 && (
-                                            <MdDelete
-                                                onClick={() => removeRow(i)}
-                                                className={classes.remove}
-                                            />
-                                        )}
-                                </td>
-                            </tr>
+                            <InvoiceRow
+                                key={i}
+                                row={row}
+                                index={i}
+                                products={products}
+                                onChange={handleRowChange}
+                                onRemove={removeRow}
+                                onAdd={addRow}
+                                errors={rowErrors}
+                                isLastRow={i === invoice.rows.length - 1}
+                                canRemove={
+                                    invoice.rows.length > 1 &&
+                                    i !== invoice.rows.length - 1
+                                }
+                            />
                         ))}
+                        <tr>
+                            <th colSpan="4">الاجمالى</th>
+                            <th colSpan="6">
+                                <strong
+                                    style={{
+                                        color: "#333",
+                                        fontSize: "1.1rem",
+                                    }}
+                                >
+                                    {Number(invoice.cost || 0).toFixed(2)} ج.م
+                                </strong>
+                            </th>
+                        </tr>
                     </tbody>
                 </table>
             </div>
+
+            {/* Submit Section */}
+            <Button
+                content={isSubmitting ? "جاري الحفظ..." : "احفظ الفاتورة"}
+                onClick={handleSubmit}
+                disabled={!isFormValid || isSubmitting}
+            />
+
+            {/* Messages */}
+            {submitError && (
+                <div style={{ color: "red", marginTop: "10px" }}>
+                    {submitError}
+                </div>
+            )}
+            {submitMessage.text && (
+                <div
+                    style={{
+                        marginTop: "10px",
+                        fontWeight: "bold",
+                        color: submitMessage.isError ? "red" : "green",
+                    }}
+                >
+                    {submitMessage.text}
+                </div>
+            )}
         </div>
     );
 }

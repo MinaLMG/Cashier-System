@@ -21,7 +21,10 @@ export default function Content(props) {
                 ></ShowInventory>
             )}
             {props.selected === "زود فاتورة" && (
-                <PurchaseInvoice></PurchaseInvoice>
+                <PurchaseInvoice mode="add"></PurchaseInvoice>
+            )}
+            {props.selected === "عدل فاتورة" && (
+                <PurchaseInvoice mode="edit" invoice={{}}></PurchaseInvoice>
             )}
         </div>
     );

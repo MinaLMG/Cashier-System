@@ -10,7 +10,10 @@ export default function Layout() {
             title: "بضاعة المخزن",
             tasks: ["زود منتج", "عدل منتج", "اعرض كل البضاعة"],
         },
-        { title: "الفواتير", tasks: ["زود فاتورة", "اعرض كل الفواتير"] },
+        {
+            title: "الفواتير",
+            tasks: ["زود فاتورة", "عدل فاتورة", "اعرض كل الفواتير"],
+        },
     ];
     const [selected, setSelected] = useState("");
     function changeSelected(ch) {
