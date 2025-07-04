@@ -87,7 +87,11 @@ export default function PurchaseInvoice() {
                 !isNaN(buyPrice) &&
                 !isNaN(pharPrice) &&
                 !isNaN(walkinPrice) &&
-                buyPrice > 0
+                buyPrice > 0 &&
+                pharPrice > 0 &&
+                walkinPrice > 0 &&
+                buyPrice <= pharPrice &&
+                pharPrice <= pharPrice
             ) {
                 total += quantity * buyPrice;
             }

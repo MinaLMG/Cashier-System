@@ -181,3 +181,79 @@ exports.createFullPurchaseInvoice = async (req, res) => {
         });
     }
 };
+
+const PurchaseInvoice = require("../models/PurchaseInvoice");
+const PurchaseItem = require("../models/PurchaseItem");
+
+exports.getFullPurchaseInvoiceById = async (req, res) => {
+    try {
+        const invoice = await PurchaseInvoice.findById(req.params.id);
+        if (!invoice) {
+            return res.status(404).json({ error: "الفاتورة غير موجودة" });
+        }
+
+        const items = await PurchaseItem.find({
+            purchase_invoice: invoice._id,
+        });
+
+        const rows = items.map((item) => ({
+            product: item.product.toString(),
+            quantity: item.quantity.toString(),
+            volume: item.volume.toString(),
+            buy_price: item.buy_price.toString(),
+            phar_price: item.pharmacy_price.toString(),
+            cust_price: item.walkin_price.toString(),
+            expiry: item.expiry ? item.expiry.toISOString().split("T")[0] : "",
+            remaining: item.remaining_quantity?.toString() || "",
+        }));
+
+        res.status(200).json({
+            date: invoice.date.toISOString().split("T")[0],
+            supplier: invoice.supplier || null,
+            rows,
+            cost: invoice.cost,
+        });
+    } catch (err) {
+        console.error("getFullPurchaseInvoiceById error:", err);
+        res.status(500).json({ error: "فشل في تحميل الفاتورة" });
+    }
+};
+
+exports.getAllFullPurchaseInvoices = async (req, res) => {
+    try {
+        const invoices = await PurchaseInvoice.find();
+
+        const fullInvoices = await Promise.all(
+            invoices.map(async (invoice) => {
+                const items = await PurchaseItem.find({
+                    purchase_invoice: invoice._id,
+                });
+
+                const rows = items.map((item) => ({
+                    product: item.product.toString(),
+                    quantity: item.quantity.toString(),
+                    volume: item.volume.toString(),
+                    buy_price: item.buy_price.toString(),
+                    phar_price: item.pharmacy_price.toString(),
+                    cust_price: item.walkin_price.toString(),
+                    expiry: item.expiry
+                        ? item.expiry.toISOString().split("T")[0]
+                        : "",
+                    remaining: item.remaining_quantity?.toString() || "",
+                }));
+
+                return {
+                    date: invoice.date.toISOString().split("T")[0],
+                    supplier: invoice.supplier || null,
+                    rows,
+                    cost: invoice.cost,
+                };
+            })
+        );
+
+        res.status(200).json(fullInvoices);
+    } catch (err) {
+        console.error("getAllFullPurchaseInvoices error:", err);
+        res.status(500).json({ error: "فشل في تحميل الفواتير" });
+    }
+};
