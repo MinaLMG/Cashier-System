@@ -330,3 +330,65 @@ exports.updateFullProduct = async (req, res) => {
         });
     }
 };
+
+exports.getFullProductById = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+        if (!product) {
+            return res.status(404).json({ error: "المنتج غير موجود" });
+        }
+
+        // Get all HasVolume entries for this product
+        const volumeEntries = await HasVolume.find({
+            product: product._id,
+        }).populate("volume");
+
+        const values = volumeEntries.map((entry) => ({
+            id: entry.volume._id,
+            name: entry.volume.name,
+            val: entry.value,
+        }));
+
+        res.status(200).json({
+            name: product.name,
+            "min-stock": product.min_stock,
+            conversions: product.conversions,
+            values,
+        });
+    } catch (err) {
+        console.error("getFullProduct error:", err);
+        res.status(500).json({ error: "فشل في جلب بيانات المنتج" });
+    }
+};
+
+exports.getAllFullProducts = async (req, res) => {
+    try {
+        const products = await Product.find();
+
+        const result = await Promise.all(
+            products.map(async (product) => {
+                const hasVolumes = await HasVolume.find({
+                    product: product._id,
+                }).populate("volume");
+
+                const values = hasVolumes.map((hv) => ({
+                    id: hv.volume._id,
+                    name: hv.volume.name,
+                    val: hv.value,
+                }));
+
+                return {
+                    name: product.name,
+                    "min-stock": product.min_stock,
+                    conversions: product.conversions,
+                    values,
+                };
+            })
+        );
+
+        res.status(200).json(result);
+    } catch (err) {
+        console.error("getFullProducts error:", err);
+        res.status(500).json({ error: "فشل في تحميل المنتجات الكاملة" });
+    }
+};

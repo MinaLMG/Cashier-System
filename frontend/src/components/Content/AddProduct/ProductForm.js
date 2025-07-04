@@ -389,12 +389,6 @@ export default function ProductForm({
                 </div>
             </div>
 
-            {errorsAppearing && product.error && (
-                <div style={{ color: "red", marginTop: "10px" }}>
-                    {product.error}
-                </div>
-            )}
-
             <div style={{ width: "50%" }}>
                 <TextInput
                     type="number"
@@ -407,6 +401,11 @@ export default function ProductForm({
                     }}
                 />
             </div>
+            {errorsAppearing && product.error && (
+                <div style={{ color: "red", marginTop: "10px" }}>
+                    {product.error}
+                </div>
+            )}
 
             <div style={{ padding: "auto", marginTop: "15px" }}>
                 <Button
