@@ -350,6 +350,7 @@ exports.getFullProductById = async (req, res) => {
         }));
 
         res.status(200).json({
+            id: product._id,
             name: product.name,
             "min-stock": product.min_stock,
             conversions: product.conversions,
@@ -376,8 +377,8 @@ exports.getAllFullProducts = async (req, res) => {
                     name: hv.volume.name,
                     val: hv.value,
                 }));
-
                 return {
+                    _id: product._id,
                     name: product.name,
                     "min-stock": product.min_stock,
                     conversions: product.conversions,

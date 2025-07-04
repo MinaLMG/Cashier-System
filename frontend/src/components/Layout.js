@@ -16,6 +16,32 @@ export default function Layout() {
     function changeSelected(ch) {
         setSelected(ch);
     }
+    const [productToEdit, setProductToEdit] = useState({
+        name: "",
+        "min-stock": "",
+        conversions: [{ from: "", to: "", value: 1, barcode: "" }],
+        values: [],
+        error: "ادخل الوحدة الاساسية",
+    });
+    const [onEditSuccess, setOnEditSuccess] = useState(null);
+    const executeSuccess = () => {
+        switch (onEditSuccess) {
+            case "reset":
+                setSelected("اعرض كل البضاعة");
+                setProductToEdit({
+                    name: "",
+                    "min-stock": "",
+                    conversions: [{ from: "", to: "", value: 1, barcode: "" }],
+                    values: [],
+                    error: "ادخل الوحدة الاساسية",
+                });
+                setOnEditSuccess("");
+                break;
+
+            default:
+                break;
+        }
+    };
     return (
         <Fragment>
             <Header></Header>
@@ -35,7 +61,18 @@ export default function Layout() {
                     onSelect={changeSelected}
                     actions={actions}
                 ></Side>
-                <Content selected={selected}></Content>
+                <Content
+                    selected={selected}
+                    onEdit={(e) => {
+                        setProductToEdit(e);
+                        setOnEditSuccess("reset");
+                        setSelected("عدل منتج");
+                    }}
+                    productToEdit={productToEdit}
+                    onEditSuccess={() => {
+                        executeSuccess();
+                    }}
+                ></Content>
             </div>
             ;
         </Fragment>

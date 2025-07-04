@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+import { useState, useCallback, useEffect, Fragment } from "react";
 import axios from "axios";
 import Select from "../../Basic/Select";
 import TextInput from "../../Basic/TextInput";
@@ -9,6 +9,7 @@ import Button from "../../Basic/Button";
 export default function ProductForm({
     mode = "add",
     product: initialProductData,
+    onSuccess,
 }) {
     const [product, setProduct] = useState({
         name: "",
@@ -28,159 +29,138 @@ export default function ProductForm({
         isError: false,
     });
     const [errorsAppearing, setErrorsAppearing] = useState(true);
-
-    useEffect(() => {
-        axios
-            .get(process.env.REACT_APP_BACKEND + "volumes")
-            .then((res) => setVolumes(res.data))
-            .catch((err) => console.error("Failed to fetch volumes:", err));
-    }, []);
-
-    useEffect(() => {
-        validateForSubmit(product.conversions);
-    }, [product.conversions, product.name]);
-    useEffect(() => {
-        if (mode === "edit" && initialProductData) {
-            setProduct({
-                name: initialProductData.name || "",
-                "min-stock": initialProductData["min-stock"] || "",
-                conversions: initialProductData.conversions || [
-                    { from: "", to: "", value: 1, barcode: "" },
-                ],
-                error: "",
-            });
-        }
-    }, [mode, initialProductData]);
-    // 2. Separate effect: call updateValues when both conversions and volumes are ready
-    useEffect(() => {
-        if (product.conversions?.length > 0 && volumes.length > 0) {
-            updateValues(product.conversions);
-        }
-    }, [product.conversions, volumes]);
-    const validateForSubmit = (conversions) => {
-        try {
-            if (!product.name.trim()) {
-                throw new Error("اسم المنتج مطلوب");
-            }
-
-            const graph = {};
-            const involvedIds = new Set();
-
-            conversions.forEach(({ from, to, value }, index) => {
-                const isLast = index === conversions.length - 1;
-                const isFirst = index === 0;
-
-                if (isFirst && !from) {
-                    throw new Error("الوحدة الأساسية مطلوبة.");
+    const validateForSubmit = useCallback(
+        (conversions) => {
+            try {
+                if (!product.name.trim()) {
+                    throw new Error("اسم المنتج مطلوب");
                 }
 
-                if (!isFirst && !isLast) {
-                    if (!from || !to || !value || value <= 0) {
-                        throw new Error("أكمل كل الحقول في الصفوف الوسطى.");
+                const graph = {};
+                const involvedIds = new Set();
+
+                conversions.forEach(({ from, to, value }, index) => {
+                    const isLast = index === conversions.length - 1;
+                    const isFirst = index === 0;
+
+                    if (isFirst && !from) {
+                        throw new Error("الوحدة الأساسية مطلوبة.");
+                    }
+
+                    if (!isFirst && !isLast) {
+                        if (!from || !to || !value || value <= 0) {
+                            throw new Error("أكمل كل الحقول في الصفوف الوسطى.");
+                        }
+                    }
+
+                    if (from && to && value && value > 0) {
+                        if (!graph[from]) graph[from] = [];
+                        if (!graph[to]) graph[to] = [];
+
+                        graph[from].push({ node: to, weight: value });
+                        graph[to].push({ node: from, weight: 1 / value });
+
+                        involvedIds.add(from);
+                        involvedIds.add(to);
+                    }
+                });
+
+                const baseId = conversions[0]?.from;
+                if (!baseId) throw new Error("الوحدة الأساسية غير معرّفة");
+
+                // Check graph connectivity
+                const visitedCheck = {};
+                const stack = [baseId];
+                while (stack.length) {
+                    const node = stack.pop();
+                    if (visitedCheck[node]) continue;
+                    visitedCheck[node] = true;
+                    for (const edge of graph[node] || []) {
+                        stack.push(edge.node);
                     }
                 }
 
-                if (from && to && value && value > 0) {
-                    if (!graph[from]) graph[from] = [];
-                    if (!graph[to]) graph[to] = [];
-
-                    graph[from].push({ node: to, weight: value });
-                    graph[to].push({ node: from, weight: 1 / value });
-
-                    involvedIds.add(from);
-                    involvedIds.add(to);
-                }
-            });
-
-            const baseId = conversions[0]?.from;
-            if (!baseId) throw new Error("الوحدة الأساسية غير معرّفة");
-
-            // Check graph connectivity
-            const visitedCheck = {};
-            const stack = [baseId];
-            while (stack.length) {
-                const node = stack.pop();
-                if (visitedCheck[node]) continue;
-                visitedCheck[node] = true;
-                for (const edge of graph[node] || []) {
-                    stack.push(edge.node);
-                }
-            }
-
-            for (const id of involvedIds) {
-                if (!visitedCheck[id]) {
-                    throw new Error("سلسلة التحويل غير مكتملة أو غير متصلة.");
-                }
-            }
-
-            setIsSubmittable(true);
-            setSubmitError("");
-        } catch (err) {
-            setIsSubmittable(false);
-            setSubmitError(err.message);
-        }
-    };
-
-    const updateValues = (conversions) => {
-        console.log("converions", conversions);
-        try {
-            const graph = {};
-            const involvedIds = new Set();
-
-            conversions.forEach(({ from, to, value }) => {
-                if (from && to && value && value > 0) {
-                    if (!graph[from]) graph[from] = [];
-                    if (!graph[to]) graph[to] = [];
-
-                    graph[from].push({ node: to, weight: value });
-                    graph[to].push({ node: from, weight: 1 / value });
-
-                    involvedIds.add(from);
-                    involvedIds.add(to);
-                }
-            });
-
-            const baseId = conversions[0]?.from;
-            console.log(volumes);
-            const baseVolume = volumes.find((v) => v._id === baseId);
-            if (!baseId || !baseVolume) {
-                throw new Error("الوحدة الأساسية غير صالحة أو غير موجودة.");
-            }
-
-            const visited = {};
-            const values = [];
-            const queue = [{ id: baseId, value: 1 }];
-            visited[baseId] = 1;
-
-            while (queue.length > 0) {
-                const { id, value } = queue.shift();
-                const volume = volumes.find((v) => v._id === id);
-                if (volume)
-                    values.push({
-                        id: volume._id,
-                        name: volume.name,
-                        val: value,
-                    });
-
-                for (const edge of graph[id] || []) {
-                    if (!(edge.node in visited)) {
-                        const newValue = value / edge.weight;
-                        visited[edge.node] = newValue;
-                        queue.push({ id: edge.node, value: newValue });
+                for (const id of involvedIds) {
+                    if (!visitedCheck[id]) {
+                        throw new Error(
+                            "سلسلة التحويل غير مكتملة أو غير متصلة."
+                        );
                     }
                 }
-            }
 
-            values.sort((a, b) => a.val - b.val);
-            setProduct((prev) => ({ ...prev, values, error: "" }));
-        } catch (err) {
-            setProduct((prev) => ({
-                ...prev,
-                values: [],
-                error: err.message,
-            }));
-        }
-    };
+                setIsSubmittable(true);
+                setSubmitError("");
+            } catch (err) {
+                setIsSubmittable(false);
+                setSubmitError(err.message);
+            }
+        },
+        [product.name]
+    );
+
+    const updateValues = useCallback(
+        (conversions) => {
+            console.log("converions", conversions);
+            try {
+                const graph = {};
+                const involvedIds = new Set();
+
+                conversions.forEach(({ from, to, value }) => {
+                    if (from && to && value && value > 0) {
+                        if (!graph[from]) graph[from] = [];
+                        if (!graph[to]) graph[to] = [];
+
+                        graph[from].push({ node: to, weight: value });
+                        graph[to].push({ node: from, weight: 1 / value });
+
+                        involvedIds.add(from);
+                        involvedIds.add(to);
+                    }
+                });
+
+                const baseId = conversions[0]?.from;
+                console.log(volumes);
+                const baseVolume = volumes.find((v) => v._id === baseId);
+                if (!baseId || !baseVolume) {
+                    throw new Error("الوحدة الأساسية غير صالحة أو غير موجودة.");
+                }
+
+                const visited = {};
+                const values = [];
+                const queue = [{ id: baseId, value: 1 }];
+                visited[baseId] = 1;
+
+                while (queue.length > 0) {
+                    const { id, value } = queue.shift();
+                    const volume = volumes.find((v) => v._id === id);
+                    if (volume)
+                        values.push({
+                            id: volume._id,
+                            name: volume.name,
+                            val: value,
+                        });
+
+                    for (const edge of graph[id] || []) {
+                        if (!(edge.node in visited)) {
+                            const newValue = value / edge.weight;
+                            visited[edge.node] = newValue;
+                            queue.push({ id: edge.node, value: newValue });
+                        }
+                    }
+                }
+
+                values.sort((a, b) => a.val - b.val);
+                setProduct((prev) => ({ ...prev, values, error: "" }));
+            } catch (err) {
+                setProduct((prev) => ({
+                    ...prev,
+                    values: [],
+                    error: err.message,
+                }));
+            }
+        },
+        [volumes]
+    );
 
     const handleConversionChange = (index, field, value) => {
         const updated = [...product.conversions];
@@ -273,6 +253,34 @@ export default function ProductForm({
 
         updateValues(updated);
     };
+    useEffect(() => {
+        axios
+            .get(process.env.REACT_APP_BACKEND + "volumes")
+            .then((res) => setVolumes(res.data))
+            .catch((err) => console.error("Failed to fetch volumes:", err));
+    }, []);
+
+    useEffect(() => {
+        validateForSubmit(product.conversions);
+    }, [product.conversions, product.name, validateForSubmit]);
+    useEffect(() => {
+        if (mode === "edit" && initialProductData) {
+            setProduct({
+                name: initialProductData.name || "",
+                "min-stock": initialProductData["min-stock"] || "",
+                conversions: initialProductData.conversions || [
+                    { from: "", to: "", value: 1, barcode: "" },
+                ],
+                error: "",
+            });
+        }
+    }, [mode, initialProductData]);
+    // 2. Separate effect: call updateValues when both conversions and volumes are ready
+    useEffect(() => {
+        if (product.conversions?.length > 0 && volumes.length > 0) {
+            updateValues(product.conversions);
+        }
+    }, [product.conversions, volumes, updateValues]);
 
     return (
         <div className={classes.add}>
@@ -409,7 +417,7 @@ export default function ProductForm({
 
             <div style={{ padding: "auto", marginTop: "15px" }}>
                 <Button
-                    content={mode == "add" ? "حفظ" : "تعديل"}
+                    content={mode === "add" ? "حفظ" : "تعديل"}
                     disabled={!isSubmittable}
                     onClick={() => {
                         console.log(product);
@@ -429,6 +437,9 @@ export default function ProductForm({
                                             : "تم حفظ المنتج بنجاح",
                                     isError: false,
                                 });
+                                if (onSuccess) {
+                                    onSuccess();
+                                }
                                 setErrorsAppearing(false);
                                 setTimeout(() => {
                                     setErrorsAppearing(true);
@@ -454,7 +465,7 @@ export default function ProductForm({
                                 setSubmitMessage({
                                     text:
                                         err.response?.data?.error ||
-                                        (mode == "add"
+                                        (mode === "add"
                                             ? "حدث خطأ أثناء حفظ المنتج"
                                             : "حدث خطأ أثناء تعديل المنتج"),
                                     isError: true,
