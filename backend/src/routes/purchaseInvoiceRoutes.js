@@ -8,7 +8,7 @@ router.put("/:id", controller.updatePurchaseInvoice);
 router.delete("/:id", controller.deletePurchaseInvoice);
 router.post("/full", controller.createFullPurchaseInvoice);
 
-router.get("/full", purchaseInvoiceController.getAllFullPurchaseInvoices);
-router.get("/full/:id", purchaseInvoiceController.getFullPurchaseInvoiceById);
+router.get("/full", controller.getAllFullPurchaseInvoices);
+router.get("/full/:id", controller.getFullPurchaseInvoiceById);
 
 module.exports = router;

@@ -91,7 +91,7 @@ export default function PurchaseInvoice() {
                 pharPrice > 0 &&
                 walkinPrice > 0 &&
                 buyPrice <= pharPrice &&
-                pharPrice <= pharPrice
+                pharPrice <= walkinPrice
             ) {
                 total += quantity * buyPrice;
             }

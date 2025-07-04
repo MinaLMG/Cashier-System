@@ -182,9 +182,6 @@ exports.createFullPurchaseInvoice = async (req, res) => {
     }
 };
 
-const PurchaseInvoice = require("../models/PurchaseInvoice");
-const PurchaseItem = require("../models/PurchaseItem");
-
 exports.getFullPurchaseInvoiceById = async (req, res) => {
     try {
         const invoice = await PurchaseInvoice.findById(req.params.id);
