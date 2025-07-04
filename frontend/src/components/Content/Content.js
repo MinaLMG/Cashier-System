@@ -1,6 +1,7 @@
 import ShowInventory from "./Inventory/ShowInventory";
 import ProductForm from "./AddProduct/ProductForm";
 import classes from "./Content.module.css";
+import PurchaseInvoice from "./PurchaseInvoice/PurchaseInvoice";
 export default function Content(props) {
     return (
         <div className={classes["content"]}>
@@ -18,6 +19,9 @@ export default function Content(props) {
                         props.onEdit(e);
                     }}
                 ></ShowInventory>
+            )}
+            {props.selected === "زود فاتورة" && (
+                <PurchaseInvoice></PurchaseInvoice>
             )}
         </div>
     );

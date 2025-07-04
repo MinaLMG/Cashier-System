@@ -1,0 +1,39 @@
+.container {
+    padding: 50px;
+}
+
+.table {
+    width: 100%;
+}
+.table th,
+.item {
+    align-content: center;
+}
+
+.no-margin {
+    margin-bottom: 0 !important;
+}
+
+.tools {
+    display: flex;
+    height: 74px;
+    align-items: center;
+}
+.edit,
+.remove,
+.add {
+    font-size: 30px;
+    margin: 0 5px;
+    cursor: pointer;
+}
+.add {
+    color: #198754;
+    background-color: #fff;
+}
+.edit {
+    color: brown;
+}
+
+.remove {
+    color: #848484;
+}

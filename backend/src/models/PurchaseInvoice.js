@@ -7,7 +7,7 @@ const purchaseInvoiceSchema = new mongoose.Schema({
         ref: "Supplier",
         required: true,
     },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 });
 
 module.exports = mongoose.model("PurchaseInvoice", purchaseInvoiceSchema);

@@ -3,7 +3,12 @@ import classes from "./TextInput.module.css";
 export default function TextInput(props) {
     return (
         <Fragment>
-            <div className="form-floating mb-3" dir="rtl">
+            <div
+                className={`form-floating mb-3 ${
+                    props.className ? props.className : ""
+                }`}
+                dir="rtl"
+            >
                 <input
                     disabled={props.disabled}
                     type={props.type}
