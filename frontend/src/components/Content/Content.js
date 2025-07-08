@@ -3,6 +3,7 @@ import ProductForm from "./AddProduct/ProductForm";
 import classes from "./Content.module.css";
 import PurchaseInvoice from "./PurchaseInvoice/PurchaseInvoice";
 import ShowPurchaseInvoices from "./ShowInvoices/ShowPurchaseInvoices";
+import SalesInvoice from "./SalesInvoices/SalesInvoice";
 export default function Content(props) {
     return (
         <div className={classes["content"]}>
@@ -11,7 +12,7 @@ export default function Content(props) {
                 <ProductForm
                     mode="edit"
                     product={props.productToEdit}
-                    onSuccess={props.onEditSuccess}
+                    onSuccess={props.onEditProductSuccess}
                 />
             )}
             {props.selected === "اعرض كل البضاعة" && (
@@ -21,23 +22,40 @@ export default function Content(props) {
                     }}
                 ></ShowInventory>
             )}
-            {props.selected === "زود فاتورة" && (
+            {props.selected === "زود فاتورة مشتريات" && (
                 <PurchaseInvoice mode="add"></PurchaseInvoice>
             )}
-            {props.selected === "عدل فاتورة بيع" && (
+            {props.selected === "عدل فاتورة مشتريات" && (
                 <PurchaseInvoice
                     mode="edit"
                     invoice={props.purchaseInvoiceToEdit}
-                    onSuccess={props.onEditSuccess}
+                    onSuccess={props.onEditPurchaseInvoiceSuccess}
                 ></PurchaseInvoice>
             )}
-            {props.selected === "اعرض كل الفواتير" && (
+            {props.selected === "اعرض كل فواتير المشتريات" && (
                 <ShowPurchaseInvoices
                     onEdit={(e) => {
                         props.onEditPurchaseInvoice(e);
                     }}
                 ></ShowPurchaseInvoices>
             )}
+            {props.selected === "زود فاتورة بيع" && (
+                <SalesInvoice mode="add"></SalesInvoice>
+            )}
+            {/* {props.selected === "عدل فاتورة بيع" && (
+                <PurchaseInvoice
+                    mode="edit"
+                    invoice={props.purchaseInvoiceToEdit}
+                    onSuccess={props.onEditPurchaseInvoiceSuccess}
+                ></PurchaseInvoice>
+            )}
+            {props.selected === "اعرض كل فواتير البيع" && (
+                <ShowPurchaseInvoices
+                    onEdit={(e) => {
+                        props.onEditPurchaseInvoice(e);
+                    }}
+                ></ShowPurchaseInvoices>
+            )} */}
         </div>
     );
 }

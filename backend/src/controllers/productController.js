@@ -116,7 +116,6 @@ exports.createFullProduct = async (req, res) => {
 
         // Step 3: Try inserting hasVolumes
         try {
-            console.log("we are here", volumeRecords);
             await HasVolume.insertMany(volumeRecords);
         } catch (volumeErr) {
             await Promise.all([
@@ -355,6 +354,8 @@ exports.getFullProductById = async (req, res) => {
             "min-stock": product.min_stock,
             conversions: product.conversions,
             values,
+            walkin_price: product.walkin_price,
+            pharmacy_price: product.pharmacy_price,
         });
     } catch (err) {
         console.error("getFullProduct error:", err);
@@ -383,6 +384,8 @@ exports.getAllFullProducts = async (req, res) => {
                     "min-stock": product.min_stock,
                     conversions: product.conversions,
                     values,
+                    walkin_price: product.walkin_price,
+                    pharmacy_price: product.pharmacy_price,
                 };
             })
         );

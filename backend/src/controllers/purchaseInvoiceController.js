@@ -1,3 +1,4 @@
+const updateProductPrices = require("../helpers/productPricing");
 const PurchaseInvoice = require("../models/PurchaseInvoice");
 const PurchaseItem = require("../models/PurchaseItem");
 
@@ -129,6 +130,11 @@ exports.createFullPurchaseInvoice = async (req, res) => {
         }));
 
         createdItems = await PurchaseItem.insertMany(items);
+        const updateProductPrices = require("../helpers/productPricing");
+
+        for (const item of createdItems) {
+            await updateProductPrices(item.product);
+        }
 
         return res.status(201).json({
             message: "تم حفظ الفاتورة بنجاح",
@@ -272,14 +278,13 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                 });
             }
         }
-        console.log(validRows);
 
         // Step 5: Modify or remove existing items
         const updatedIds = new Set();
 
         for (const item of oldItems) {
             const incoming = incomingItemMap.get(item._id.toString());
-            console.log(incoming);
+
             if (incoming) {
                 // Ensure product/volume don't change
                 if (
@@ -312,6 +317,15 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
 
         // Step 6: Insert new items
         let insertedItems = await PurchaseItem.insertMany(itemsToInsert);
+        const allAffectedProductIds = new Set([
+            ...itemsToInsert.map((i) => i.product.toString()),
+            ...oldItems.map((i) => i.product.toString()),
+        ]);
+
+        for (const productId of allAffectedProductIds) {
+            await updateProductPrices(productId);
+        }
+
         return res.status(200).json({
             message: "تم تعديل الفاتورة بنجاح",
             invoice: oldInvoice,

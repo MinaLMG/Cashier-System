@@ -8,6 +8,7 @@ const salesInvoiceSchema = new mongoose.Schema({
         required: true,
     },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    cost: { type: Number, required: true },
 });
 
 module.exports = mongoose.model("SalesInvoice", salesInvoiceSchema);

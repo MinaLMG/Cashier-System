@@ -206,7 +206,6 @@ export default function PurchaseInvoice(props) {
     };
 
     const handleSubmit = async () => {
-        console.log(invoice);
         const validRows = invoice.rows.filter((row) => !validateRow(row));
 
         if (!invoice.date || validRows.length === 0) {

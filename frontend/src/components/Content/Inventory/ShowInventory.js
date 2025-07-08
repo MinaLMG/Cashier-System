@@ -9,7 +9,6 @@ export default function ShowInventory(props) {
         axios
             .get(process.env.REACT_APP_BACKEND + "products/full")
             .then((res) => {
-                console.log(res.data);
                 setInventory(res.data);
             })
             .catch((err) => console.error("Failed to fetch volumes:", err));

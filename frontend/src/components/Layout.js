@@ -12,7 +12,14 @@ export default function Layout() {
         },
         {
             title: "الفواتير",
-            tasks: ["زود فاتورة", "عدل فاتورة بيع", "اعرض كل الفواتير"],
+            tasks: [
+                "زود فاتورة بيع",
+                "عدل فاتورة بيع",
+                "اعرض كل فواتير البيع",
+                "زود فاتورة مشتريات",
+                "عدل فاتورة مشتريات",
+                "اعرض كل فواتير المشتريات",
+            ],
         },
     ];
     const [selected, setSelected] = useState("");
@@ -68,7 +75,7 @@ export default function Layout() {
     const executeEditPurchaseInvoiceSuccess = () => {
         switch (onEditPurchaseInvoiceSuccess) {
             case "reset":
-                setSelected("اعرض كل الفواتير");
+                setSelected("اعرض كل فواتير المشتريات");
                 setPurchaseInvoiceToEdit({
                     date: new Date(Date.now()).toISOString().split("T")[0],
                     supplier: null,
@@ -129,7 +136,7 @@ export default function Layout() {
                     onEditPurchaseInvoice={(e) => {
                         setPurchaseInvoiceToEdit(e);
                         setOnEditPurchaseInvoiceSuccess("reset");
-                        setSelected("عدل فاتورة بيع");
+                        setSelected("عدل فاتورة مشتريات");
                     }}
                     purchaseInvoiceToEdit={purchaseInvoiceToEdit}
                     onEditPurchaseInvoiceSuccess={() => {

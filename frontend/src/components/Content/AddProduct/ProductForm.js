@@ -100,7 +100,6 @@ export default function ProductForm({
 
     const updateValues = useCallback(
         (conversions) => {
-            console.log("converions", conversions);
             try {
                 const graph = {};
                 const involvedIds = new Set();
@@ -119,7 +118,6 @@ export default function ProductForm({
                 });
 
                 const baseId = conversions[0]?.from;
-                console.log(volumes);
                 const baseVolume = volumes.find((v) => v._id === baseId);
                 if (!baseId || !baseVolume) {
                     throw new Error("الوحدة الأساسية غير صالحة أو غير موجودة.");
@@ -420,7 +418,6 @@ export default function ProductForm({
                     content={mode === "add" ? "حفظ" : "تعديل"}
                     disabled={!isSubmittable}
                     onClick={() => {
-                        console.log(product);
                         const endpoint =
                             mode === "edit"
                                 ? `${process.env.REACT_APP_BACKEND}products/full/${initialProductData._id}`

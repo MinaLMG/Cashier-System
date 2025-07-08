@@ -1,0 +1,11 @@
+.container {
+    padding: 50px;
+}
+
+.table {
+    width: 100%;
+}
+.table th,
+.item {
+    align-content: center;
+}
