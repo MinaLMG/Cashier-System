@@ -356,6 +356,7 @@ exports.getFullProductById = async (req, res) => {
             values,
             walkin_price: product.walkin_price,
             pharmacy_price: product.pharmacy_price,
+            total_remaining: product.total_remaining,
         });
     } catch (err) {
         console.error("getFullProduct error:", err);
@@ -386,6 +387,7 @@ exports.getAllFullProducts = async (req, res) => {
                     values,
                     walkin_price: product.walkin_price,
                     pharmacy_price: product.pharmacy_price,
+                    total_remaining: product.total_remaining,
                 };
             })
         );

@@ -27,6 +27,10 @@ export default function ShowInventory(props) {
                         <th className={classes.head} scope="col">
                             العبوات
                         </th>
+                        <th scope="col" className={classes.head}>
+                            الباقى حاليا
+                        </th>
+
                         <th
                             scope="col"
                             style={{ width: "220px" }}
@@ -56,6 +60,9 @@ export default function ShowInventory(props) {
                                             {v.name} : {v.val}
                                         </div>
                                     ))}
+                                </td>
+                                <td className={classes.item}>
+                                    {inv.total_remaining}
                                 </td>
                                 <td className={classes.item}>
                                     {inv["min-stock"] ? inv["min-stock"] : ""}

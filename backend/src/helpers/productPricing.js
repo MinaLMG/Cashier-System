@@ -7,7 +7,7 @@ const updateProductPrices = async (productId) => {
         // 1. Get all items with remaining stock
         const items = await PurchaseItem.find({
             product: productId,
-            remaining_quantity: { $gt: 0 },
+            remaining: { $gt: 0 },
         });
 
         // 2. Load all relevant volumes (for conversion values)
@@ -46,7 +46,10 @@ const updateProductPrices = async (productId) => {
 
         return { walkin_price: maxWalkin, pharmacy_price: maxPharmacy };
     } catch (err) {
-        console.error(`❌ Failed to update prices for product ${productId}:`, err);
+        console.error(
+            `❌ Failed to update prices for product ${productId}:`,
+            err
+        );
     }
 };
 

@@ -21,7 +21,7 @@ const purchaseItemSchema = new mongoose.Schema({
     buy_price: { type: Number, required: true },
     walkin_price: { type: Number, required: true },
     pharmacy_price: { type: Number, required: true },
-    remaining_quantity: { type: Number },
+    remaining: { type: Number },
 });
 
 module.exports = mongoose.model("PurchaseItem", purchaseItemSchema);

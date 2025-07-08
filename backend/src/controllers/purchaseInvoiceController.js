@@ -1,6 +1,9 @@
-const updateProductPrices = require("../helpers/productPricing");
 const PurchaseInvoice = require("../models/PurchaseInvoice");
 const PurchaseItem = require("../models/PurchaseItem");
+const HasVolume = require("../models/HasVolume");
+
+const updateProductPrices = require("../helpers/productPricing");
+const updateProductRemaining = require("../helpers/updateProductRemaining");
 
 exports.getAllPurchaseInvoices = async (req, res) => {
     try {
@@ -75,7 +78,6 @@ exports.createFullPurchaseInvoice = async (req, res) => {
 
     let newInvoice = null;
     let createdItems = [];
-
     try {
         // Step 1: Filter valid rows
         const validRows = rows.filter(
@@ -115,25 +117,35 @@ exports.createFullPurchaseInvoice = async (req, res) => {
         });
 
         // ✅ Step 4: Create items
-        const items = validRows.map((r) => ({
-            purchase_invoice: newInvoice._id,
-            product: r.product,
-            volume: r.volume,
-            quantity: Number(r.quantity),
-            buy_price: Number(r.buy_price),
-            pharmacy_price: Number(r.phar_price),
-            walkin_price: Number(r.cust_price),
-            expiry: r.expiry ? new Date(r.expiry) : null,
-            remaining_quantity: r.remaining
-                ? Number(r.remaining)
-                : Number(r.quantity),
-        }));
+        const items = await Promise.all(
+            validRows.map(async (r) => {
+                const hasVolume = await HasVolume.findOne({
+                    product: r.product,
+                    volume: r.volume,
+                });
 
+                const remaining_quantity = Number(r.quantity) * hasVolume.value;
+
+                return {
+                    purchase_invoice: newInvoice._id,
+                    product: r.product,
+                    volume: r.volume,
+                    quantity: Number(r.quantity),
+                    buy_price: Number(r.buy_price),
+                    pharmacy_price: Number(r.phar_price),
+                    walkin_price: Number(r.cust_price),
+                    expiry: r.expiry ? new Date(r.expiry) : null,
+                    remaining: remaining_quantity,
+                };
+            })
+        );
+
+        console.log("here", items);
         createdItems = await PurchaseItem.insertMany(items);
-        const updateProductPrices = require("../helpers/productPricing");
 
         for (const item of createdItems) {
             await updateProductPrices(item.product);
+            await updateProductRemaining(item.product);
         }
 
         return res.status(201).json({
@@ -234,7 +246,6 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
         if (!oldInvoice)
             return res.status(404).json({ error: "الفاتورة غير موجودة" });
 
-        const oldInvoiceData = oldInvoice.toObject();
         oldItems = await PurchaseItem.find({ purchase_invoice: invoiceId });
         // Step X: Recalculate cost from valid rows (in both create and update)
         const recalculatedCost = validRows.reduce((sum, r) => {
@@ -262,6 +273,11 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                 // Existing item: modify fields
                 incomingItemMap.set(r._id, r);
             } else {
+                const hasVolume = await HasVolume.findOne({
+                    product: r.product,
+                    volume: r.volume,
+                });
+                const remaining_quantity = Number(r.quantity) * hasVolume.value;
                 // New item: insert
                 itemsToInsert.push({
                     purchase_invoice: invoiceId,
@@ -272,9 +288,7 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                     pharmacy_price: Number(r.phar_price),
                     walkin_price: Number(r.cust_price),
                     expiry: r.expiry ? new Date(r.expiry) : null,
-                    remaining_quantity: r.remaining
-                        ? Number(r.remaining)
-                        : Number(r.quantity),
+                    remaining: remaining_quantity,
                 });
             }
         }
@@ -304,9 +318,7 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                 item.expiry = incoming.expiry
                     ? new Date(incoming.expiry)
                     : null;
-                item.remaining_quantity = incoming.remaining
-                    ? Number(incoming.remaining)
-                    : Number(incoming.quantity);
+                item.remaining = incoming.remaining;
                 await item.save();
                 updatedIds.add(item._id.toString());
             } else {
@@ -324,6 +336,7 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
 
         for (const productId of allAffectedProductIds) {
             await updateProductPrices(productId);
+            await updateProductRemaining(productId);
         }
 
         return res.status(200).json({
@@ -392,7 +405,7 @@ exports.getFullPurchaseInvoiceById = async (req, res) => {
             phar_price: item.pharmacy_price.toString(),
             cust_price: item.walkin_price.toString(),
             expiry: item.expiry ? item.expiry.toISOString().split("T")[0] : "",
-            remaining: item.remaining_quantity?.toString() || "",
+            remaining: item.remaining?.toString() || "",
         }));
 
         res.status(200).json({
@@ -429,7 +442,7 @@ exports.getAllFullPurchaseInvoices = async (req, res) => {
                     expiry: item.expiry
                         ? item.expiry.toISOString().split("T")[0]
                         : "",
-                    remaining: item.remaining_quantity?.toString() || "",
+                    remaining: item.remaining?.toString() || "",
                 }));
 
                 return {
