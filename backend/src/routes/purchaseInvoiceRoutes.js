@@ -7,7 +7,7 @@ router.post("/", controller.createPurchaseInvoice);
 router.put("/:id", controller.updatePurchaseInvoice);
 router.delete("/:id", controller.deletePurchaseInvoice);
 router.post("/full", controller.createFullPurchaseInvoice);
-
+router.put("/full/:id", controller.updateFullPurchaseInvoice);
 router.get("/full", controller.getAllFullPurchaseInvoices);
 router.get("/full/:id", controller.getFullPurchaseInvoiceById);
 

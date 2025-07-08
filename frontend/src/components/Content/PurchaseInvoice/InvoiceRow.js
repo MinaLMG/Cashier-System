@@ -146,9 +146,9 @@ export default function InvoiceRow({
                     type="date"
                     placeholder="تاريخ الانتهاء"
                     label="تاريخ الانتهاء"
-                    id={`expiry_date_${index}`}
-                    value={row.expiry_date}
-                    onchange={(val) => onChange(index, "expiry_date", val)}
+                    id={`expiry${index}`}
+                    value={row.expiry}
+                    onchange={(val) => onChange(index, "expiry", val)}
                     disabled={false}
                 />
             </td>

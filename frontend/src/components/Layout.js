@@ -12,7 +12,7 @@ export default function Layout() {
         },
         {
             title: "الفواتير",
-            tasks: ["زود فاتورة", "عدل فاتورة", "اعرض كل الفواتير"],
+            tasks: ["زود فاتورة", "عدل فاتورة بيع", "اعرض كل الفواتير"],
         },
     ];
     const [selected, setSelected] = useState("");
@@ -26,9 +26,9 @@ export default function Layout() {
         values: [],
         error: "ادخل الوحدة الاساسية",
     });
-    const [onEditSuccess, setOnEditSuccess] = useState(null);
-    const executeSuccess = () => {
-        switch (onEditSuccess) {
+    const [onEditProductSuccess, setOnEditProductSuccess] = useState(null);
+    const executeEditProductSuccess = () => {
+        switch (onEditProductSuccess) {
             case "reset":
                 setSelected("اعرض كل البضاعة");
                 setProductToEdit({
@@ -38,7 +38,56 @@ export default function Layout() {
                     values: [],
                     error: "ادخل الوحدة الاساسية",
                 });
-                setOnEditSuccess("");
+                setOnEditProductSuccess("");
+                break;
+
+            default:
+                break;
+        }
+    };
+    const [purchaseInvoiceToEdit, setPurchaseInvoiceToEdit] = useState({
+        date: new Date(Date.now()).toISOString().split("T")[0],
+        supplier: null,
+        rows: [
+            {
+                _id: null,
+                product: null,
+                quantity: "",
+                volume: null,
+                buy_price: "",
+                phar_price: "",
+                cust_price: "",
+                expiry: "",
+                remaining: "",
+            },
+        ],
+        cost: "0",
+    });
+    const [onEditPurchaseInvoiceSuccess, setOnEditPurchaseInvoiceSuccess] =
+        useState(null);
+    const executeEditPurchaseInvoiceSuccess = () => {
+        switch (onEditPurchaseInvoiceSuccess) {
+            case "reset":
+                setSelected("اعرض كل الفواتير");
+                setPurchaseInvoiceToEdit({
+                    date: new Date(Date.now()).toISOString().split("T")[0],
+                    supplier: null,
+                    rows: [
+                        {
+                            _id: null,
+                            product: null,
+                            quantity: "",
+                            volume: null,
+                            buy_price: "",
+                            phar_price: "",
+                            cust_price: "",
+                            expiry: "",
+                            remaining: "",
+                        },
+                    ],
+                    cost: "0",
+                });
+                setOnEditPurchaseInvoiceSuccess("");
                 break;
 
             default:
@@ -66,14 +115,25 @@ export default function Layout() {
                 ></Side>
                 <Content
                     selected={selected}
-                    onEdit={(e) => {
+                    /*** edit product props   ***/
+                    onEditProduct={(e) => {
                         setProductToEdit(e);
-                        setOnEditSuccess("reset");
+                        setOnEditProductSuccess("reset");
                         setSelected("عدل منتج");
                     }}
                     productToEdit={productToEdit}
-                    onEditSuccess={() => {
-                        executeSuccess();
+                    onEditProductSuccess={() => {
+                        executeEditProductSuccess();
+                    }}
+                    /*** edit purchaseInvoice props   ***/
+                    onEditPurchaseInvoice={(e) => {
+                        setPurchaseInvoiceToEdit(e);
+                        setOnEditPurchaseInvoiceSuccess("reset");
+                        setSelected("عدل فاتورة بيع");
+                    }}
+                    purchaseInvoiceToEdit={purchaseInvoiceToEdit}
+                    onEditPurchaseInvoiceSuccess={() => {
+                        executeEditPurchaseInvoiceSuccess();
                     }}
                 ></Content>
             </div>

@@ -7,7 +7,7 @@ import Button from "../../Basic/Button";
 import InvoiceRow from "./InvoiceRow";
 
 // Main Component
-export default function PurchaseInvoice() {
+export default function PurchaseInvoice(props) {
     const [suppliers, setSuppliers] = useState([]);
     const [products, setProducts] = useState([]);
     const [invoice, setInvoice] = useState({
@@ -15,6 +15,7 @@ export default function PurchaseInvoice() {
         supplier: null,
         rows: [
             {
+                _id: null,
                 product: null,
                 quantity: "",
                 volume: null,
@@ -99,6 +100,28 @@ export default function PurchaseInvoice() {
 
         setInvoice((prev) => ({ ...prev, cost: total }));
     }, [invoice.rows]);
+    useEffect(() => {
+        if (props.mode === "edit" && props.invoice) {
+            setInvoice({
+                _id: invoice._id,
+                date: new Date(props.invoice.date).toISOString().split("T")[0],
+                supplier: props.invoice.supplier || null,
+                rows: props.invoice.rows.map((row) => ({
+                    _id: row._id,
+                    product: row.product,
+                    quantity: row.quantity,
+                    volume: row.volume,
+                    buy_price: row.buy_price,
+                    phar_price: row.phar_price,
+                    cust_price: row.cust_price,
+                    expiry: row.expiry
+                        ? new Date(row.expiry).toISOString().split("T")[0]
+                        : "",
+                    remaining: row.remaining,
+                })),
+            });
+        }
+    }, [props.mode, props.invoice]);
     // Unified validation logic
     const validateRow = (row) => {
         const errors = {};
@@ -184,7 +207,6 @@ export default function PurchaseInvoice() {
 
     const handleSubmit = async () => {
         console.log(invoice);
-        // Filter out invalid rows (including empty last row)
         const validRows = invoice.rows.filter((row) => !validateRow(row));
 
         if (!invoice.date || validRows.length === 0) {
@@ -193,46 +215,62 @@ export default function PurchaseInvoice() {
         }
 
         setIsSubmitting(true);
-        try {
-            await axios.post(
-                `${process.env.REACT_APP_BACKEND}purchase-invoices/full`,
-                {
-                    ...invoice,
-                    rows: validRows.map((row) => ({
-                        ...row,
-                        product: row.product,
-                        expiry_date: row.expiry,
-                    })),
-                }
-            );
-            setSubmitMessage({ text: "تم حفظ الفاتورة بنجاح", isError: false });
+        const requestBody = {
+            ...invoice,
+            rows: validRows.map((row) => ({
+                ...row,
+                expiry: row.expiry || null,
+            })),
+            cost: invoice.cost,
+        };
 
-            // Reset form but keep supplier
-            setInvoice((prev) => ({
-                date: new Date(Date.now()).toISOString().split("T")[0],
-                supplier: prev.supplier,
-                rows: [
-                    {
-                        product: "",
-                        quantity: "",
-                        volume: "",
-                        buy_price: "",
-                        phar_price: "",
-                        cust_price: "",
-                        expiry: "",
-                        remaining: "",
-                    },
-                ],
-            }));
-        } catch (err) {
-            let errorMsg = "❌ حدث خطأ أثناء حفظ الفاتورة";
-            if (err.response?.status === 401) {
-                errorMsg = "غير مصرح بالعملية - يرجى تسجيل الدخول";
-            } else if (err.response?.status === 403) {
-                errorMsg = "ليس لديك صلاحية لهذه العملية";
-            } else if (err.response?.data?.error) {
-                errorMsg = err.response.data.error;
+        try {
+            if (props.mode === "add") {
+                await axios.post(
+                    `${process.env.REACT_APP_BACKEND}purchase-invoices/full`,
+                    requestBody
+                );
+            } else if (props.mode === "edit" && props.invoice?._id) {
+                await axios.put(
+                    `${process.env.REACT_APP_BACKEND}purchase-invoices/full/${props.invoice._id}`,
+                    requestBody
+                );
             }
+
+            setSubmitMessage({ text: "تم حفظ الفاتورة بنجاح", isError: false });
+            if (props.onSuccess) {
+                props.onSuccess();
+            }
+            if (props.onSuccess) props.onSuccess(); // Notify parent
+
+            // Reset form only if adding
+            if (props.mode === "add") {
+                setInvoice({
+                    date: new Date(Date.now()).toISOString().split("T")[0],
+                    supplier: null,
+                    rows: [
+                        {
+                            product: null,
+                            quantity: "",
+                            volume: null,
+                            buy_price: "",
+                            phar_price: "",
+                            cust_price: "",
+                            expiry: "",
+                            remaining: "",
+                        },
+                    ],
+                });
+            }
+        } catch (err) {
+            const status = err.response?.status;
+            let errorMsg = "❌ حدث خطأ أثناء حفظ الفاتورة";
+
+            if (status === 401)
+                errorMsg = "غير مصرح بالعملية - يرجى تسجيل الدخول";
+            else if (status === 403) errorMsg = "ليس لديك صلاحية لهذه العملية";
+            else if (err.response?.data?.error)
+                errorMsg = err.response.data.error;
 
             setSubmitMessage({ text: errorMsg, isError: true });
         } finally {
@@ -372,7 +410,13 @@ export default function PurchaseInvoice() {
 
             {/* Submit Section */}
             <Button
-                content={isSubmitting ? "جاري الحفظ..." : "احفظ الفاتورة"}
+                content={
+                    isSubmitting
+                        ? "جاري الحفظ..."
+                        : props.mode === "edit"
+                        ? "تحديث الفاتورة"
+                        : "احفظ الفاتورة"
+                }
                 onClick={handleSubmit}
                 disabled={!isFormValid || isSubmitting}
             />

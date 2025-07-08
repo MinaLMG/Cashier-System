@@ -182,6 +182,182 @@ exports.createFullPurchaseInvoice = async (req, res) => {
     }
 };
 
+exports.updateFullPurchaseInvoice = async (req, res) => {
+    const invoiceId = req.params.id;
+    const { date, supplier, rows } = req.body;
+
+    // Step 1: Validate request
+    if (!date || !rows?.length) {
+        const missing = [];
+        if (!date) missing.push("تاريخ الفاتورة");
+        if (!rows?.length) missing.push("عناصر الفاتورة");
+
+        return res.status(400).json({
+            error: "بيانات ناقصة",
+            details: `يرجى إدخال: ${missing.join("، ")}`,
+        });
+    }
+
+    // Step 2: Filter valid rows
+    const validRows = rows.filter(
+        (r) =>
+            r.product &&
+            r.volume &&
+            r.quantity &&
+            r.buy_price &&
+            r.phar_price &&
+            r.cust_price &&
+            !isNaN(Number(r.quantity)) &&
+            !isNaN(Number(r.buy_price)) &&
+            !isNaN(Number(r.phar_price)) &&
+            !isNaN(Number(r.cust_price))
+    );
+
+    if (validRows.length === 0) {
+        return res.status(400).json({
+            error: "كل الصفوف تحتوي على أخطاء ولا يمكن حفظ التعديل",
+        });
+    }
+
+    let oldInvoice = null;
+    let oldItems = [];
+
+    try {
+        // Step 3: Backup current state
+        oldInvoice = await PurchaseInvoice.findById(invoiceId);
+        if (!oldInvoice)
+            return res.status(404).json({ error: "الفاتورة غير موجودة" });
+
+        const oldInvoiceData = oldInvoice.toObject();
+        oldItems = await PurchaseItem.find({ purchase_invoice: invoiceId });
+        // Step X: Recalculate cost from valid rows (in both create and update)
+        const recalculatedCost = validRows.reduce((sum, r) => {
+            const quantity = Number(r.quantity);
+            const buyPrice = Number(r.buy_price);
+            return sum + quantity * buyPrice;
+        }, 0);
+        // Step 4: Update invoice main fields
+        await PurchaseInvoice.findByIdAndUpdate(
+            invoiceId,
+            {
+                date,
+                supplier: supplier || null,
+                cost: recalculatedCost,
+            },
+            { runValidators: true }
+        );
+
+        const incomingItemMap = new Map();
+        const itemsToInsert = [];
+        const updatedItemOps = [];
+
+        for (const r of validRows) {
+            if (r._id) {
+                // Existing item: modify fields
+                incomingItemMap.set(r._id, r);
+            } else {
+                // New item: insert
+                itemsToInsert.push({
+                    purchase_invoice: invoiceId,
+                    product: r.product,
+                    volume: r.volume,
+                    quantity: Number(r.quantity),
+                    buy_price: Number(r.buy_price),
+                    pharmacy_price: Number(r.phar_price),
+                    walkin_price: Number(r.cust_price),
+                    expiry: r.expiry ? new Date(r.expiry) : null,
+                    remaining_quantity: r.remaining
+                        ? Number(r.remaining)
+                        : Number(r.quantity),
+                });
+            }
+        }
+        console.log(validRows);
+
+        // Step 5: Modify or remove existing items
+        const updatedIds = new Set();
+
+        for (const item of oldItems) {
+            const incoming = incomingItemMap.get(item._id.toString());
+            console.log(incoming);
+            if (incoming) {
+                // Ensure product/volume don't change
+                if (
+                    item.product.toString() !== incoming.product ||
+                    item.volume.toString() !== incoming.volume
+                ) {
+                    return res.status(400).json({
+                        error: "لا يمكن تعديل المنتج أو العبوة لعنصر تم حفظه بالفعل",
+                    });
+                }
+
+                // Modify fields
+                item.quantity = Number(incoming.quantity);
+                item.buy_price = Number(incoming.buy_price);
+                item.pharmacy_price = Number(incoming.phar_price);
+                item.walkin_price = Number(incoming.cust_price);
+                item.expiry = incoming.expiry
+                    ? new Date(incoming.expiry)
+                    : null;
+                item.remaining_quantity = incoming.remaining
+                    ? Number(incoming.remaining)
+                    : Number(incoming.quantity);
+                await item.save();
+                updatedIds.add(item._id.toString());
+            } else {
+                // Item removed by user
+                await PurchaseItem.findByIdAndDelete(item._id);
+            }
+        }
+
+        // Step 6: Insert new items
+        let insertedItems = await PurchaseItem.insertMany(itemsToInsert);
+        return res.status(200).json({
+            message: "تم تعديل الفاتورة بنجاح",
+            invoice: oldInvoice,
+            inserted: insertedItems,
+        });
+    } catch (err) {
+        console.error("خطأ أثناء تعديل الفاتورة:", err);
+
+        // rollback attempt
+        try {
+            if (oldInvoiceData) {
+                await PurchaseInvoice.findByIdAndUpdate(
+                    invoiceId,
+                    oldInvoiceData
+                );
+            }
+
+            // Restore deleted items
+            const restoreOps = oldItems.map((i) => ({
+                updateOne: {
+                    filter: { _id: i._id },
+                    update: { $set: i.toObject() },
+                    upsert: true,
+                },
+            }));
+            // First delete new items
+            if (insertedItems.length > 0) {
+                await PurchaseItem.deleteMany({
+                    _id: { $in: insertedItems.map((i) => i._id) },
+                });
+            }
+
+            // Then restore old items
+            if (restoreOps.length > 0) {
+                await PurchaseItem.bulkWrite(restoreOps);
+            }
+        } catch (rollbackErr) {
+            console.error("❌ فشل التراجع:", rollbackErr);
+        }
+
+        return res.status(500).json({
+            error: "فشل في تعديل الفاتورة. يرجى المحاولة مرة أخرى.",
+        });
+    }
+};
+
 exports.getFullPurchaseInvoiceById = async (req, res) => {
     try {
         const invoice = await PurchaseInvoice.findById(req.params.id);
@@ -194,6 +370,7 @@ exports.getFullPurchaseInvoiceById = async (req, res) => {
         });
 
         const rows = items.map((item) => ({
+            _id: item._id,
             product: item.product.toString(),
             quantity: item.quantity.toString(),
             volume: item.volume.toString(),
@@ -205,6 +382,7 @@ exports.getFullPurchaseInvoiceById = async (req, res) => {
         }));
 
         res.status(200).json({
+            _id: req.params.id,
             date: invoice.date.toISOString().split("T")[0],
             supplier: invoice.supplier || null,
             rows,
@@ -227,6 +405,7 @@ exports.getAllFullPurchaseInvoices = async (req, res) => {
                 });
 
                 const rows = items.map((item) => ({
+                    _id: item._id,
                     product: item.product.toString(),
                     quantity: item.quantity.toString(),
                     volume: item.volume.toString(),
@@ -240,6 +419,7 @@ exports.getAllFullPurchaseInvoices = async (req, res) => {
                 }));
 
                 return {
+                    _id: invoice._id,
                     date: invoice.date.toISOString().split("T")[0],
                     supplier: invoice.supplier || null,
                     rows,

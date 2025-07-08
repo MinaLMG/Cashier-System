@@ -1,0 +1,36 @@
+.table {
+    width: 100%;
+}
+.table thead tr :nth-child(1) {
+    width: 5px;
+}
+.table thead tr :nth-child(4) {
+    width: 220px;
+}
+.table table tr :nth-child(5) {
+    align-content: center;
+}
+.item {
+    align-content: center;
+}
+
+.edit,
+.remove,
+.view {
+    font-size: 30px;
+    margin: 0 5px;
+    cursor: pointer;
+}
+.view {
+}
+.edit {
+    color: brown;
+}
+
+.remove {
+    color: #848484;
+}
+.remove.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

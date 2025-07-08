@@ -12,7 +12,7 @@ export default function TextInput(props) {
                 <input
                     disabled={props.disabled}
                     type={props.type}
-                    class="form-control"
+                    className="form-control"
                     placeholder={props.placeholder}
                     id={props.id}
                     value={props.value}
