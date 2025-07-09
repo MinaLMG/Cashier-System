@@ -160,9 +160,9 @@ export default function InvoiceRow({
                     type="number"
                     placeholder="الباقى"
                     label="الباقى"
-                    id={`rest_${index}`}
-                    value={row["rest"]}
-                    onchange={(val) => onChange(index, "rest", val)}
+                    id={`remaining_${index}`}
+                    value={row["remaining"]}
+                    onchange={(val) => onChange(index, "remaining", val)}
                     disabled={false}
                 />
             </td>

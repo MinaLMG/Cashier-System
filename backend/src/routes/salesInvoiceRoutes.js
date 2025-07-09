@@ -6,5 +6,6 @@ router.get("/", controller.getAllSalesInvoices);
 router.post("/", controller.createSalesInvoice);
 router.put("/:id", controller.updateSalesInvoice);
 router.delete("/:id", controller.deleteSalesInvoice);
+router.post("/full", controller.createFullSalesInvoice);
 
 module.exports = router;

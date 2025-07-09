@@ -249,7 +249,7 @@ export default function PurchaseInvoice(props) {
                     supplier: null,
                     rows: [
                         {
-                            product: null,
+                            product: "",
                             quantity: "",
                             volume: null,
                             buy_price: "",

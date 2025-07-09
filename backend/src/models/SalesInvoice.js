@@ -5,10 +5,10 @@ const salesInvoiceSchema = new mongoose.Schema({
     customer: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Customer",
-        required: true,
     },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     cost: { type: Number, required: true },
+    type: { type: String, enum: ["walkin", "pharmacy"], required: true },
 });
 
 module.exports = mongoose.model("SalesInvoice", salesInvoiceSchema);

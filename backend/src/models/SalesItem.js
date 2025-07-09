@@ -16,12 +16,18 @@ const salesItemSchema = new mongoose.Schema({
         ref: "Volume",
         required: true,
     },
-    quantity: { type: Number, required: true },
-    price: { type: Number, required: true },
-    purchase_item: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "PurchaseItem",
-    },
+    quantity: { type: Number, required: true }, // total quantity sold (in selected volume unit)
+    price: { type: Number, required: true }, // unit price at sale
+    sources: [
+        {
+            purchase_item: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "PurchaseItem",
+                required: true,
+            },
+            quantity: { type: Number, required: true }, // quantity taken from this purchase item
+        },
+    ],
     date: { type: Date, default: Date.now },
 });
 

@@ -24,4 +24,6 @@ const purchaseItemSchema = new mongoose.Schema({
     remaining: { type: Number },
 });
 
+purchaseItemSchema.index({ product: 1 });
+
 module.exports = mongoose.model("PurchaseItem", purchaseItemSchema);
