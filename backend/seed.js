@@ -23,11 +23,11 @@ const runSeeder = async () => {
 
         // Volumes
         const volumes = await Volume.insertMany([
-            { name: "Box" },
-            { name: "Bottle" },
-            { name: "Strip" },
-            { name: "Pack" },
-            { name: "الاساس" },
+            { name: "علبة" },
+            { name: "شريط" },
+            { name: "قطعة" },
+            { name: "كرتونة" },
+            { name: "زجاجة" },
         ]);
 
         // Categories

@@ -5,6 +5,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const connectDB = require("./src/db/connect");
+
 const routes = require("./src/routes");
 
 const app = express();
@@ -22,7 +23,7 @@ app.use(
 connectDB();
 
 // Base route
-app.get("/", (req, res) => res.send("Inventory API is running."));
+app.get("/", (req, res) => res.send("Intermedical API is running."));
 
 // Register API routes
 app.use("/api", routes);
