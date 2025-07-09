@@ -9,6 +9,7 @@ const salesInvoiceSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     cost: { type: Number, required: true },
     type: { type: String, enum: ["walkin", "pharmacy"], required: true },
+    offer: { type: Number, required: true, default: 0 },
 });
 
 module.exports = mongoose.model("SalesInvoice", salesInvoiceSchema);

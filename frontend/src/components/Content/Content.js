@@ -4,6 +4,7 @@ import classes from "./Content.module.css";
 import PurchaseInvoice from "./PurchaseInvoice/PurchaseInvoice";
 import ShowPurchaseInvoices from "./ShowInvoices/ShowPurchaseInvoices";
 import SalesInvoice from "./SalesInvoices/SalesInvoice";
+import ShowSalesInvoices from "./ShowInvoices/ShowSalesInvoices";
 export default function Content(props) {
     return (
         <div className={classes["content"]}>
@@ -48,14 +49,14 @@ export default function Content(props) {
                     invoice={props.purchaseInvoiceToEdit}
                     onSuccess={props.onEditPurchaseInvoiceSuccess}
                 ></PurchaseInvoice>
-            )}
-            {props.selected === "اعرض كل فواتير البيع" && (
-                <ShowPurchaseInvoices
-                    onEdit={(e) => {
-                        props.onEditPurchaseInvoice(e);
-                    }}
-                ></ShowPurchaseInvoices>
             )} */}
+            {props.selected === "اعرض كل فواتير البيع" && (
+                <ShowSalesInvoices
+                // onEdit={(e) => {
+                //     props.onEditPurchaseInvoice(e);
+                // }}
+                ></ShowSalesInvoices>
+            )}
         </div>
     );
 }

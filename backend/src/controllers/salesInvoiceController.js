@@ -58,7 +58,7 @@ exports.deleteSalesInvoice = async (req, res) => {
 };
 
 exports.createFullSalesInvoice = async (req, res) => {
-    const { date, type, rows, customer } = req.body;
+    const { date, type, rows, customer, offer } = req.body;
 
     // Step 1: Validate invoice data
     if (!date || !type || !rows?.length) {
@@ -171,6 +171,7 @@ exports.createFullSalesInvoice = async (req, res) => {
             user: req.user?._id || null,
             cost,
             customer: customer ? customer : null,
+            offer,
         });
 
         // Step 6: Create all sales items
@@ -218,6 +219,42 @@ exports.createFullSalesInvoice = async (req, res) => {
 
         return res.status(500).json({
             error: "فشل في حفظ الفاتورة. يرجى المحاولة مرة أخرى.",
+        });
+    }
+};
+
+exports.getFullSalesInvoices = async (req, res) => {
+    try {
+        const invoices = await SalesInvoice.find().sort({ date: -1 });
+
+        const result = await Promise.all(
+            invoices.map(async (inv) => {
+                const items = await SalesItem.find({
+                    sales_invoice: inv._id,
+                });
+
+                return {
+                    _id: inv._id,
+                    customer: inv.customer || "",
+                    type: inv.type || "walkin",
+                    date: inv.date,
+                    offer: inv.offer || 0,
+                    rows: items.map((item) => ({
+                        product: item.product,
+                        volume: item.volume,
+                        quantity: item.quantity,
+                    })),
+                    total: inv.cost || 0,
+                    finalTotal: (inv.cost || 0) - (inv.offer || 0),
+                };
+            })
+        );
+
+        res.json(result);
+    } catch (err) {
+        console.error("❌ Error in getFullSalesInvoices:", err);
+        res.status(500).json({
+            error: "فشل في تحميل فواتير البيع",
         });
     }
 };
