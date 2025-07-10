@@ -14,12 +14,25 @@ exports.getAllProducts = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
     const { name, min_stock, category, default_volume } = req.body;
+
+    // Validate required fields
     if (!name || !category)
         return res
             .status(400)
             .json({ error: "Name and category are required." });
 
+    // Validate min_stock is a non-negative number if provided
+    if (
+        min_stock !== undefined &&
+        (isNaN(Number(min_stock)) || Number(min_stock) < 0)
+    ) {
+        return res
+            .status(400)
+            .json({ error: "Minimum stock must be a non-negative number." });
+    }
+
     try {
+        // Check for duplicate product name
         const existing = await Product.findOne({ name });
         if (existing)
             return res.status(409).json({ error: "Product already exists." });
@@ -78,11 +91,39 @@ exports.createFullProduct = async (req, res) => {
     try {
         const { name, "min-stock": minStock, conversions, values } = req.body;
 
+        // Validate required fields
         if (!name || !conversions?.length) {
             return res.status(400).json({ error: "بيانات المنتج غير مكتملة" });
         }
 
-        // 🚨 Check for duplicate barcodes in the request body
+        // Validate min-stock is a non-negative number if provided
+        if (
+            minStock !== undefined &&
+            (isNaN(Number(minStock)) || Number(minStock) < 0)
+        ) {
+            return res
+                .status(400)
+                .json({
+                    error: "الحد الأدنى للمخزون يجب أن يكون رقمًا غير سالب",
+                });
+        }
+
+        // Validate conversions
+        for (const conv of conversions) {
+            if (!conv.from || !conv.to) {
+                return res.status(400).json({
+                    error: "جميع التحويلات يجب أن تحتوي على وحدات المصدر والهدف",
+                });
+            }
+
+            if (isNaN(Number(conv.value)) || Number(conv.value) <= 0) {
+                return res.status(400).json({
+                    error: "قيمة التحويل يجب أن تكون رقمًا موجبًا",
+                });
+            }
+        }
+
+        // Check for duplicate barcodes in the request body
         const seen = new Set();
         for (const conv of conversions) {
             const barcode = conv.barcode?.trim();
@@ -325,7 +366,7 @@ exports.updateFullProduct = async (req, res) => {
         }
 
         return res.status(500).json({
-            error: "حدث خطأ أثناء تعديل المنتج، يرجى المحاولة لاحقاً",
+            error: "حدث خطأ أثناء تعديل المنتج، يرجى المحاولة لاحق",
         });
     }
 };

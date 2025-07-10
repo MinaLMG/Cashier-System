@@ -73,6 +73,52 @@ exports.createFullSalesInvoice = async (req, res) => {
         });
     }
 
+    // Validate date format
+    if (isNaN(new Date(date).getTime())) {
+        return res.status(400).json({
+            error: "تاريخ الفاتورة غير صالح",
+        });
+    }
+
+    // Validate type
+    if (type !== "walkin" && type !== "pharmacy") {
+        return res.status(400).json({
+            error: "نوع العميل غير صالح",
+        });
+    }
+
+    // Validate offer if provided
+    if (offer !== undefined) {
+        if (isNaN(Number(offer)) || Number(offer) < 0) {
+            return res.status(400).json({
+                error: "قيمة الخصم يجب أن تكون رقمًا غير سالب",
+            });
+        }
+    }
+
+    // Validate customer if provided
+    if (customer) {
+        try {
+            const customerExists = await Customer.findById(customer);
+            if (!customerExists) {
+                return res.status(400).json({
+                    error: "العميل غير موجود",
+                });
+            }
+
+            // Validate customer type matches invoice type
+            if (customerExists.type !== type) {
+                return res.status(400).json({
+                    error: "نوع العميل لا يتطابق مع نوع الفاتورة",
+                });
+            }
+        } catch (err) {
+            return res.status(400).json({
+                error: "معرف العميل غير صالح",
+            });
+        }
+    }
+
     let newInvoice = null;
     let createdItems = [];
     const modifiedPurchaseItemsBackup = [];
@@ -91,6 +137,36 @@ exports.createFullSalesInvoice = async (req, res) => {
             return res.status(400).json({
                 error: "كل الصفوف تحتوي على أخطاء ولا يمكن حفظ الفاتورة",
             });
+        }
+
+        // Validate products and volumes exist
+        for (const row of validRows) {
+            try {
+                const productExists = await Product.findById(row.product);
+                if (!productExists) {
+                    return res.status(400).json({
+                        error: `المنتج غير موجود: ${row.product}`,
+                    });
+                }
+
+                const volumeExists = await Volume.findById(row.volume);
+                if (!volumeExists) {
+                    return res.status(400).json({
+                        error: `العبوة غير موجودة: ${row.volume}`,
+                    });
+                }
+
+                // Validate quantity is positive
+                if (Number(row.quantity) <= 0) {
+                    return res.status(400).json({
+                        error: "الكمية يجب أن تكون رقمًا موجبًا",
+                    });
+                }
+            } catch (err) {
+                return res.status(400).json({
+                    error: "معرف منتج أو عبوة غير صالح",
+                });
+            }
         }
 
         // Step 3: Check stock availability and prepare sales items

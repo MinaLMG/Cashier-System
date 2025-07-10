@@ -31,6 +31,11 @@ export default function SupplierForm({
             newErrors.name = "اسم المورد مطلوب";
         }
 
+        // Validate phone number format if provided
+        if (formData.phone && !/^[\d\+\-\(\) ]{11}$/.test(formData.phone)) {
+            newErrors.phone = "صيغة رقم الهاتف غير صحيحة";
+        }
+
         setErrors(newErrors);
         setIsFormValid(Object.keys(newErrors).length === 0);
     }, [formData]);

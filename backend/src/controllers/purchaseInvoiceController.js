@@ -63,6 +63,7 @@ exports.deletePurchaseInvoice = async (req, res) => {
 exports.createFullPurchaseInvoice = async (req, res) => {
     const { date, supplier, rows, cost } = req.body;
 
+    // Basic validation
     if (!date || !rows?.length || typeof cost !== "number" || cost <= 0) {
         const missing = [];
         if (!date) missing.push("تاريخ الفاتورة");
@@ -74,6 +75,29 @@ exports.createFullPurchaseInvoice = async (req, res) => {
             error: "بيانات ناقصة",
             details: `يرجى إدخال: ${missing.join("، ")}`,
         });
+    }
+
+    // Validate date format
+    if (isNaN(new Date(date).getTime())) {
+        return res.status(400).json({
+            error: "تاريخ الفاتورة غير صالح",
+        });
+    }
+
+    // Validate supplier if provided
+    if (supplier) {
+        try {
+            const supplierExists = await Supplier.findById(supplier);
+            if (!supplierExists) {
+                return res.status(400).json({
+                    error: "المورد غير موجود",
+                });
+            }
+        } catch (err) {
+            return res.status(400).json({
+                error: "معرف المورد غير صالح",
+            });
+        }
     }
 
     let newInvoice = null;
@@ -98,6 +122,46 @@ exports.createFullPurchaseInvoice = async (req, res) => {
             return res.status(400).json({
                 error: "كل الصفوف تحتوي على أخطاء ولا يمكن حفظ الفاتورة",
             });
+        }
+
+        // Validate products and volumes exist
+        for (const row of validRows) {
+            try {
+                const productExists = await Product.findById(row.product);
+                if (!productExists) {
+                    return res.status(400).json({
+                        error: `المنتج غير موجود: ${row.product}`,
+                    });
+                }
+
+                const volumeExists = await Volume.findById(row.volume);
+                if (!volumeExists) {
+                    return res.status(400).json({
+                        error: `العبوة غير موجودة: ${row.volume}`,
+                    });
+                }
+
+                // Validate expiry date if provided
+                if (row.expiry) {
+                    const expiryDate = new Date(row.expiry);
+                    if (isNaN(expiryDate.getTime())) {
+                        return res.status(400).json({
+                            error: "تاريخ انتهاء الصلاحية غير صالح",
+                        });
+                    }
+
+                    // Optional: Check if expiry date is in the future
+                    if (expiryDate < new Date()) {
+                        return res.status(400).json({
+                            error: "تاريخ انتهاء الصلاحية يجب أن يكون في المستقبل",
+                        });
+                    }
+                }
+            } catch (err) {
+                return res.status(400).json({
+                    error: "معرف منتج أو عبوة غير صالح",
+                });
+            }
         }
 
         // ✅ Step 2: Calculate total cost
@@ -188,7 +252,7 @@ exports.createFullPurchaseInvoice = async (req, res) => {
 
         if (err.code === 11000) {
             return res.status(409).json({
-                error: "هذه الفاتورة موجودة مسبقاً",
+                error: "هذه الفاتورة موجودة مسبق",
             });
         }
 

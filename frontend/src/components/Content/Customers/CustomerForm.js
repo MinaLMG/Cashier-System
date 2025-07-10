@@ -34,6 +34,18 @@ export default function CustomerForm({
             newErrors.name = "اسم العميل مطلوب";
         }
 
+        // Validate phone number format if provided
+        if (formData.phone && !/^[\d\+\-\(\) ]{11}$/.test(formData.phone)) {
+            newErrors.phone = "صيغة رقم الهاتف غير صحيحة";
+        }
+
+        // Validate type
+        if (!formData.type) {
+            newErrors.type = "نوع العميل مطلوب";
+        } else if (formData.type !== "walkin" && formData.type !== "pharmacy") {
+            newErrors.type = "نوع العميل غير صالح";
+        }
+
         setErrors(newErrors);
         setIsFormValid(Object.keys(newErrors).length === 0);
     }, [formData]);
