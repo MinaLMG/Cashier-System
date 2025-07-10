@@ -1,33 +1,48 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import classes from "../PurchaseInvoice/PurchaseInvoice.module.css";
 import Button from "../../Basic/Button";
+import TextInput from "../../Basic/TextInput";
 
 export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
     const [formData, setFormData] = useState({
         name: volume?.name || "",
     });
-    const [error, setError] = useState("");
+    const [errors, setErrors] = useState({});
+    const [isFormValid, setIsFormValid] = useState(false);
     const [submitMessage, setSubmitMessage] = useState({
         text: "",
         isError: false,
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleChange = (e) => {
+    // Validate form on every change
+    useEffect(() => {
+        const newErrors = {};
+
+        if (!formData.name.trim()) {
+            newErrors.name = "اسم العبوة مطلوب";
+        }
+
+        setErrors(newErrors);
+        setIsFormValid(Object.keys(newErrors).length === 0);
+    }, [formData]);
+
+    const handleChange = (field, value) => {
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value,
+            [field]: value,
         });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError("");
 
-        if (!formData.name.trim()) {
-            setError("اسم العبوة مطلوب");
+        if (!isFormValid) {
             return;
         }
+
+        setIsSubmitting(true);
 
         try {
             if (isEditing) {
@@ -53,7 +68,6 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
                 onSubmit();
             }, 1500);
         } catch (error) {
-            setError("حدث خطأ أثناء حفظ البيانات");
             setSubmitMessage({
                 text:
                     "❌ " +
@@ -62,6 +76,8 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
                 isError: true,
             });
             console.error("Error saving volume:", error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -70,29 +86,16 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
             <h2 className={classes.formTitle}>
                 {isEditing ? "تعديل العبوة" : "إضافة عبوة جديدة"}
             </h2>
-            {error && <div className={classes.error}>{error}</div>}
-            {submitMessage.text && (
-                <div
-                    className={
-                        submitMessage.isError ? classes.error : classes.success
-                    }
-                >
-                    {submitMessage.text}
-                </div>
-            )}
             <form onSubmit={handleSubmit} className={classes.form}>
                 <div className="mb-3">
-                    <label htmlFor="name" className="form-label">
-                        اسم العبوة
-                    </label>
-                    <input
+                    <TextInput
                         type="text"
-                        className="form-control"
+                        placeholder="اسم العبوة"
+                        label="اسم العبوة"
                         id="name"
-                        name="name"
                         value={formData.name}
-                        onChange={handleChange}
-                        required
+                        onchange={(value) => handleChange("name", value)}
+                        error={errors.name}
                     />
                 </div>
                 <div className={classes.actions}>
@@ -100,9 +103,21 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
                         content={isEditing ? "تحديث" : "إضافة"}
                         onClick={() => {}}
                         type="submit"
+                        disabled={!isFormValid || isSubmitting}
                     />
                     <Button content="إلغاء" onClick={onCancel} type="button" />
                 </div>
+                {submitMessage.text && (
+                    <div
+                        className={`${
+                            submitMessage.isError
+                                ? classes.error
+                                : classes.success
+                        } mt-3`}
+                    >
+                        {submitMessage.text}
+                    </div>
+                )}
             </form>
         </div>
     );

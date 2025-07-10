@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import classes from "../PurchaseInvoice/PurchaseInvoice.module.css";
 import Button from "../../Basic/Button";
+import TextInput from "../../Basic/TextInput";
 
 export default function CustomerForm({
     customer,
@@ -14,27 +15,41 @@ export default function CustomerForm({
         phone: customer?.phone || "",
         address: customer?.address || "",
     });
-    const [error, setError] = useState("");
+    const [errors, setErrors] = useState({});
+    const [isFormValid, setIsFormValid] = useState(false);
     const [submitMessage, setSubmitMessage] = useState({
         text: "",
         isError: false,
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleChange = (e) => {
+    // Validate form on every change
+    useEffect(() => {
+        const newErrors = {};
+
+        if (!formData.name.trim()) {
+            newErrors.name = "اسم العميل مطلوب";
+        }
+
+        setErrors(newErrors);
+        setIsFormValid(Object.keys(newErrors).length === 0);
+    }, [formData]);
+
+    const handleChange = (field, value) => {
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value,
+            [field]: value,
         });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError("");
 
-        if (!formData.name.trim()) {
-            setError("اسم العميل مطلوب");
+        if (!isFormValid) {
             return;
         }
+
+        setIsSubmitting(true);
 
         try {
             if (isEditing) {
@@ -60,7 +75,6 @@ export default function CustomerForm({
                 onSubmit();
             }, 1500);
         } catch (error) {
-            setError("حدث خطأ أثناء حفظ البيانات");
             setSubmitMessage({
                 text:
                     "❌ " +
@@ -69,6 +83,8 @@ export default function CustomerForm({
                 isError: true,
             });
             console.error("Error saving customer:", error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -77,55 +93,36 @@ export default function CustomerForm({
             <h2 className={classes.formTitle}>
                 {isEditing ? "تعديل عميل" : "إضافة عميل جديد"}
             </h2>
-            {error && <div className={classes.error}>{error}</div>}
-            {submitMessage.text && (
-                <div
-                    className={
-                        submitMessage.isError ? classes.error : classes.success
-                    }
-                >
-                    {submitMessage.text}
-                </div>
-            )}
             <form onSubmit={handleSubmit} className={classes.form}>
                 <div className="mb-3">
-                    <label htmlFor="name" className="form-label">
-                        اسم العميل
-                    </label>
-                    <input
+                    <TextInput
                         type="text"
-                        className="form-control"
+                        placeholder="اسم العميل"
+                        label="اسم العميل"
                         id="name"
-                        name="name"
                         value={formData.name}
-                        onChange={handleChange}
-                        required
+                        onchange={(value) => handleChange("name", value)}
+                        error={errors.name}
                     />
                 </div>
                 <div className="mb-3">
-                    <label htmlFor="phone" className="form-label">
-                        رقم الهاتف
-                    </label>
-                    <input
+                    <TextInput
                         type="text"
-                        className="form-control"
+                        placeholder="رقم الهاتف"
+                        label="رقم الهاتف"
                         id="phone"
-                        name="phone"
                         value={formData.phone}
-                        onChange={handleChange}
+                        onchange={(value) => handleChange("phone", value)}
                     />
                 </div>
                 <div className="mb-3">
-                    <label htmlFor="address" className="form-label">
-                        العنوان
-                    </label>
-                    <input
+                    <TextInput
                         type="text"
-                        className="form-control"
+                        placeholder="العنوان"
+                        label="العنوان"
                         id="address"
-                        name="address"
                         value={formData.address}
-                        onChange={handleChange}
+                        onchange={(value) => handleChange("address", value)}
                     />
                 </div>
                 <div className={classes.actions}>
@@ -133,9 +130,21 @@ export default function CustomerForm({
                         content={isEditing ? "تحديث" : "إضافة"}
                         onClick={() => {}}
                         type="submit"
+                        disabled={!isFormValid || isSubmitting}
                     />
                     <Button content="إلغاء" onClick={onCancel} type="button" />
                 </div>
+                {submitMessage.text && (
+                    <div
+                        className={`${
+                            submitMessage.isError
+                                ? classes.error
+                                : classes.success
+                        } mt-3`}
+                    >
+                        {submitMessage.text}
+                    </div>
+                )}
             </form>
         </div>
     );
