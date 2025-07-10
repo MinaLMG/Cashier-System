@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import classes from "../PurchaseInvoice/PurchaseInvoice.module.css";
 import Button from "../../Basic/Button";
 import TextInput from "../../Basic/TextInput";
+import formStyles from "../../../styles/forms.module.css";
+import commonStyles from "../../../styles/common.module.css";
 
 export default function CustomerForm({
     customer,
@@ -89,12 +90,12 @@ export default function CustomerForm({
     };
 
     return (
-        <div className={classes.container}>
-            <h2 className={classes.formTitle}>
-                {isEditing ? "تعديل عميل" : "إضافة عميل جديد"}
+        <div className={formStyles.formContainer}>
+            <h2 className={formStyles.formTitle}>
+                {isEditing ? "تعديل العميل" : "إضافة عميل جديد"}
             </h2>
-            <form onSubmit={handleSubmit} className={classes.form}>
-                <div className="mb-3">
+            <form className={formStyles.formGrid}>
+                <div className={formStyles.formGroup}>
                     <TextInput
                         type="text"
                         placeholder="اسم العميل"
@@ -105,7 +106,7 @@ export default function CustomerForm({
                         error={errors.name}
                     />
                 </div>
-                <div className="mb-3">
+                <div className={formStyles.formGroup}>
                     <TextInput
                         type="text"
                         placeholder="رقم الهاتف"
@@ -115,7 +116,7 @@ export default function CustomerForm({
                         onchange={(value) => handleChange("phone", value)}
                     />
                 </div>
-                <div className="mb-3">
+                <div className={formStyles.formGroup}>
                     <TextInput
                         type="text"
                         placeholder="العنوان"
@@ -125,22 +126,26 @@ export default function CustomerForm({
                         onchange={(value) => handleChange("address", value)}
                     />
                 </div>
-                <div className={classes.actions}>
+                <div className={formStyles.formActions}>
                     <Button
                         content={isEditing ? "تحديث" : "إضافة"}
-                        onClick={() => {}}
-                        type="submit"
+                        onClick={handleSubmit}
                         disabled={!isFormValid || isSubmitting}
+                        className={formStyles.primaryButton}
                     />
-                    <Button content="إلغاء" onClick={onCancel} type="button" />
+                    <Button
+                        content="إلغاء"
+                        onClick={onCancel}
+                        className={formStyles.secondaryButton}
+                    />
                 </div>
                 {submitMessage.text && (
                     <div
-                        className={`${
+                        className={
                             submitMessage.isError
-                                ? classes.error
-                                : classes.success
-                        } mt-3`}
+                                ? formStyles.errorMessage
+                                : formStyles.successMessage
+                        }
                     >
                         {submitMessage.text}
                     </div>

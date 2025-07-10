@@ -1,0 +1,125 @@
+/* Grid Layouts */
+.grid {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.grid2 {
+  composes: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid3 {
+  composes: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid4 {
+  composes: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Responsive grid that adapts to screen size */
+.responsiveGrid {
+  composes: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+/* Flex Layouts */
+.row {
+  display: flex;
+  flex-direction: row;
+  gap: var(--spacing-md);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.wrap {
+  flex-wrap: wrap;
+}
+
+/* Alignment */
+.alignCenter {
+  align-items: center;
+}
+
+.alignStart {
+  align-items: flex-start;
+}
+
+.alignEnd {
+  align-items: flex-end;
+}
+
+.justifyCenter {
+  justify-content: center;
+}
+
+.justifyStart {
+  justify-content: flex-start;
+}
+
+.justifyEnd {
+  justify-content: flex-end;
+}
+
+.justifyBetween {
+  justify-content: space-between;
+}
+
+.justifyAround {
+  justify-content: space-around;
+}
+
+/* Spacing */
+.spaceBetween > * + * {
+  margin-top: var(--spacing-md);
+}
+
+.spaceAround {
+  padding: var(--spacing-md);
+}
+
+/* Container widths */
+.containerNarrow {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.containerMedium {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.containerWide {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Card layouts */
+.card {
+  background-color: var(--background-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-lg);
+}
+
+.cardHeader {
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cardBody {
+  margin-bottom: var(--spacing-md);
+}
+
+.cardFooter {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border-color);
+}

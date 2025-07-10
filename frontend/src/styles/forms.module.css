@@ -1,0 +1,159 @@
+/* Form Container */
+.formContainer {
+  padding: var(--spacing-xl);
+}
+
+/* Form Title */
+.formTitle {
+  color: var(--primary-color);
+  font-weight: bold;
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-xl);
+}
+
+/* Form Layout */
+.formGrid {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.formRow {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.formColumn {
+  flex: 1;
+}
+
+/* Form Groups */
+.formGroup {
+  margin-bottom: var(--spacing-lg);
+}
+
+.formLabel {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  font-weight: bold;
+}
+
+.formInput {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+.formSelect {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+}
+
+/* Form Actions */
+.formActions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--spacing-xl);
+}
+
+.primaryButton {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+}
+
+.primaryButton:hover {
+  background-color: var(--primary-dark);
+}
+
+.secondaryButton {
+  background-color: var(--border-color);
+  color: var(--text-color);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+}
+
+.secondaryButton:hover {
+  background-color: #bbbbbb;
+}
+
+/* Form Validation */
+.formError {
+  color: var(--error-color);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-xs);
+}
+
+.inputError {
+  border-color: var(--error-color);
+}
+
+/* Form Messages */
+.formMessage {
+  padding: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  border-radius: var(--border-radius-sm);
+}
+
+.successMessage {
+  composes: formMessage;
+  background-color: var(--success-light);
+  color: var(--success-color);
+  border: 1px solid var(--success-color);
+}
+
+.errorMessage {
+  composes: formMessage;
+  background-color: var(--error-light);
+  color: var(--error-color);
+  border: 1px solid var(--error-color);
+}
+
+/* Form Table */
+.formTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--spacing-lg);
+}
+
+.formTable th {
+  background-color: var(--primary-color);
+  color: white;
+  padding: var(--spacing-sm);
+  text-align: right;
+}
+
+.formTable td {
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Form Icons */
+.formIcon {
+  font-size: var(--font-size-lg);
+  cursor: pointer;
+  margin: 0 var(--spacing-xs);
+}
+
+.addIcon {
+  composes: formIcon;
+  color: var(--success-color);
+}
+
+.editIcon {
+  composes: formIcon;
+  color: var(--primary-color);
+}
+
+.deleteIcon {
+  composes: formIcon;
+  color: var(--error-color);
+}
