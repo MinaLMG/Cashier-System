@@ -8,6 +8,8 @@ import ShowSalesInvoices from "./ShowInvoices/ShowSalesInvoices";
 import ShowSuppliers from "./Suppliers/ShowSuppliers";
 import ShowCustomers from "./Customers/ShowCustomers";
 import ShowVolumes from "./Volumes/ShowVolumes";
+import Revenue from "./Revenue/Revenue";
+
 export default function Content(props) {
     return (
         <div className={classes["content"]}>
@@ -59,6 +61,13 @@ export default function Content(props) {
                         props.onEditSalesInvoice(e);
                     }}
                 ></ShowSalesInvoices>
+            )}
+            {props.selected === "تقرير الإيرادات" && (
+                <Revenue
+                    onEdit={(e) => {
+                        props.onEditSalesInvoice(e);
+                    }}
+                ></Revenue>
             )}
             {props.selected === "إدارة الموردين" && <ShowSuppliers />}
             {props.selected === "إدارة العملاء" && <ShowCustomers />}

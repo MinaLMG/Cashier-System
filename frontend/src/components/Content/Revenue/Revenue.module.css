@@ -1,0 +1,116 @@
+.container {
+    width: 90%;
+    margin: 2rem auto;
+    direction: rtl;
+}
+
+.title {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #333;
+}
+
+.periodSelector {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.periodTypes {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.periodTypeLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.periodTypeLabel input {
+    margin: 0;
+}
+
+.dateInputs {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.dateInput {
+    flex: 1;
+    min-width: 200px;
+}
+
+.searchButton {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.searchButton:hover {
+    background-color: #0069d9;
+}
+
+.searchButton:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.error {
+    color: #dc3545;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: #f8d7da;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    color: #6c757d;
+}
+
+.resultsInfo {
+    margin-bottom: 1.5rem;
+}
+
+.resultsInfo h3 {
+    margin-bottom: 0.5rem;
+}
+
+.tableContainer {
+    overflow-x: auto;
+}
+
+.table {
+    min-width: 1000px;
+}
+
+.noData {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.totalsRow {
+    background-color: #e9ecef;
+}
+
+.totalsLabel {
+    text-align: left;
+}
