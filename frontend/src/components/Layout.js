@@ -21,6 +21,10 @@ export default function Layout() {
                 "اعرض كل فواتير المشتريات",
             ],
         },
+        {
+            title: "إدارة البيانات",
+            tasks: ["إدارة الموردين", "إدارة العملاء", "إدارة العبوات"],
+        },
     ];
     const [selected, setSelected] = useState("");
     function changeSelected(ch) {

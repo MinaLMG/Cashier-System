@@ -5,6 +5,9 @@ import PurchaseInvoice from "./PurchaseInvoice/PurchaseInvoice";
 import ShowPurchaseInvoices from "./ShowInvoices/ShowPurchaseInvoices";
 import SalesInvoice from "./SalesInvoices/SalesInvoice";
 import ShowSalesInvoices from "./ShowInvoices/ShowSalesInvoices";
+import ShowSuppliers from "./Suppliers/ShowSuppliers";
+import ShowCustomers from "./Customers/ShowCustomers";
+import ShowVolumes from "./Volumes/ShowVolumes";
 export default function Content(props) {
     return (
         <div className={classes["content"]}>
@@ -57,6 +60,9 @@ export default function Content(props) {
                 // }}
                 ></ShowSalesInvoices>
             )}
+            {props.selected === "إدارة الموردين" && <ShowSuppliers />}
+            {props.selected === "إدارة العملاء" && <ShowCustomers />}
+            {props.selected === "إدارة العبوات" && <ShowVolumes />}
         </div>
     );
 }
