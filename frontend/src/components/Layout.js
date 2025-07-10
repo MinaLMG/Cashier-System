@@ -105,6 +105,47 @@ export default function Layout() {
                 break;
         }
     };
+    const [salesInvoiceToEdit, setSalesInvoiceToEdit] = useState({
+        customer: "",
+        type: "walkin",
+        date: new Date().toISOString().split("T")[0],
+        offer: 0,
+        rows: [
+            {
+                barcode: "",
+                product: "",
+                volume: "",
+                quantity: "",
+            },
+        ],
+    });
+    const [onEditSalesInvoiceSuccess, setOnEditSalesInvoiceSuccess] =
+        useState(null);
+    const executeEditSalesInvoiceSuccess = () => {
+        switch (onEditSalesInvoiceSuccess) {
+            case "reset":
+                setSelected("اعرض كل فواتير البيع");
+                setSalesInvoiceToEdit({
+                    customer: "",
+                    type: "walkin",
+                    date: new Date().toISOString().split("T")[0],
+                    offer: 0,
+                    rows: [
+                        {
+                            barcode: "",
+                            product: "",
+                            volume: "",
+                            quantity: "",
+                        },
+                    ],
+                });
+                setOnEditSalesInvoiceSuccess("");
+                break;
+
+            default:
+                break;
+        }
+    };
     return (
         <Fragment>
             <Header></Header>
@@ -145,6 +186,16 @@ export default function Layout() {
                     purchaseInvoiceToEdit={purchaseInvoiceToEdit}
                     onEditPurchaseInvoiceSuccess={() => {
                         executeEditPurchaseInvoiceSuccess();
+                    }}
+                    /*** edit salesInvoice props   ***/
+                    onEditSalesInvoice={(e) => {
+                        setSalesInvoiceToEdit(e);
+                        setOnEditSalesInvoiceSuccess("reset");
+                        setSelected("عدل فاتورة بيع");
+                    }}
+                    salesInvoiceToEdit={salesInvoiceToEdit}
+                    onEditSalesInvoiceSuccess={() => {
+                        executeEditSalesInvoiceSuccess();
                     }}
                 ></Content>
             </div>

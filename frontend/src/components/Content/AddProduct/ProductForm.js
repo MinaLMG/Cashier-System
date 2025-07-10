@@ -441,6 +441,8 @@ export default function ProductForm({
                                 setTimeout(() => {
                                     setErrorsAppearing(true);
                                 }, 5000);
+
+                                // Reset form to initial state if not in edit mode
                                 if (mode === "add") {
                                     setProduct({
                                         name: "",

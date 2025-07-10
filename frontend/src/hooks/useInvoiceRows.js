@@ -21,31 +21,47 @@ export default function useInvoiceRows(
     const validateRows = useCallback(() => {
         const totalRows = rows.length;
 
-        // For all rows except possibly the last one (unless it's the only row)
+        // Validate all rows, but check if the last row is empty before validating it
         const updatedErrors = rows.map((row, index) => {
-            // Only validate the last row if it's the only row
+            // For the last row, only validate if it has some data entered
             if (index === totalRows - 1 && totalRows > 1) {
-                return {}; // Don't validate the last row if there are multiple rows
+                // Check if the last row is empty (no data entered yet)
+                const isEmpty = Object.keys(row).every((key) => {
+                    // Skip _id field and check if other fields are empty
+                    if (key === "_id") return true;
+                    return !row[key] || row[key] === "";
+                });
+
+                // If the last row is completely empty, don't validate it
+                if (isEmpty) return {};
             }
+
+            // Validate the row
             const errors = validateRowFn(row, index, rows);
             return errors;
         });
 
         setRowErrors(updatedErrors);
 
-        // Form is valid if all non-last rows are valid and at least one row is valid
-        const rowsToValidate = totalRows > 1 ? rows.slice(0, -1) : rows;
+        // Form is valid if all filled rows are valid
+        const isEachFilledRowValid = rows.every((row, index) => {
+            // Skip empty rows (typically the last one)
+            const isEmpty = Object.keys(row).every((key) => {
+                if (key === "_id") return true;
+                return !row[key] || row[key] === "";
+            });
 
-        const isEachRequiredRowValid = rowsToValidate.every(
-            (row, index) => Object.keys(updatedErrors[index] || {}).length === 0
-        );
+            if (isEmpty && index === totalRows - 1) return true;
+
+            return Object.keys(updatedErrors[index] || {}).length === 0;
+        });
 
         const atLeastOneValidRow = rows.some(
             (row, index) =>
                 Object.keys(validateRowFn(row, index, rows) || {}).length === 0
         );
 
-        setIsFormValid(isEachRequiredRowValid && atLeastOneValidRow);
+        setIsFormValid(isEachFilledRowValid && atLeastOneValidRow);
 
         return updatedErrors;
     }, [rows, validateRowFn]);
@@ -77,8 +93,11 @@ export default function useInvoiceRows(
 
             setRows(updatedRows);
             setRowErrors(updatedErrors);
+
+            // Re-validate all rows to update form validity
+            setTimeout(() => validateRows(), 0);
         },
-        [rows, rowErrors, validateRowFn]
+        [rows, rowErrors, validateRowFn, validateRows]
     );
 
     // Add a new row

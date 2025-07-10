@@ -17,6 +17,8 @@ export default function SalesInvoice(props) {
     });
     const [submitError, setSubmitError] = useState("");
     const [finalTotal, setFinalTotal] = useState(0);
+    const [baseCost, setBaseCost] = useState(0);
+    const [profit, setProfit] = useState(0);
 
     // Define the initial empty row
     const emptyRow = {
@@ -116,7 +118,7 @@ export default function SalesInvoice(props) {
     // Load invoice data if in edit mode
     useEffect(() => {
         if (props.mode === "edit" && props.invoice) {
-            const { date, customer, type, offer, rows } = props.invoice;
+            const { date, customer, type, offer, rows, base } = props.invoice;
             setInvoice({
                 date,
                 customer,
@@ -124,6 +126,7 @@ export default function SalesInvoice(props) {
                 offer,
             });
             setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
+            setBaseCost(base || 0);
         }
     }, [props.mode, props.invoice, setInvoiceRows, emptyRow]);
 
@@ -156,7 +159,19 @@ export default function SalesInvoice(props) {
 
         const newTotal = calculateTotal() - Number(invoice.offer || 0);
         setFinalTotal(newTotal);
-    }, [invoiceRows, invoice.offer, invoice.type, products]);
+
+        // Calculate profit (only in edit mode when we know the base cost)
+        if (props.mode === "edit") {
+            setProfit(newTotal - baseCost);
+        }
+    }, [
+        invoiceRows,
+        invoice.offer,
+        invoice.type,
+        products,
+        baseCost,
+        props.mode,
+    ]);
 
     // Handle invoice field changes
     const handleInvoiceChange = (field, value) => {
@@ -204,12 +219,12 @@ export default function SalesInvoice(props) {
             let response;
             if (props.mode === "edit") {
                 response = await axios.put(
-                    `${process.env.REACT_APP_BACKEND}sales-invoices/${props.invoice._id}`,
+                    `${process.env.REACT_APP_BACKEND}sales-invoices/full/${props.invoice._id}`,
                     requestBody
                 );
             } else {
                 response = await axios.post(
-                    `${process.env.REACT_APP_BACKEND}sales-invoices`,
+                    `${process.env.REACT_APP_BACKEND}sales-invoices/full`,
                     requestBody
                 );
             }
@@ -221,6 +236,18 @@ export default function SalesInvoice(props) {
                         : "✅ تم إضافة الفاتورة بنجاح",
                 isError: false,
             });
+
+            // Reset form to initial state if not in edit mode
+            if (props.mode !== "edit") {
+                setInvoice({
+                    customer: "",
+                    type: "walkin",
+                    date: new Date().toISOString().split("T")[0],
+                    offer: 0,
+                });
+                setInvoiceRows([{ ...emptyRow }]);
+                setFinalTotal(0);
+            }
 
             if (props.onSuccess) {
                 props.onSuccess(response.data);
@@ -235,6 +262,45 @@ export default function SalesInvoice(props) {
             setIsSubmitting(false);
         }
     };
+
+    // Add this function to handle barcode scanning
+    const handleBarcodeChange = useCallback(
+        async (index, barcode) => {
+            console.log("called");
+            try {
+                // Find product and volume by barcode
+                const response = await axios.get(
+                    `${process.env.REACT_APP_BACKEND}has-volumes/barcode/${barcode}`
+                );
+
+                if (response.data) {
+                    const { product: productId, volume: volumeId } =
+                        response.data;
+
+                    // Update the row with the found product and volume
+                    const updatedRows = [...invoiceRows];
+                    updatedRows[index].product = productId;
+                    updatedRows[index].volume = volumeId;
+
+                    // Set default quantity to 1 if not already set
+                    if (!updatedRows[index].quantity) {
+                        updatedRows[index].quantity = "1";
+                    }
+
+                    setInvoiceRows(updatedRows);
+
+                    // If this is the last row, add a new row for the next scan
+                    if (index === invoiceRows.length - 1) {
+                        addRow();
+                    }
+                }
+            } catch (error) {
+                console.error("Error finding product by barcode:", error);
+                // You could set an error message here if needed
+            }
+        },
+        [invoiceRows, setInvoiceRows, addRow]
+    );
 
     return (
         <div className={classes.container}>
@@ -289,6 +355,7 @@ export default function SalesInvoice(props) {
                 <thead>
                     <tr>
                         <th>#</th>
+                        <th>الباركود</th>
                         <th>المنتج</th>
                         <th>العبوة</th>
                         <th>الكمية</th>
@@ -315,13 +382,14 @@ export default function SalesInvoice(props) {
                                 products={products}
                                 salesType={invoice.type}
                                 errors={rowErrors[i] || {}}
+                                onBarcodeChange={handleBarcodeChange}
                             />
                         );
                     })}
 
                     <tr>
                         <td></td>
-                        <td colSpan={3}>
+                        <td colSpan={4}>
                             <TextInput
                                 type="number"
                                 label="خصم"
@@ -338,6 +406,33 @@ export default function SalesInvoice(props) {
                             <strong>{finalTotal.toFixed(2)} ج.م</strong>
                         </td>
                     </tr>
+
+                    {/* Show profit information in edit mode */}
+                    {props.mode === "edit" && (
+                        <tr>
+                            <td></td>
+                            <td colSpan={4}>
+                                <div className="d-flex justify-content-between">
+                                    <strong>تكلفة الشراء:</strong>
+                                    <strong>{baseCost.toFixed(2)} ج.م</strong>
+                                </div>
+                            </td>
+                            <td colSpan={3}>
+                                <div className="d-flex justify-content-between">
+                                    <strong>الربح:</strong>
+                                    <strong
+                                        className={
+                                            profit > 0
+                                                ? "text-success"
+                                                : "text-danger"
+                                        }
+                                    >
+                                        {profit.toFixed(2)} ج.م
+                                    </strong>
+                                </div>
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
 

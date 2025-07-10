@@ -16,6 +16,7 @@ export default function SalesInvoiceRow({
     products,
     salesType,
     errors,
+    onBarcodeChange,
 }) {
     const selectedProduct = products.find((p) => p._id === row.product);
 
@@ -39,8 +40,28 @@ export default function SalesInvoiceRow({
                 {index + 1}
             </th>
 
-            {/* Product */}
+            {/* Barcode */}
+            <td className={classes.item}>
+                <TextInput
+                    className={classes["no-margin"]}
+                    type="text"
+                    placeholder="الباركود"
+                    label="الباركود"
+                    value={row.barcode || ""}
+                    onchange={(val) => {
+                        onChange(index, "barcode", val);
+                        if (val && val.length > 3) {
+                            onBarcodeChange(index, val);
+                        }
+                    }}
+                    autoFocus={isLastRow}
+                />
+                {errors.barcode && (
+                    <div className={classes.error}>{errors.barcode}</div>
+                )}
+            </td>
 
+            {/* Product */}
             <td className={classes.item}>
                 <Select
                     className={classes["no-margin"]}

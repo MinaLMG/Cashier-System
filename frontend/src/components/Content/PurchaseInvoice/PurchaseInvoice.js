@@ -179,12 +179,12 @@ export default function PurchaseInvoice(props) {
             let response;
             if (props.mode === "edit") {
                 response = await axios.put(
-                    `${process.env.REACT_APP_BACKEND}purchase-invoices/${props.invoice._id}`,
+                    `${process.env.REACT_APP_BACKEND}purchase-invoices/full/${props.invoice._id}`,
                     requestBody
                 );
             } else {
                 response = await axios.post(
-                    `${process.env.REACT_APP_BACKEND}purchase-invoices`,
+                    `${process.env.REACT_APP_BACKEND}purchase-invoices/full`,
                     requestBody
                 );
             }
@@ -196,6 +196,16 @@ export default function PurchaseInvoice(props) {
                         : "✅ تم إضافة الفاتورة بنجاح",
                 isError: false,
             });
+
+            // Reset form to initial state if not in edit mode
+            if (props.mode !== "edit") {
+                setInvoice({
+                    date: new Date().toISOString().split("T")[0],
+                    supplier: "",
+                    cost: "0",
+                });
+                setInvoiceRows([{ ...emptyRow }]);
+            }
 
             if (props.onSuccess) {
                 props.onSuccess(response.data);

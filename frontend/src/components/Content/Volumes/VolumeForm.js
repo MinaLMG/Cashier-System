@@ -65,6 +65,11 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
                     text: "✅ تم إضافة العبوة بنجاح",
                     isError: false,
                 });
+
+                // Reset form to initial state if not editing
+                setFormData({
+                    name: "",
+                });
             }
             setTimeout(() => {
                 onSubmit();

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Button from "../../Basic/Button";
 import TextInput from "../../Basic/TextInput";
+import Select from "../../Basic/Select";
 import formStyles from "../../../styles/forms.module.css";
 import commonStyles from "../../../styles/common.module.css";
 
@@ -15,6 +16,7 @@ export default function CustomerForm({
         name: customer?.name || "",
         phone: customer?.phone || "",
         address: customer?.address || "",
+        type: customer?.type || "walkin",
     });
     const [errors, setErrors] = useState({});
     const [isFormValid, setIsFormValid] = useState(false);
@@ -71,6 +73,14 @@ export default function CustomerForm({
                     text: "✅ تم إضافة العميل بنجاح",
                     isError: false,
                 });
+
+                // Reset form to initial state if not editing
+                setFormData({
+                    name: "",
+                    phone: "",
+                    address: "",
+                    type: "walkin",
+                });
             }
             setTimeout(() => {
                 onSubmit();
@@ -104,6 +114,17 @@ export default function CustomerForm({
                         value={formData.name}
                         onchange={(value) => handleChange("name", value)}
                         error={errors.name}
+                    />
+                </div>
+                <div className={formStyles.formGroup}>
+                    <Select
+                        title="نوع العميل"
+                        value={formData.type}
+                        onchange={(value) => handleChange("type", value)}
+                        options={[
+                            { value: "walkin", label: "زبون" },
+                            { value: "pharmacy", label: "صيدلية" },
+                        ]}
                     />
                 </div>
                 <div className={formStyles.formGroup}>

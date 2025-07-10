@@ -158,10 +158,40 @@ exports.createFullSalesInvoice = async (req, res) => {
             });
         }
 
-        // Step 4: Calculate total cost
+        // Step 4: Calculate total cost and base cost
         const cost = salesItems.reduce((sum, item) => {
             return sum + item.quantity * item.price;
         }, 0);
+
+        // Calculate base cost (buying price)
+        let baseCost = 0;
+        for (const item of salesItems) {
+            for (const source of item.sources) {
+                const purchaseItem = await PurchaseItem.findById(
+                    source.purchase_item
+                );
+
+                // Get the volume value for the purchase item to normalize the cost
+                const purchaseHasVolume = await HasVolume.findOne({
+                    product: purchaseItem.product,
+                    volume: purchaseItem.volume,
+                });
+
+                if (!purchaseHasVolume) {
+                    console.error(
+                        `Missing HasVolume for purchase item ${purchaseItem._id}`
+                    );
+                    continue;
+                }
+
+                // Calculate the cost per base unit
+                const costPerBaseUnit =
+                    purchaseItem.buy_price / purchaseHasVolume.value;
+
+                // Add to the base cost (source.quantity is already in base units)
+                baseCost += source.quantity * costPerBaseUnit;
+            }
+        }
 
         // Step 5: Create SalesInvoice
         newInvoice = await SalesInvoice.create({
@@ -169,6 +199,7 @@ exports.createFullSalesInvoice = async (req, res) => {
             type,
             user: req.user?._id || null,
             cost,
+            base: baseCost, // Add the base cost
             customer: customer ? customer : null,
             offer,
         });
@@ -232,6 +263,9 @@ exports.getFullSalesInvoices = async (req, res) => {
                     sales_invoice: inv._id,
                 });
 
+                const finalTotal = (inv.cost || 0) - (inv.offer || 0);
+                const profit = finalTotal - (inv.base || 0);
+
                 return {
                     _id: inv._id,
                     customer: inv.customer || "",
@@ -244,7 +278,9 @@ exports.getFullSalesInvoices = async (req, res) => {
                         quantity: item.quantity,
                     })),
                     total: inv.cost || 0,
-                    finalTotal: (inv.cost || 0) - (inv.offer || 0),
+                    finalTotal,
+                    base: inv.base || 0,
+                    profit: profit,
                 };
             })
         );

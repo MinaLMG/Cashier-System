@@ -70,6 +70,12 @@ export default function SupplierForm({
                     text: "✅ تم إضافة المورد بنجاح",
                     isError: false,
                 });
+
+                // Reset form to initial state if not editing
+                setFormData({
+                    name: "",
+                    phone: "",
+                });
             }
             setTimeout(() => {
                 onSubmit();

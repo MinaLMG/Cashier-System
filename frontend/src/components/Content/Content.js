@@ -46,18 +46,18 @@ export default function Content(props) {
             {props.selected === "زود فاتورة بيع" && (
                 <SalesInvoice mode="add"></SalesInvoice>
             )}
-            {/* {props.selected === "عدل فاتورة بيع" && (
-                <PurchaseInvoice
+            {props.selected === "عدل فاتورة بيع" && (
+                <SalesInvoice
                     mode="edit"
-                    invoice={props.purchaseInvoiceToEdit}
-                    onSuccess={props.onEditPurchaseInvoiceSuccess}
-                ></PurchaseInvoice>
-            )} */}
+                    invoice={props.salesInvoiceToEdit}
+                    onSuccess={props.onEditSalesInvoiceSuccess}
+                ></SalesInvoice>
+            )}
             {props.selected === "اعرض كل فواتير البيع" && (
                 <ShowSalesInvoices
-                // onEdit={(e) => {
-                //     props.onEditPurchaseInvoice(e);
-                // }}
+                    onEdit={(e) => {
+                        props.onEditSalesInvoice(e);
+                    }}
                 ></ShowSalesInvoices>
             )}
             {props.selected === "إدارة الموردين" && <ShowSuppliers />}

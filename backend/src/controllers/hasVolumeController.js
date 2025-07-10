@@ -54,3 +54,36 @@ exports.deleteHasVolume = async (req, res) => {
         res.status(500).json({ error: "Failed to delete entry." });
     }
 };
+
+// Add this new function to find a product by barcode
+exports.findByBarcode = async (req, res) => {
+    console.log("entered");
+    const { barcode } = req.params;
+
+    if (!barcode) {
+        return res.status(400).json({ error: "Barcode is required" });
+    }
+
+    try {
+        const hasVolume = await HasVolume.findOne({ barcode }).populate(
+            "product volume"
+        );
+
+        if (!hasVolume) {
+            return res
+                .status(404)
+                .json({ error: "No product found with this barcode" });
+        }
+
+        res.status(200).json({
+            product: hasVolume.product._id,
+            volume: hasVolume.volume._id,
+            productName: hasVolume.product.name,
+            volumeName: hasVolume.volume.name,
+            value: hasVolume.value,
+        });
+    } catch (err) {
+        console.error("Error finding product by barcode:", err);
+        res.status(500).json({ error: "Failed to find product by barcode" });
+    }
+};

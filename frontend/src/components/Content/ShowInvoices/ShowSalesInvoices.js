@@ -29,6 +29,13 @@ export default function ShowSalesInvoices(props) {
             .catch((err) => console.error("Failed to fetch customers:", err));
     }, []);
 
+    // Add the handleEdit function
+    const handleEdit = (invoice) => {
+        if (props.onEdit) {
+            props.onEdit(invoice);
+        }
+    };
+
     return (
         <div style={{ width: "70%", margin: "100px auto " }}>
             <table
@@ -36,52 +43,63 @@ export default function ShowSalesInvoices(props) {
             >
                 <thead>
                     <tr>
-                        <th className={classes.head}></th>
-                        <th className={classes.head}>العميل</th>
-                        <th className={classes.head}>النوع</th>
-                        <th className={classes.head}>التاريخ</th>
-                        <th className={classes.head}>الإجمالي</th>
-                        <th
-                            className={classes.head}
-                            style={{ width: "220px" }}
-                        ></th>
+                        <th scope="col">#</th>
+                        <th scope="col">التاريخ</th>
+                        <th scope="col">العميل</th>
+                        <th scope="col">النوع</th>
+                        <th scope="col">الإجمالي</th>
+                        <th scope="col">الخصم</th>
+                        <th scope="col">الصافي</th>
+                        <th scope="col">التكلفة</th>
+                        <th scope="col">الربح</th>
+                        <th scope="col">العمليات</th>
                     </tr>
                 </thead>
                 <tbody>
                     {invoices.length === 0 ? (
                         <tr>
-                            <td colSpan="6" className={classes.item}>
+                            <td colSpan="10" className={classes.item}>
                                 لا توجد فواتير بيع حتى الآن
                             </td>
                         </tr>
                     ) : (
-                        invoices.map((inv, i) => (
-                            <tr key={i}>
-                                <th className={classes.item} scope="row">
-                                    {i + 1}
-                                </th>
-                                <td className={classes.item}>
-                                    {customers.find(
-                                        (c) => c._id === inv.customer
-                                    )?.name || "--"}
+                        invoices.map((invoice, index) => (
+                            <tr key={invoice._id}>
+                                <th scope="row">{index + 1}</th>
+                                <td>{invoice.date}</td>
+                                <td>
+                                    {invoice.customer
+                                        ? customers.find(
+                                              (c) => c._id === invoice.customer
+                                          )?.name || "غير معروف"
+                                        : "بدون عميل"}
                                 </td>
-                                <td className={classes.item}>
-                                    {inv.type === "walkin" ? "جمهور" : "صيدلية"}
+                                <td>
+                                    {invoice.type === "walkin"
+                                        ? "زبون"
+                                        : "صيدلية"}
                                 </td>
-                                <td className={classes.item}>{inv.date}</td>
-                                <td className={classes.item}>
-                                    {inv.finalTotal}
+                                <td>{invoice.total.toFixed(2)} ج.م</td>
+                                <td>{invoice.offer.toFixed(2)} ج.م</td>
+                                <td>{invoice.finalTotal.toFixed(2)} ج.م</td>
+                                <td>{invoice.base.toFixed(2)} ج.م</td>
+                                <td
+                                    className={
+                                        invoice.profit > 0
+                                            ? "text-success"
+                                            : "text-danger"
+                                    }
+                                >
+                                    {invoice.profit.toFixed(2)} ج.م
                                 </td>
-                                <td className={classes.item}>
-                                    <FaEye className={classes.view} />
-                                    <FaEdit
-                                        // onClick={() => props.onEdit?.(inv)}
-                                        className={classes.edit}
-                                    />
-                                    {/* <MdDelete
-                                        onClick={() => props.onDelete?.(inv._id)}
-                                        className={classes.remove}
-                                    /> */}
+                                <td>
+                                    <div className="d-flex justify-content-around">
+                                        <FaEdit
+                                            className="text-primary"
+                                            style={{ cursor: "pointer" }}
+                                            onClick={() => handleEdit(invoice)}
+                                        />
+                                    </div>
                                 </td>
                             </tr>
                         ))
