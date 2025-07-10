@@ -2,6 +2,7 @@ import { IoMdAddCircle } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import Select from "../../Basic/Select";
 import TextInput from "../../Basic/TextInput";
+import DateTimeInput from "../../Basic/DateTimeInput";
 import classes from "./InvoiceRow.module.css";
 // Extracted InvoiceRow Component
 export default function InvoiceRow({
@@ -133,14 +134,13 @@ export default function InvoiceRow({
 
             {/* تاريخ الصلاحية */}
             <td className={classes.item}>
-                <TextInput
+                <DateTimeInput
                     className={classes["no-margin"]}
-                    type="date"
-                    placeholder="تاريخ الانتهاء"
                     label="تاريخ الانتهاء"
                     id={`expiry${index}`}
-                    value={row.expiry}
+                    value={row.expiry || new Date().toISOString()}
                     onchange={(val) => onChange(index, "expiry", val)}
+                    includeTime={false}
                     disabled={false}
                 />
                 {errors.expiry && (

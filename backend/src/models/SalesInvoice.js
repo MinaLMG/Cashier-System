@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const salesInvoiceSchema = new mongoose.Schema({
-    date: { type: Date, required: true },
+    date: { type: Date, required: true }, // This will store both date and time
     customer: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Customer",

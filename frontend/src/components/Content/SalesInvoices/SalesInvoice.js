@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import Button from "../../Basic/Button";
 import TextInput from "../../Basic/TextInput";
+import DateTimeInput from "../../Basic/DateTimeInput";
 import Select from "../../Basic/Select";
 import SalesInvoiceRow from "./SalesInvoiceRow";
 import useInvoiceRows from "../../../hooks/useInvoiceRows";
@@ -28,11 +29,11 @@ export default function SalesInvoice(props) {
         quantity: "",
     };
 
-    // Define invoice state
+    // Define invoice state with ISO datetime string
     const [invoice, setInvoice] = useState({
         customer: "",
         type: "walkin",
-        date: new Date().toISOString().split("T")[0],
+        date: new Date().toISOString(), // Full ISO string with time
         offer: 0,
     });
 
@@ -120,7 +121,7 @@ export default function SalesInvoice(props) {
         if (props.mode === "edit" && props.invoice) {
             const { date, customer, type, offer, rows, base } = props.invoice;
             setInvoice({
-                date,
+                date: new Date(date).toISOString(), // Convert to ISO string with time
                 customer,
                 type,
                 offer,
@@ -204,7 +205,7 @@ export default function SalesInvoice(props) {
         const requestBody = {
             customer: invoice.customer,
             type: invoice.type,
-            date: invoice.date,
+            date: invoice.date, // Send the full ISO datetime string
             offer: Number(invoice.offer || 0),
             rows: validRows.map((row) => ({
                 product: row.product,
@@ -242,7 +243,7 @@ export default function SalesInvoice(props) {
                 setInvoice({
                     customer: "",
                     type: "walkin",
-                    date: new Date().toISOString().split("T")[0],
+                    date: new Date().toISOString(), // Full ISO string with time
                     offer: 0,
                 });
                 setInvoiceRows([{ ...emptyRow }]);
@@ -312,12 +313,12 @@ export default function SalesInvoice(props) {
 
             <div className="row mb-3">
                 <div className="col-md-5">
-                    <TextInput
-                        type="date"
-                        label="التاريخ"
+                    <DateTimeInput
+                        label="التاريخ والوقت"
                         id="invoice-date"
                         value={invoice.date}
                         onchange={(value) => handleInvoiceChange("date", value)}
+                        includeTime={true}
                     />
                 </div>
                 <div className="col-md-2">

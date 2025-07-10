@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import TextInput from "../../Basic/TextInput";
+import DateTimeInput from "../../Basic/DateTimeInput";
 import Button from "../../Basic/Button";
 import { FaEdit } from "react-icons/fa";
 import classes from "./Revenue.module.css";
+import { addMonths, startOfMonth, startOfYear } from "date-fns";
 
 export default function Revenue(props) {
     // State for period selection
@@ -45,52 +46,78 @@ export default function Revenue(props) {
             });
     }, []);
 
-    // Update end date when period type or start date changes
-    useEffect(() => {
-        if (periodType === "daily") {
-            setEndDate(startDate);
-        } else if (periodType === "monthly") {
-            const start = new Date(startDate);
-            const end = new Date(start);
-            end.setMonth(start.getMonth() + 1);
-            end.setDate(end.getDate() - 1);
-            setEndDate(end.toISOString().split("T")[0]);
-        } else if (periodType === "yearly") {
-            const start = new Date(startDate);
-            const end = new Date(start);
-            end.setFullYear(start.getFullYear() + 1);
-            end.setDate(end.getDate() - 1);
-            setEndDate(end.toISOString().split("T")[0]);
-        }
-        // For custom period, we don't update the end date automatically
-    }, [periodType, startDate]);
-
     // Handle period type change
     const handlePeriodTypeChange = (type) => {
         setPeriodType(type);
 
-        // Reset dates to today when changing period type
-        const today = new Date().toISOString().split("T")[0];
-        setStartDate(today);
+        const today = new Date();
+        // Always set end date to today for all period types
+        const todayStr = today.toISOString().split("T")[0];
+        setEndDate(todayStr);
 
-        // End date will be updated by the useEffect
+        if (type === "daily") {
+            // For daily, set start date to today as well
+            setStartDate(todayStr);
+        } else if (type === "monthly") {
+            // For monthly, set start date to one month ago from today
+            const oneMonthAgo = addMonths(today, -1);
+            setStartDate(oneMonthAgo.toISOString().split("T")[0]);
+        } else if (type === "yearly") {
+            // For yearly, set start date to one year ago from today
+            const oneYearAgo = addMonths(today, -12);
+            setStartDate(oneYearAgo.toISOString().split("T")[0]);
+        } else if (type === "custom") {
+            // For custom, default to today for both
+            setStartDate(todayStr);
+        }
     };
 
     // Handle date changes
     const handleStartDateChange = (date) => {
         setStartDate(date);
 
-        // If custom period and end date is before start date, update end date
-        if (periodType === "custom" && new Date(endDate) < new Date(date)) {
+        // Update end date based on period type to maintain duration
+        if (periodType === "daily") {
+            // For daily, end date is always the same as start date
+            setEndDate(date);
+        } else if (periodType === "monthly") {
+            // For monthly, set end date to one month after start date
+            const startDateObj = new Date(date);
+            const endDateObj = addMonths(startDateObj, 1);
+            setEndDate(endDateObj.toISOString().split("T")[0]);
+        } else if (periodType === "yearly") {
+            // For yearly, set end date to one year after start date
+            const startDateObj = new Date(date);
+            const endDateObj = addMonths(startDateObj, 12);
+            setEndDate(endDateObj.toISOString().split("T")[0]);
+        } else if (
+            periodType === "custom" &&
+            new Date(endDate) < new Date(date)
+        ) {
+            // If custom period and end date is before start date, update end date
             setEndDate(date);
         }
     };
 
     const handleEndDateChange = (date) => {
-        // Only allow end date changes in custom period
-        if (periodType === "custom") {
-            setEndDate(date);
+        setEndDate(date);
+
+        // Update start date based on period type to maintain duration
+        if (periodType === "daily") {
+            // For daily, start date is always the same as end date
+            setStartDate(date);
+        } else if (periodType === "monthly") {
+            // For monthly, set start date to one month before end date
+            const endDateObj = new Date(date);
+            const startDateObj = addMonths(endDateObj, -1);
+            setStartDate(startDateObj.toISOString().split("T")[0]);
+        } else if (periodType === "yearly") {
+            // For yearly, set start date to one year before end date
+            const endDateObj = new Date(date);
+            const startDateObj = addMonths(endDateObj, -12);
+            setStartDate(startDateObj.toISOString().split("T")[0]);
         }
+        // For custom, we don't automatically update start date
     };
 
     // Fetch invoices for the selected period
@@ -152,6 +179,19 @@ export default function Revenue(props) {
         }
     };
 
+    // Add this function to format dates for display
+    const formatDateForDisplay = (dateString) => {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+
+        // Format as DD/MM/YYYY
+        const day = date.getDate().toString().padStart(2, "0");
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const year = date.getFullYear();
+
+        return `${day}/${month}/${year}`;
+    };
+
     return (
         <div className={classes.container}>
             <h2 className={classes.title}>تقرير الإيرادات</h2>
@@ -205,23 +245,23 @@ export default function Revenue(props) {
 
                 <div className={classes.dateInputs}>
                     <div className={classes.dateInput}>
-                        <TextInput
-                            type="date"
+                        <DateTimeInput
                             label="من تاريخ"
                             id="start-date"
                             value={startDate}
                             onchange={handleStartDateChange}
+                            includeTime={false}
                         />
                     </div>
 
                     {periodType !== "daily" && (
                         <div className={classes.dateInput}>
-                            <TextInput
-                                type="date"
+                            <DateTimeInput
                                 label="إلى تاريخ"
                                 id="end-date"
                                 value={endDate}
                                 onchange={handleEndDateChange}
+                                includeTime={false}
                                 disabled={periodType !== "custom"}
                             />
                         </div>
@@ -244,7 +284,8 @@ export default function Revenue(props) {
                 <>
                     <div className={classes.resultsInfo}>
                         <h3>
-                            نتائج الفترة من {startDate} إلى {endDate}
+                            نتائج الفترة من {formatDateForDisplay(startDate)}{" "}
+                            إلى {formatDateForDisplay(endDate)}
                         </h3>
                         <p>عدد الفواتير: {invoices.length}</p>
                     </div>

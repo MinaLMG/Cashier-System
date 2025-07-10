@@ -61,7 +61,7 @@ export default function Layout() {
         }
     };
     const [purchaseInvoiceToEdit, setPurchaseInvoiceToEdit] = useState({
-        date: new Date(Date.now()).toISOString().split("T")[0],
+        date: new Date().toISOString(),
         supplier: null,
         rows: [
             {
@@ -85,7 +85,7 @@ export default function Layout() {
             case "reset":
                 setSelected("اعرض كل فواتير المشتريات");
                 setPurchaseInvoiceToEdit({
-                    date: new Date(Date.now()).toISOString().split("T")[0],
+                    date: new Date().toISOString(),
                     supplier: null,
                     rows: [
                         {
@@ -112,7 +112,7 @@ export default function Layout() {
     const [salesInvoiceToEdit, setSalesInvoiceToEdit] = useState({
         customer: "",
         type: "walkin",
-        date: new Date().toISOString().split("T")[0],
+        date: new Date().toISOString(),
         offer: 0,
         rows: [
             {
@@ -132,7 +132,7 @@ export default function Layout() {
                 setSalesInvoiceToEdit({
                     customer: "",
                     type: "walkin",
-                    date: new Date().toISOString().split("T")[0],
+                    date: new Date().toISOString(),
                     offer: 0,
                     rows: [
                         {

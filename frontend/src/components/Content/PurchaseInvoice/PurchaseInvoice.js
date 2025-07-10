@@ -6,6 +6,7 @@ import Select from "../../Basic/Select";
 import InvoiceRow from "./InvoiceRow";
 import useInvoiceRows from "../../../hooks/useInvoiceRows";
 import classes from "./PurchaseInvoice.module.css";
+import DateTimeInput from "../../Basic/DateTimeInput";
 
 export default function PurchaseInvoice(props) {
     const [suppliers, setSuppliers] = useState([]);
@@ -78,9 +79,9 @@ export default function PurchaseInvoice(props) {
         validateRows,
     } = useInvoiceRows(emptyRow, validateRow, [products]);
 
-    // Initialize invoice state
+    // Initialize invoice state with ISO date string
     const [invoice, setInvoice] = useState({
-        date: new Date(Date.now()).toISOString().split("T")[0],
+        date: new Date().toISOString(),
         supplier: null,
         cost: "0",
     });
@@ -200,7 +201,7 @@ export default function PurchaseInvoice(props) {
             // Reset form to initial state if not in edit mode
             if (props.mode !== "edit") {
                 setInvoice({
-                    date: new Date().toISOString().split("T")[0],
+                    date: new Date().toISOString(),
                     supplier: "",
                     cost: "0",
                 });
@@ -231,12 +232,12 @@ export default function PurchaseInvoice(props) {
 
             <div className="row mb-3">
                 <div className="col-md-6">
-                    <TextInput
-                        type="date"
+                    <DateTimeInput
                         label="التاريخ"
                         id="invoice-date"
                         value={invoice.date}
                         onchange={(value) => handleInvoiceChange("date", value)}
+                        includeTime={false}
                     />
                 </div>
                 <div className="col-md-6">

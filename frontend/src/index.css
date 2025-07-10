@@ -144,3 +144,7 @@ code {
 .p-5 {
     padding: var(--spacing-xl);
 }
+
+.react-datepicker-popper {
+    z-index: 3 !important;
+}
