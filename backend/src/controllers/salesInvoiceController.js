@@ -3,6 +3,7 @@ const SalesItem = require("../models/SalesItem");
 const PurchaseItem = require("../models/PurchaseItem");
 const Product = require("../models/Product");
 const HasVolume = require("../models/HasVolume");
+const Volume = require("../models/Volume");
 const updateProductRemaining = require("../helpers/updateProductRemaining");
 const updateProductPrices = require("../helpers/productPricing");
 
@@ -148,7 +149,7 @@ exports.createFullSalesInvoice = async (req, res) => {
                         error: `المنتج غير موجود: ${row.product}`,
                     });
                 }
-
+                console.log(row.volume);
                 const volumeExists = await Volume.findById(row.volume);
                 if (!volumeExists) {
                     return res.status(400).json({
