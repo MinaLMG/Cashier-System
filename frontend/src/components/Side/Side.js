@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 import { Fragment, useState } from "react";
 import classes from "./Side.module.css";
 export default function Side(props) {

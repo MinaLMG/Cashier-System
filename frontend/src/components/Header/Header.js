@@ -3,7 +3,7 @@ import logo from "../../media/OIP.webp";
 export default function Header() {
     return (
         <header className={classes["header"]}>
-            <img src={logo}></img>
+            <img src={logo} alt="Company Logo" />
         </header>
     );
 }

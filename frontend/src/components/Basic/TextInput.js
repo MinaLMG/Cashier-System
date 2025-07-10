@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import classes from "./TextInput.module.css";
+// Use the classes import if needed, otherwise remove it
 export default function TextInput(props) {
     return (
         <Fragment>

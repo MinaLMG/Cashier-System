@@ -140,7 +140,6 @@ exports.createFullPurchaseInvoice = async (req, res) => {
             })
         );
 
-        console.log("here", items);
         createdItems = await PurchaseItem.insertMany(items);
 
         for (const item of createdItems) {

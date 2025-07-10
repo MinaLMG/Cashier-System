@@ -1,129 +1,37 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import TextInput from "../../Basic/TextInput";
-import classes from "./PurchaseInvoice.module.css";
-import Select from "../../Basic/Select";
 import Button from "../../Basic/Button";
+import TextInput from "../../Basic/TextInput";
+import Select from "../../Basic/Select";
 import InvoiceRow from "./InvoiceRow";
+import useInvoiceRows from "../../../hooks/useInvoiceRows";
+import classes from "./PurchaseInvoice.module.css";
 
-// Main Component
 export default function PurchaseInvoice(props) {
     const [suppliers, setSuppliers] = useState([]);
     const [products, setProducts] = useState([]);
-    const [invoice, setInvoice] = useState({
-        date: new Date(Date.now()).toISOString().split("T")[0],
-        supplier: null,
-        rows: [
-            {
-                _id: null,
-                product: null,
-                quantity: "",
-                volume: null,
-                buy_price: "",
-                phar_price: "",
-                cust_price: "",
-                expiry: "",
-                remaining: "",
-            },
-        ],
-        cost: "0",
-    });
-
-    const [rowErrors, setRowErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitMessage, setSubmitMessage] = useState({
         text: "",
         isError: false,
     });
     const [submitError, setSubmitError] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isFormValid, setIsFormValid] = useState(false);
-    // Fetch initial data
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [suppliersRes, productsRes] = await Promise.all([
-                    axios.get(`${process.env.REACT_APP_BACKEND}suppliers`),
-                    axios.get(`${process.env.REACT_APP_BACKEND}products/full`),
-                ]);
-                setSuppliers(suppliersRes.data);
-                setProducts(productsRes.data);
-            } catch (err) {
-                console.error("Failed to fetch data:", err);
-            }
-        };
-        fetchData();
-    }, []);
-    useEffect(() => {
-        // Get all rows except possibly the last one
-        const rowsToValidate = invoice.rows.slice(0, -1);
 
-        // Check if:
-        // 1. At least one valid row exists
-        // 2. All rows (except possibly last) are valid
-        const hasAtLeastOneValidRow = invoice.rows.some(
-            (row) => !validateRow(row)
-        );
-        const allNonLastRowsValid = rowsToValidate.every(
-            (row) => !validateRow(row)
-        );
+    // Define the initial empty row
+    const emptyRow = {
+        _id: null,
+        product: null,
+        quantity: "",
+        volume: null,
+        buy_price: "",
+        phar_price: "",
+        cust_price: "",
+        expiry: "",
+        remaining: "",
+    };
 
-        setIsFormValid(
-            invoice.date && hasAtLeastOneValidRow && allNonLastRowsValid
-        );
-    }, [invoice]);
-    useEffect(() => {
-        let total = 0;
-        invoice.rows.forEach((row) => {
-            const quantity = Number(row.quantity);
-            const buyPrice = Number(row.buy_price);
-            const pharPrice = Number(row.phar_price);
-            const walkinPrice = Number(row.cust_price);
-
-            // Only add if the row is valid
-            if (
-                row.product &&
-                row.volume &&
-                !isNaN(quantity) &&
-                quantity > 0 &&
-                !isNaN(buyPrice) &&
-                !isNaN(pharPrice) &&
-                !isNaN(walkinPrice) &&
-                buyPrice > 0 &&
-                pharPrice > 0 &&
-                walkinPrice > 0 &&
-                buyPrice <= pharPrice &&
-                pharPrice <= walkinPrice
-            ) {
-                total += quantity * buyPrice;
-            }
-        });
-
-        setInvoice((prev) => ({ ...prev, cost: total }));
-    }, [invoice.rows]);
-    useEffect(() => {
-        if (props.mode === "edit" && props.invoice) {
-            setInvoice({
-                _id: invoice._id,
-                date: new Date(props.invoice.date).toISOString().split("T")[0],
-                supplier: props.invoice.supplier || null,
-                rows: props.invoice.rows.map((row) => ({
-                    _id: row._id,
-                    product: row.product,
-                    quantity: row.quantity,
-                    volume: row.volume,
-                    buy_price: row.buy_price,
-                    phar_price: row.phar_price,
-                    cust_price: row.cust_price,
-                    expiry: row.expiry
-                        ? new Date(row.expiry).toISOString().split("T")[0]
-                        : "",
-                    remaining: row.remaining,
-                })),
-            });
-        }
-    }, [props.mode, props.invoice]);
-    // Unified validation logic
-    const validateRow = (row) => {
+    // Define row validation function
+    const validateRow = useCallback((row) => {
         const errors = {};
 
         // Required fields
@@ -155,58 +63,101 @@ export default function PurchaseInvoice(props) {
             errors.cust_price = "يجب أن يكون سعر الزبون ≥ سعر الصيدلية";
         }
 
-        return Object.keys(errors).length ? errors : null;
-    };
+        return errors;
+    }, []);
 
-    const canAddNewRow = invoice.rows.every((row, i) => !validateRow(row));
+    // Use our custom hook for row management
+    const {
+        rows: invoiceRows,
+        rowErrors,
+        isFormValid,
+        handleRowChange,
+        addRow,
+        removeRow,
+        setRows: setInvoiceRows,
+        validateRows,
+    } = useInvoiceRows(emptyRow, validateRow, [products]);
 
-    // Handler functions
-    const handleRowChange = (index, key, value) => {
-        const updatedRows = [...invoice.rows];
-        updatedRows[index][key] = value;
-        setInvoice((prev) => ({ ...prev, rows: updatedRows }));
-    };
+    // Initialize invoice state
+    const [invoice, setInvoice] = useState({
+        date: new Date(Date.now()).toISOString().split("T")[0],
+        supplier: null,
+        cost: "0",
+    });
 
-    const addRow = () => {
-        const errors = {};
-        invoice.rows.forEach((row, index) => {
-            const rowError = validateRow(row);
-            if (rowError) errors[index] = rowError;
+    // Calculate total cost whenever rows change
+    useEffect(() => {
+        let total = 0;
+        invoiceRows.forEach((row) => {
+            const quantity = Number(row.quantity);
+            const buyPrice = Number(row.buy_price);
+
+            // Only add if the row is valid
+            if (
+                row.product &&
+                row.volume &&
+                !isNaN(quantity) &&
+                quantity > 0 &&
+                !isNaN(buyPrice) &&
+                buyPrice > 0
+            ) {
+                total += quantity * buyPrice;
+            }
         });
+        setInvoice((prev) => ({ ...prev, cost: total.toString() }));
+    }, [invoiceRows]);
 
-        if (Object.keys(errors).length) {
-            setRowErrors(errors);
-            return;
+    // Fetch data on component mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [suppliersRes, productsRes] = await Promise.all([
+                    axios.get(`${process.env.REACT_APP_BACKEND}suppliers`),
+                    axios.get(`${process.env.REACT_APP_BACKEND}products/full`),
+                ]);
+                setSuppliers(suppliersRes.data);
+                setProducts(productsRes.data);
+            } catch (err) {
+                console.error("Failed to fetch data:", err);
+            }
+        };
+        fetchData();
+    }, []);
+
+    // Load invoice data if in edit mode
+    useEffect(() => {
+        if (props.mode === "edit" && props.invoice) {
+            const { date, supplier, rows, cost } = props.invoice;
+            setInvoice({
+                date,
+                supplier,
+                cost,
+            });
+            setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
         }
+    }, [props.mode, props.invoice, setInvoiceRows, emptyRow]);
 
-        setInvoice((prev) => ({
-            ...prev,
-            rows: [
-                ...prev.rows,
-                {
-                    product: null,
-                    quantity: "",
-                    volume: null,
-                    buy_price: "",
-                    phar_price: "",
-                    cust_price: "",
-                    expiry: "",
-                    remaining: "",
-                },
-            ],
-        }));
-        setRowErrors({});
+    // Handle invoice field changes
+    const handleInvoiceChange = (field, value) => {
+        setInvoice((prev) => ({ ...prev, [field]: value }));
     };
 
-    const removeRow = (index) => {
-        setInvoice((prev) => ({
-            ...prev,
-            rows: prev.rows.filter((_, i) => i !== index),
-        }));
+    // Use validateRows in a function to avoid the unused variable warning
+    const validateAllRows = () => {
+        const errors = validateRows();
+        return errors;
     };
 
+    // Handle form submission
     const handleSubmit = async () => {
-        const validRows = invoice.rows.filter((row) => !validateRow(row));
+        // Validate all rows before submission
+        validateAllRows();
+
+        // Filter valid rows
+        const validRows = invoiceRows.filter(
+            (row) =>
+                !validateRow(row) || Object.keys(validateRow(row)).length === 0
+        );
 
         if (!invoice.date || validRows.length === 0) {
             setSubmitError("⚠️ يجب إدخال بيانات صحيحة لصف واحد على الأقل");
@@ -215,63 +166,46 @@ export default function PurchaseInvoice(props) {
 
         setIsSubmitting(true);
         const requestBody = {
-            ...invoice,
+            date: invoice.date,
+            supplier: invoice.supplier,
             rows: validRows.map((row) => ({
                 ...row,
                 expiry: row.expiry || null,
             })),
-            cost: invoice.cost,
+            cost: Number(invoice.cost),
         };
 
         try {
-            if (props.mode === "add") {
-                await axios.post(
-                    `${process.env.REACT_APP_BACKEND}purchase-invoices/full`,
+            let response;
+            if (props.mode === "edit") {
+                response = await axios.put(
+                    `${process.env.REACT_APP_BACKEND}purchase-invoices/${props.invoice._id}`,
                     requestBody
                 );
-            } else if (props.mode === "edit" && props.invoice?._id) {
-                await axios.put(
-                    `${process.env.REACT_APP_BACKEND}purchase-invoices/full/${props.invoice._id}`,
+            } else {
+                response = await axios.post(
+                    `${process.env.REACT_APP_BACKEND}purchase-invoices`,
                     requestBody
                 );
             }
 
-            setSubmitMessage({ text: "تم حفظ الفاتورة بنجاح", isError: false });
+            setSubmitMessage({
+                text:
+                    props.mode === "edit"
+                        ? "✅ تم تحديث الفاتورة بنجاح"
+                        : "✅ تم إضافة الفاتورة بنجاح",
+                isError: false,
+            });
+
             if (props.onSuccess) {
-                props.onSuccess();
-            }
-            if (props.onSuccess) props.onSuccess(); // Notify parent
-
-            // Reset form only if adding
-            if (props.mode === "add") {
-                setInvoice({
-                    date: new Date(Date.now()).toISOString().split("T")[0],
-                    supplier: null,
-                    rows: [
-                        {
-                            product: "",
-                            quantity: "",
-                            volume: null,
-                            buy_price: "",
-                            phar_price: "",
-                            cust_price: "",
-                            expiry: "",
-                            remaining: "",
-                        },
-                    ],
-                });
+                props.onSuccess(response.data);
             }
         } catch (err) {
-            const status = err.response?.status;
-            let errorMsg = "❌ حدث خطأ أثناء حفظ الفاتورة";
-
-            if (status === 401)
-                errorMsg = "غير مصرح بالعملية - يرجى تسجيل الدخول";
-            else if (status === 403) errorMsg = "ليس لديك صلاحية لهذه العملية";
-            else if (err.response?.data?.error)
-                errorMsg = err.response.data.error;
-
-            setSubmitMessage({ text: errorMsg, isError: true });
+            console.error("Error submitting invoice:", err);
+            setSubmitMessage({
+                text: `❌ حدث خطأ: ${err.response?.data?.error || err.message}`,
+                isError: true,
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -279,101 +213,78 @@ export default function PurchaseInvoice(props) {
 
     return (
         <div className={classes.container}>
-            {/* Invoice Header */}
-            <div style={{ display: "flex", marginBottom: "20px" }}>
-                <div style={{ width: "10%", marginRight: "2.5%" }}>
+            <h2 className={classes.formTitle}>
+                {props.mode === "edit"
+                    ? "تعديل فاتورة مشتريات"
+                    : "إضافة فاتورة مشتريات"}
+            </h2>
+
+            <div className="row mb-3">
+                <div className="col-md-6">
                     <TextInput
                         type="date"
-                        label="تاريخ الفاتورة"
+                        label="التاريخ"
+                        id="invoice-date"
                         value={invoice.date}
-                        onchange={(e) =>
-                            setInvoice((prev) => ({ ...prev, date: e }))
-                        }
+                        onchange={(value) => handleInvoiceChange("date", value)}
                     />
                 </div>
-                <div style={{ width: "50%", marginRight: "2.5%" }}>
+                <div className="col-md-6">
                     <Select
-                        title="المورّد"
-                        value={invoice.supplier}
-                        onchange={(val) =>
-                            setInvoice((prev) => ({ ...prev, supplier: val }))
+                        title="المورد"
+                        value={invoice.supplier || ""}
+                        onchange={(value) =>
+                            handleInvoiceChange("supplier", value)
                         }
-                        options={suppliers.map((s) => ({
-                            value: s._id,
-                            label: s.name,
-                        }))}
+                        options={[
+                            { value: "", label: "بدون مورد" },
+                            ...suppliers.map((s) => ({
+                                value: s._id,
+                                label: s.name,
+                            })),
+                        ]}
                     />
                 </div>
             </div>
 
-            {/* Invoice Table */}
-            <div style={{ width: "95%", margin: "20px auto" }}>
-                <table
-                    className={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
-                >
-                    <thead>
-                        <tr>
-                            <th className={classes.head} scope="col">
-                                #
-                            </th>
-                            <th
-                                className={classes.head}
-                                scope="col"
-                                style={{ width: "300px" }}
-                            >
-                                اسم المنتج
-                            </th>
-                            <th
-                                className={classes.head}
-                                scope="col"
-                                style={{ width: "90px" }}
-                            >
-                                الكمية
-                            </th>
-                            <th
-                                className={classes.head}
-                                scope="col"
-                                style={{ width: "140px" }}
-                            >
-                                العبوة
-                            </th>
-                            <th
-                                className={classes.head}
-                                scope="col"
-                                style={{ width: "130px" }}
-                            >
-                                سعر الشراء
-                            </th>
-                            <th
-                                className={classes.head}
-                                scope="col"
-                                style={{ width: "170px" }}
-                            >
-                                سعر البيع للصيدلية
-                            </th>
-
-                            <th
-                                className={classes.head}
-                                scope="col"
-                                style={{ width: "160px" }}
-                            >
-                                سعر البيع للزبون
-                            </th>
-                            <th className={classes.head} scope="col">
-                                تاريخ انتهاء الصلاحية
-                            </th>
-                            <th
-                                className={classes.head}
-                                scope="col"
-                                style={{ width: "135px" }}
-                            >
-                                الباقى( لو فاتورة باثر رجعى)
-                            </th>
-                            <th className={classes.head} scope="col"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {invoice.rows.map((row, i) => (
+            <table
+                className={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
+            >
+                <thead>
+                    <tr>
+                        <th className={classes.head} scope="col">
+                            #
+                        </th>
+                        <th className={classes.head} scope="col">
+                            المنتج
+                        </th>
+                        <th className={classes.head} scope="col">
+                            العبوة
+                        </th>
+                        <th className={classes.head} scope="col">
+                            الكمية
+                        </th>
+                        <th className={classes.head} scope="col">
+                            سعر الشراء
+                        </th>
+                        <th className={classes.head} scope="col">
+                            سعر البيع للصيدلية
+                        </th>
+                        <th className={classes.head} scope="col">
+                            سعر البيع للزبون
+                        </th>
+                        <th className={classes.head} scope="col">
+                            تاريخ انتهاء الصلاحية
+                        </th>
+                        <th className={classes.head} scope="col">
+                            الباقى( لو فاتورة باثر رجعى)
+                        </th>
+                        <th className={classes.head} scope="col"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {invoiceRows.map((row, i) => {
+                        return (
                             <InvoiceRow
                                 key={i}
                                 row={row}
@@ -382,45 +293,41 @@ export default function PurchaseInvoice(props) {
                                 onChange={handleRowChange}
                                 onRemove={removeRow}
                                 onAdd={addRow}
-                                errors={rowErrors}
-                                isLastRow={i === invoice.rows.length - 1}
+                                errors={rowErrors[i] || {}}
+                                isLastRow={i === invoiceRows.length - 1}
                                 canRemove={
-                                    invoice.rows.length > 1 &&
-                                    i !== invoice.rows.length - 1
+                                    invoiceRows.length > 1 &&
+                                    i !== invoiceRows.length - 1
                                 }
                             />
-                        ))}
-                        <tr>
-                            <th colSpan="4">الاجمالى</th>
-                            <th colSpan="6">
-                                <strong
-                                    style={{
-                                        color: "#333",
-                                        fontSize: "1.1rem",
-                                    }}
-                                >
-                                    {Number(invoice.cost || 0).toFixed(2)} ج.م
-                                </strong>
-                            </th>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                        );
+                    })}
 
-            {/* Submit Section */}
+                    {/* Total row */}
+                    <tr>
+                        <td colSpan="4" className={classes.item}>
+                            <strong>إجمالي الفاتورة:</strong>
+                        </td>
+                        <td colSpan="5" className={classes.item}>
+                            <div className="d-flex justify-content-between">
+                                <strong>
+                                    {Number(invoice.cost).toFixed(2)} ج.م
+                                </strong>
+                            </div>
+                        </td>
+                        <td className={classes.item}></td>
+                    </tr>
+                </tbody>
+            </table>
+
             <Button
                 content={
-                    isSubmitting
-                        ? "جاري الحفظ..."
-                        : props.mode === "edit"
-                        ? "تحديث الفاتورة"
-                        : "احفظ الفاتورة"
+                    props.mode === "edit" ? "تحديث الفاتورة" : "حفظ الفاتورة"
                 }
                 onClick={handleSubmit}
                 disabled={!isFormValid || isSubmitting}
             />
 
-            {/* Messages */}
             {submitError && (
                 <div style={{ color: "red", marginTop: "10px" }}>
                     {submitError}

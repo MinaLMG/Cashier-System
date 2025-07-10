@@ -34,8 +34,8 @@ export default function InvoiceRow({
                     }))}
                     disabled={false}
                 />
-                {errors[index]?.product && (
-                    <div className={classes.error}>{errors[index].product}</div>
+                {errors.product && (
+                    <div className={classes.error}>{errors.product}</div>
                 )}
             </td>
 
@@ -51,10 +51,8 @@ export default function InvoiceRow({
                     onchange={(val) => onChange(index, "quantity", val)}
                     disabled={false}
                 />
-                {errors[index]?.quantity && (
-                    <div className={classes.error}>
-                        {errors[index].quantity}
-                    </div>
+                {errors.quantity && (
+                    <div className={classes.error}>{errors.quantity}</div>
                 )}
             </td>
 
@@ -69,20 +67,18 @@ export default function InvoiceRow({
                         row.product
                             ? products
                                   .find((p) => p._id === row.product)
-                                  ?.values.map((v) => ({
+                                  ?.values?.map((v) => ({
                                       value: v.id,
                                       label: v.name,
-                                  })) ?? []
+                                  })) || []
                             : []
                     }
                     disabled={!row.product}
                 />
-                {errors[index]?.volume && (
-                    <div className={classes.error}>{errors[index].volume}</div>
+                {errors.volume && (
+                    <div className={classes.error}>{errors.volume}</div>
                 )}
             </td>
-
-            {/* Prices and other fields... */}
 
             {/* سعر الشراء */}
             <td className={classes.item}>
@@ -96,7 +92,7 @@ export default function InvoiceRow({
                     onchange={(val) => onChange(index, "buy_price", val)}
                     disabled={false}
                 />
-                {errors[index]?.buy_price && (
+                {errors.buy_price && (
                     <div className={classes.error}>{errors.buy_price}</div>
                 )}
             </td>
@@ -113,10 +109,8 @@ export default function InvoiceRow({
                     onchange={(val) => onChange(index, "phar_price", val)}
                     disabled={false}
                 />
-                {errors[index]?.phar_price && (
-                    <div className={classes.error}>
-                        {errors[index].phar_price}
-                    </div>
+                {errors.phar_price && (
+                    <div className={classes.error}>{errors.phar_price}</div>
                 )}
             </td>
 
@@ -132,10 +126,8 @@ export default function InvoiceRow({
                     onchange={(val) => onChange(index, "cust_price", val)}
                     disabled={false}
                 />
-                {errors[index]?.cust_price && (
-                    <div className={classes.error}>
-                        {errors[index].cust_price}
-                    </div>
+                {errors.cust_price && (
+                    <div className={classes.error}>{errors.cust_price}</div>
                 )}
             </td>
 
@@ -151,6 +143,9 @@ export default function InvoiceRow({
                     onchange={(val) => onChange(index, "expiry", val)}
                     disabled={false}
                 />
+                {errors.expiry && (
+                    <div className={classes.error}>{errors.expiry}</div>
+                )}
             </td>
 
             {/* الباقي */}
@@ -165,6 +160,9 @@ export default function InvoiceRow({
                     onchange={(val) => onChange(index, "remaining", val)}
                     disabled={false}
                 />
+                {errors.remaining && (
+                    <div className={classes.error}>{errors.remaining}</div>
+                )}
             </td>
 
             {/* Controls */}

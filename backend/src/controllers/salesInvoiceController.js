@@ -119,7 +119,6 @@ exports.createFullSalesInvoice = async (req, res) => {
                     new Date(a.purchase_invoice.date) -
                     new Date(b.purchase_invoice.date)
             );
-            console.log(purchaseItems);
             let remaining = baseQuantity;
             const sources = [];
 
@@ -237,7 +236,7 @@ exports.getFullSalesInvoices = async (req, res) => {
                     _id: inv._id,
                     customer: inv.customer || "",
                     type: inv.type || "walkin",
-                    date: inv.date,
+                    date: inv.date.toISOString().split("T")[0],
                     offer: inv.offer || 0,
                     rows: items.map((item) => ({
                         product: item.product,

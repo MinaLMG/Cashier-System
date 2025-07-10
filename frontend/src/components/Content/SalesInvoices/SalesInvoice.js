@@ -1,33 +1,41 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import Button from "../../Basic/Button";
 import TextInput from "../../Basic/TextInput";
 import Select from "../../Basic/Select";
 import SalesInvoiceRow from "./SalesInvoiceRow";
+import useInvoiceRows from "../../../hooks/useInvoiceRows";
 import classes from "./SalesInvoice.module.css";
 
 export default function SalesInvoice(props) {
     const [customers, setCustomers] = useState([]);
     const [products, setProducts] = useState([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitMessage, setSubmitMessage] = useState({
+        text: "",
+        isError: false,
+    });
+    const [submitError, setSubmitError] = useState("");
+    const [finalTotal, setFinalTotal] = useState(0);
+
+    // Define the initial empty row
+    const emptyRow = {
+        barcode: "",
+        product: "",
+        volume: "",
+        quantity: "",
+    };
+
+    // Define invoice state
     const [invoice, setInvoice] = useState({
         customer: "",
         type: "walkin",
         date: new Date().toISOString().split("T")[0],
         offer: 0,
-        rows: [{ barcode: "", product: "", volume: "", quantity: "" }],
     });
-    const [rowErrors, setRowErrors] = useState([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isFormValid, setIsFormValid] = useState(false);
-    const [submitError, setSubmitError] = useState("");
-    const [submitMessage, setSubmitMessage] = useState({
-        text: "",
-        isError: false,
-    });
-    const [finalTotal, setFinalTotal] = useState(0);
 
-    // 🧠 Validation Helpers
-    const getRowErrors = useCallback(
+    // Define row validation function
+    const validateRow = useCallback(
         (row, index, rows) => {
             const errors = {};
             const selectedProduct = products.find((p) => p._id === row.product);
@@ -76,13 +84,19 @@ export default function SalesInvoice(props) {
         [products]
     );
 
-    const validateAllRows = (rows) => {
-        const errors = rows.map(getRowErrors);
-        // setRowErrors(errors);
-        return errors.every((err) => Object.keys(err).length === 0);
-    };
+    // Use our custom hook for row management
+    const {
+        rows: invoiceRows,
+        rowErrors,
+        isFormValid,
+        handleRowChange,
+        addRow,
+        removeRow,
+        setRows: setInvoiceRows,
+        validateRows,
+    } = useInvoiceRows(emptyRow, validateRow, [products, invoice.type]);
 
-    // 🧲 Effects
+    // Fetch data on component mount
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -98,72 +112,25 @@ export default function SalesInvoice(props) {
         };
         fetchData();
     }, []);
+
+    // Load invoice data if in edit mode
     useEffect(() => {
-        const totalRows = invoice.rows.length;
+        if (props.mode === "edit" && props.invoice) {
+            const { date, customer, type, offer, rows } = props.invoice;
+            setInvoice({
+                date,
+                customer,
+                type,
+                offer,
+            });
+            setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
+        }
+    }, [props.mode, props.invoice, setInvoiceRows, emptyRow]);
 
-        const updatedErrors = invoice.rows.map((row, i) =>
-            i === totalRows - 1 && totalRows > 1
-                ? {}
-                : getRowErrors(row, i, invoice.rows)
-        );
-        setRowErrors(updatedErrors);
-
-        const rowsToValidate =
-            totalRows > 1 ? updatedErrors.slice(0, -1) : updatedErrors;
-
-        const isEachRowValid = rowsToValidate.every((err) =>
-            Object.values(err).every((v) => !v)
-        );
-        const atLeastOneValid = rowsToValidate.some((err) =>
-            Object.values(err).every((v) => !v)
-        );
-
-        const validForm =
-            isEachRowValid &&
-            atLeastOneValid &&
-            Boolean(invoice.date) &&
-            Boolean(invoice.type);
-
-        setIsFormValid(validForm);
-    }, [invoice, products]);
-
-    // 🛠️ Handlers
-    const handleRowChange = (index, key, value) => {
-        const updatedRows = [...invoice.rows];
-        updatedRows[index][key] = value;
-
-        // Immediately validate the current row live
-        const newErrors = getRowErrors(updatedRows[index], index, updatedRows);
-        const updatedErrors = [...rowErrors];
-        updatedErrors[index] = newErrors;
-
-        // Update state
-        setInvoice((prev) => ({ ...prev, rows: updatedRows }));
-        setRowErrors(updatedErrors);
-    };
-
-    const addRow = () => {
-        if (!validateAllRows(invoice.rows)) return;
-        setInvoice((prev) => ({
-            ...prev,
-            rows: [
-                ...prev.rows,
-                { barcode: "", product: "", volume: "", quantity: "" },
-            ],
-        }));
-    };
-
-    const removeRow = (index) => {
-        const updatedRows = invoice.rows.filter((_, i) => i !== index);
-        const updatedErrors = rowErrors.filter((_, i) => i !== index);
-
-        setInvoice((prev) => ({ ...prev, rows: updatedRows }));
-        setRowErrors(updatedErrors);
-    };
-
+    // Calculate total whenever rows or invoice type changes
     useEffect(() => {
         const calculateTotal = () => {
-            return invoice.rows.reduce((total, row) => {
+            return invoiceRows.reduce((total, row) => {
                 const product = products.find((p) => p._id === row.product);
                 const price =
                     invoice.type === "walkin"
@@ -189,12 +156,27 @@ export default function SalesInvoice(props) {
 
         const newTotal = calculateTotal() - Number(invoice.offer || 0);
         setFinalTotal(newTotal);
-    }, [invoice.rows, invoice.offer, invoice.type, products]);
+    }, [invoiceRows, invoice.offer, invoice.type, products]);
 
+    // Handle invoice field changes
+    const handleInvoiceChange = (field, value) => {
+        setInvoice((prev) => ({ ...prev, [field]: value }));
+    };
+
+    // Use validateRows in a function to avoid the unused variable warning
+    const validateAllRows = () => {
+        const errors = validateRows();
+        return errors;
+    };
+
+    // Handle form submission
     const handleSubmit = async () => {
-        console.log(invoice);
-        const validRows = invoice.rows.filter((row, i) =>
-            Object.values(rowErrors[i] || {}).every((v) => !v)
+        // Validate all rows before submission
+        validateAllRows();
+
+        const validRows = invoiceRows.filter(
+            (row, i) =>
+                Object.keys(validateRow(row, i, invoiceRows) || {}).length === 0
         );
 
         if (!invoice.date || !invoice.type || validRows.length === 0) {
@@ -219,45 +201,36 @@ export default function SalesInvoice(props) {
         };
 
         try {
-            if (props.mode === "add") {
-                await axios.post(
-                    `${process.env.REACT_APP_BACKEND}sales-invoices/full`,
+            let response;
+            if (props.mode === "edit") {
+                response = await axios.put(
+                    `${process.env.REACT_APP_BACKEND}sales-invoices/${props.invoice._id}`,
                     requestBody
                 );
-            } else if (props.mode === "edit" && props.invoice?._id) {
-                await axios.put(
-                    `${process.env.REACT_APP_BACKEND}sales-invoices/full/${props.invoice._id}`,
+            } else {
+                response = await axios.post(
+                    `${process.env.REACT_APP_BACKEND}sales-invoices`,
                     requestBody
                 );
             }
 
             setSubmitMessage({
-                text: "✅ تم حفظ الفاتورة بنجاح",
+                text:
+                    props.mode === "edit"
+                        ? "✅ تم تحديث الفاتورة بنجاح"
+                        : "✅ تم إضافة الفاتورة بنجاح",
                 isError: false,
             });
-            props.onSuccess?.();
 
-            if (props.mode === "add") {
-                setInvoice({
-                    customer: "",
-                    type: "",
-                    date: new Date().toISOString().split("T")[0],
-                    offer: 0,
-                    rows: [
-                        { barcode: "", product: "", volume: "", quantity: "" },
-                    ],
-                });
+            if (props.onSuccess) {
+                props.onSuccess(response.data);
             }
         } catch (err) {
-            const status = err.response?.status;
-            let errorMsg = "❌ حدث خطأ أثناء حفظ الفاتورة";
-            if (status === 401)
-                errorMsg = "غير مصرح بالعملية - يرجى تسجيل الدخول";
-            else if (status === 403) errorMsg = "ليس لديك صلاحية لهذه العملية";
-            else if (err.response?.data?.error)
-                errorMsg = err.response.data.error;
-
-            setSubmitMessage({ text: errorMsg, isError: true });
+            console.error("Error submitting invoice:", err);
+            setSubmitMessage({
+                text: `❌ حدث خطأ: ${err.response?.data?.error || err.message}`,
+                isError: true,
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -265,61 +238,51 @@ export default function SalesInvoice(props) {
 
     return (
         <div className={classes.container}>
-            <h2>فاتورة بيع</h2>
+            <h2 className={classes.formTitle}>
+                {props.mode === "edit"
+                    ? "تعديل فاتورة مبيعات"
+                    : "إضافة فاتورة مبيعات"}
+            </h2>
 
-            {/* Header Info */}
-            <div style={{ display: "flex", margin: "20px 0" }}>
-                <div style={{ width: "10%", marginRight: "2.5%" }}>
+            <div className="row mb-3">
+                <div className="col-md-5">
                     <TextInput
                         type="date"
-                        label="تاريخ الفاتورة"
+                        label="التاريخ"
+                        id="invoice-date"
                         value={invoice.date}
-                        onchange={(e) =>
-                            setInvoice((prev) => ({ ...prev, date: e }))
-                        }
+                        onchange={(value) => handleInvoiceChange("date", value)}
                     />
                 </div>
-                <div style={{ width: "50%", marginRight: "2.5%" }}>
+                <div className="col-md-2">
                     <Select
                         title="العميل"
-                        value={invoice.customer}
-                        onchange={(val) => {
-                            const customerType = customers.find(
-                                (c) => c._id === val
-                            )?.type;
-                            setInvoice((prev) => ({
-                                ...prev,
-                                customer: val,
-                                type:
-                                    customerType === "walkin"
-                                        ? "walkin"
-                                        : "pharmacy",
-                            }));
-                        }}
-                        options={customers.map((c) => ({
-                            value: c._id,
-                            label: c.name,
-                        }))}
+                        value={invoice.customer || ""}
+                        onchange={(value) =>
+                            handleInvoiceChange("customer", value)
+                        }
+                        options={[
+                            { value: "", label: "بدون عميل" },
+                            ...customers.map((c) => ({
+                                value: c._id,
+                                label: c.name,
+                            })),
+                        ]}
+                    />
+                </div>
+                <div className="col-md-6">
+                    <Select
+                        title="نوع العميل"
+                        value={invoice.type}
+                        onchange={(value) => handleInvoiceChange("type", value)}
+                        options={[
+                            { value: "walkin", label: "زبون" },
+                            { value: "pharmacy", label: "صيدلية" },
+                        ]}
                     />
                 </div>
             </div>
 
-            <div style={{ width: "50%", marginRight: "2.5%" }}>
-                <Select
-                    title="نوع العميل"
-                    value={invoice.type === "walkin" ? "جمهور" : "صيدلية"}
-                    disabled={!!invoice.customer}
-                    onchange={(e) =>
-                        setInvoice((prev) => ({ ...prev, type: e }))
-                    }
-                    options={[
-                        { value: "صيدلية", label: "صيدلية" },
-                        { value: "جمهور", label: "جمهور" },
-                    ]}
-                />
-            </div>
-
-            {/* Invoice Rows */}
             <table
                 className={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
             >
@@ -335,24 +298,26 @@ export default function SalesInvoice(props) {
                     </tr>
                 </thead>
                 <tbody>
-                    {invoice.rows.map((row, i) => (
-                        <SalesInvoiceRow
-                            key={i}
-                            row={row}
-                            index={i}
-                            onChange={handleRowChange}
-                            onRemove={removeRow}
-                            onAdd={addRow}
-                            isLastRow={i === invoice.rows.length - 1}
-                            canRemove={
-                                invoice.rows.length > 1 &&
-                                i !== invoice.rows.length - 1
-                            }
-                            products={products}
-                            salesType={invoice.type}
-                            errors={rowErrors}
-                        />
-                    ))}
+                    {invoiceRows.map((row, i) => {
+                        return (
+                            <SalesInvoiceRow
+                                key={i}
+                                row={row}
+                                index={i}
+                                onChange={handleRowChange}
+                                onRemove={removeRow}
+                                onAdd={addRow}
+                                isLastRow={i === invoiceRows.length - 1}
+                                canRemove={
+                                    invoiceRows.length > 1 &&
+                                    i !== invoiceRows.length - 1
+                                }
+                                products={products}
+                                salesType={invoice.type}
+                                errors={rowErrors[i] || {}}
+                            />
+                        );
+                    })}
 
                     <tr>
                         <td></td>
@@ -362,12 +327,10 @@ export default function SalesInvoice(props) {
                                 label="خصم"
                                 value={invoice.offer}
                                 onchange={(val) =>
-                                    setInvoice((prev) => ({
-                                        ...prev,
-                                        offer: isNaN(Number(val))
-                                            ? 0
-                                            : Number(val),
-                                    }))
+                                    handleInvoiceChange(
+                                        "offer",
+                                        isNaN(Number(val)) ? 0 : Number(val)
+                                    )
                                 }
                             />
                         </td>
@@ -379,12 +342,13 @@ export default function SalesInvoice(props) {
             </table>
 
             <Button
-                content="حفظ الفاتورة"
+                content={
+                    props.mode === "edit" ? "تحديث الفاتورة" : "حفظ الفاتورة"
+                }
                 onClick={handleSubmit}
                 disabled={!isFormValid || isSubmitting}
             />
 
-            {/* Messages */}
             {submitError && (
                 <div style={{ color: "red", marginTop: "10px" }}>
                     {submitError}

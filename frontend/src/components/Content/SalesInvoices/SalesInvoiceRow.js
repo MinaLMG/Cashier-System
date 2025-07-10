@@ -52,8 +52,8 @@ export default function SalesInvoiceRow({
                         label: p.name,
                     }))}
                 />
-                {errors[index]?.product && (
-                    <div className={classes.error}>{errors[index].product}</div>
+                {errors.product && (
+                    <div className={classes.error}>{errors.product}</div>
                 )}
             </td>
 
@@ -76,8 +76,8 @@ export default function SalesInvoiceRow({
                     }
                     disabled={!row.product}
                 />
-                {errors[index]?.volume && (
-                    <div className={classes.error}>{errors[index].volume}</div>
+                {errors.volume && (
+                    <div className={classes.error}>{errors.volume}</div>
                 )}
             </td>
 
@@ -91,10 +91,8 @@ export default function SalesInvoiceRow({
                     value={row.quantity}
                     onchange={(val) => onChange(index, "quantity", val)}
                 />
-                {errors[index]?.quantity && (
-                    <div className={classes.error}>
-                        {errors[index].quantity}
-                    </div>
+                {errors.quantity && (
+                    <div className={classes.error}>{errors.quantity}</div>
                 )}
             </td>
 

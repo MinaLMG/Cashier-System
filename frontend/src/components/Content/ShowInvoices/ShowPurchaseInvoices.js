@@ -1,8 +1,8 @@
 import classes from "./ShowPurchaseInvoices.module.css";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaEdit, FaEye } from "react-icons/fa";
-import { MdDelete } from "react-icons/md";
+import { FaEdit } from "react-icons/fa";
+import { FaEye } from "react-icons/fa";
 
 export default function ShowPurchaseInvoices(props) {
     const [invoices, setInvoices] = useState([]);

@@ -3,7 +3,7 @@ import classes from "./Layout.module.css";
 import { Fragment, useState } from "react";
 import Side from "./Side/Side";
 import Content from "./Content/Content";
-import Modal from "./general/Modal";
+// import Modal from "./Modal/Modal";
 export default function Layout() {
     const actions = [
         {
