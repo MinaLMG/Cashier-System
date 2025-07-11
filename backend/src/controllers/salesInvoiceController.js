@@ -263,12 +263,13 @@ exports.createFullSalesInvoice = async (req, res) => {
                 quantity: Number(row.quantity),
                 price,
                 sources,
+                val: hasVolume.value,
             });
         }
 
         // Step 4: Calculate total cost and base cost
         const cost = salesItems.reduce((sum, item) => {
-            return sum + item.quantity * item.price;
+            return sum + item.quantity * item.price * item.val;
         }, 0);
 
         // Calculate base cost (buying price)
