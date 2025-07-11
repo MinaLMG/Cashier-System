@@ -29,3 +29,30 @@
 .error {
     color: red;
 }
+
+/* Add these styles for the expiry date reset button */
+.expiryContainer {
+    position: relative;
+}
+
+.resetExpiry {
+    position: absolute;
+    top: 16px;
+    left: 10px;
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 12px;
+    z-index: 10;
+    transition: transform 0.2s, color 0.2s;
+}
+
+.resetExpiry:hover {
+    transform: scale(1.2);
+    color: #ff0000;
+}
+
+/* RTL support */
+[dir="rtl"] .resetExpiry {
+    right: auto;
+    left: -15px;
+}

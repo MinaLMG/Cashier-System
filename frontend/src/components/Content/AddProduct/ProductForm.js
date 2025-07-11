@@ -10,6 +10,7 @@ export default function ProductForm({
     mode = "add",
     product: initialProductData,
     onSuccess,
+    inModal,
 }) {
     const [product, setProduct] = useState({
         name: "",
@@ -251,6 +252,12 @@ export default function ProductForm({
 
         updateValues(updated);
     };
+    const handleChange = (field, value) => {
+        setProduct((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
     useEffect(() => {
         axios
             .get(process.env.REACT_APP_BACKEND + "volumes")
@@ -282,7 +289,7 @@ export default function ProductForm({
 
     return (
         <div className={classes.add}>
-            <div style={{ width: "50%" }}>
+            <div style={{ width: inModal ? "100%" : "50%" }}>
                 <TextInput
                     type="text"
                     placeholder="اسم المنتج"
@@ -293,7 +300,7 @@ export default function ProductForm({
                 />
             </div>
 
-            <div style={{ width: "70%" }}>
+            <div style={{ width: inModal ? "100%" : "70%" }}>
                 <div className={classes.table}>
                     <div> الوحدة بتاعتنا </div>
                     <div>كام </div>
@@ -395,16 +402,14 @@ export default function ProductForm({
                 </div>
             </div>
 
-            <div style={{ width: "50%" }}>
+            <div style={{ width: inModal ? "100%" : "50%" }}>
                 <TextInput
                     type="number"
-                    placeholder="الكمية اللى تحتها خطر"
-                    label="الكمية الادنى"
-                    id="product-min"
+                    label="الحد الأدنى للمخزون"
+                    id="min-stock"
                     value={product["min-stock"]}
-                    onchange={(e) => {
-                        setProduct({ ...product, "min-stock": e });
-                    }}
+                    onchange={(val) => handleChange("min-stock", val)}
+                    min={0}
                 />
             </div>
             {errorsAppearing && product.error && (
@@ -435,7 +440,7 @@ export default function ProductForm({
                                     isError: false,
                                 });
                                 if (onSuccess) {
-                                    onSuccess();
+                                    onSuccess(res.data.product);
                                 }
                                 setErrorsAppearing(false);
                                 setTimeout(() => {

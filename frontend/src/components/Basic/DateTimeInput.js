@@ -23,15 +23,17 @@ export default function DateTimeInput({
     disabled = false,
     className = "",
 }) {
-    // Convert ISO string to Date object for DatePicker
+    // Convert ISO string to Date object for DatePicker, handle null/undefined
     const [selectedDate, setSelectedDate] = useState(
-        value ? new Date(value) : new Date()
+        value ? new Date(value) : null
     );
 
     // Update selectedDate when value prop changes
     useEffect(() => {
         if (value) {
             setSelectedDate(new Date(value));
+        } else {
+            setSelectedDate(null);
         }
     }, [value]);
 
@@ -39,9 +41,11 @@ export default function DateTimeInput({
     const handleDateChange = (date) => {
         setSelectedDate(date);
 
-        // Convert back to ISO string for the parent component
+        // Convert back to ISO string for the parent component or null if no date
         if (date) {
             onchange(date.toISOString());
+        } else {
+            onchange(null);
         }
     };
 
@@ -61,6 +65,8 @@ export default function DateTimeInput({
                     }
                     disabled={disabled}
                     className={classes.datePicker}
+                    // isClearable={true}
+                    placeholderText="اختر التاريخ"
                 />
             </div>
         </div>

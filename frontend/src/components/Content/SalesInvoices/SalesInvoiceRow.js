@@ -66,7 +66,7 @@ export default function SalesInvoiceRow({
                 <Select
                     className={classes["no-margin"]}
                     title="المنتج"
-                    value={row.product}
+                    value={row.product || ""}
                     onchange={(val) => onChange(index, "product", val)}
                     options={products.map((p) => ({
                         value: p._id,
@@ -78,31 +78,7 @@ export default function SalesInvoiceRow({
                 )}
             </td>
 
-            {/* Volume */}
-            <td className={classes.item}>
-                <Select
-                    className={classes["no-margin"]}
-                    title="العبوة"
-                    value={row.volume}
-                    onchange={(val) => onChange(index, "volume", val)}
-                    options={
-                        row.product
-                            ? products
-                                  .find((p) => p._id === row.product)
-                                  ?.values.map((v) => ({
-                                      value: v.id,
-                                      label: v.name,
-                                  })) ?? []
-                            : []
-                    }
-                    disabled={!row.product}
-                />
-                {errors.volume && (
-                    <div className={classes.error}>{errors.volume}</div>
-                )}
-            </td>
-
-            {/* Quantity */}
+            {/* Quantity - Moved after volume */}
             <td className={classes.item}>
                 <TextInput
                     className={classes["no-margin"]}
@@ -111,12 +87,36 @@ export default function SalesInvoiceRow({
                     label="الكمية"
                     value={row.quantity}
                     onchange={(val) => onChange(index, "quantity", val)}
+                    min={0}
                 />
                 {errors.quantity && (
                     <div className={classes.error}>{errors.quantity}</div>
                 )}
             </td>
 
+            {/* Volume - Moved before quantity */}
+            <td className={classes.item}>
+                <Select
+                    className={classes["no-margin"]}
+                    title="العبوة"
+                    value={row.volume || ""}
+                    onchange={(val) => onChange(index, "volume", val)}
+                    options={
+                        row.product
+                            ? products
+                                  .find((p) => p._id === row.product)
+                                  ?.values?.map((v) => ({
+                                      value: v.id,
+                                      label: v.name,
+                                  })) || []
+                            : []
+                    }
+                    disabled={!row.product}
+                />
+                {errors.volume && (
+                    <div className={classes.error}>{errors.volume}</div>
+                )}
+            </td>
             {/* Unit Price */}
             <td className={classes.item}>
                 <TextInput
@@ -139,17 +139,24 @@ export default function SalesInvoiceRow({
                 />
             </td>
 
-            {/* Actions */}
-            <td className={`${classes.item} ${classes.tools}`}>
-                {isLastRow && (
-                    <IoMdAddCircle onClick={onAdd} className={classes.add} />
-                )}
-                {canRemove && (
-                    <MdDelete
-                        onClick={() => onRemove(index)}
-                        className={classes.remove}
-                    />
-                )}
+            {/* Controls */}
+            <td className={classes.item}>
+                <div className="d-flex">
+                    {isLastRow && (
+                        <IoMdAddCircle
+                            onClick={onAdd}
+                            className={classes.add}
+                            size={24}
+                        />
+                    )}
+                    {canRemove && (
+                        <MdDelete
+                            onClick={() => onRemove(index)}
+                            className={classes.remove}
+                            size={24}
+                        />
+                    )}
+                </div>
             </td>
         </tr>
     );

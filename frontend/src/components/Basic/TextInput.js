@@ -1,27 +1,38 @@
 import { Fragment } from "react";
+import classes from "./TextInput.module.css";
+
 // Use the classes import if needed, otherwise remove it
-export default function TextInput(props) {
+export default function TextInput({
+    type,
+    placeholder,
+    label,
+    id,
+    value,
+    onchange,
+    disabled = false,
+    className = "",
+    min,
+}) {
+    // Only add min attribute if it's explicitly provided
+    const minProps = min !== undefined ? { min } : {};
+
     return (
-        <Fragment>
-            <div
-                className={`form-floating mb-3 ${
-                    props.className ? props.className : ""
-                }`}
-                dir="rtl"
-            >
-                <input
-                    disabled={props.disabled}
-                    type={props.type}
-                    className="form-control"
-                    placeholder={props.placeholder}
-                    id={props.id}
-                    value={props.value}
-                    onChange={(e) => {
-                        props.onchange(e.currentTarget.value);
-                    }}
-                ></input>
-                <label htmlFor={props.id}>{props.label}</label>
-            </div>
-        </Fragment>
+        <div
+            className={`form-floating mb-3 ${className ? className : ""}`}
+            dir="rtl"
+        >
+            <input
+                type={type}
+                placeholder={placeholder}
+                id={id}
+                value={value}
+                onChange={(e) => onchange(e.currentTarget.value)}
+                disabled={disabled}
+                className="form-control"
+                {...minProps}
+                min={min !== undefined ? min : ""}
+            />
+            <label htmlFor={id}>{label}</label>
+        </div>
     );
 }

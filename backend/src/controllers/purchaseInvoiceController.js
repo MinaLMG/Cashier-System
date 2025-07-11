@@ -1,9 +1,41 @@
 const PurchaseInvoice = require("../models/PurchaseInvoice");
 const PurchaseItem = require("../models/PurchaseItem");
 const HasVolume = require("../models/HasVolume");
-
+const Product = require("../models/Product");
+const Volume = require("../models/Volume");
 const updateProductPrices = require("../helpers/productPricing");
 const updateProductRemaining = require("../helpers/updateProductRemaining");
+
+// Helper function to generate serial number
+const generatePurchaseInvoiceSerial = async (date) => {
+    const dateObj = new Date(date);
+    const dateStr = dateObj.toISOString().split("T")[0].replace(/-/g, "");
+    const timeStr = dateObj
+        .toTimeString()
+        .split(" ")[0]
+        .replace(/:/g, "")
+        .substring(0, 4);
+
+    // Base serial format: YYYYMMDD-HHMM-
+    const baseSerial = `${dateStr}-${timeStr}-`;
+
+    // Find the highest existing serial with this prefix
+    const latestInvoice = await PurchaseInvoice.findOne(
+        { serial: new RegExp(`^${baseSerial}`) },
+        { serial: 1 },
+        { sort: { serial: -1 } }
+    );
+
+    let counter = 1;
+    if (latestInvoice && latestInvoice.serial) {
+        const parts = latestInvoice.serial.split("-");
+        if (parts.length === 3) {
+            counter = parseInt(parts[2], 10) + 1 || 1;
+        }
+    }
+
+    return `${baseSerial}${counter}`;
+};
 
 exports.getAllPurchaseInvoices = async (req, res) => {
     try {
@@ -133,7 +165,7 @@ exports.createFullPurchaseInvoice = async (req, res) => {
                         error: `المنتج غير موجود: ${row.product}`,
                     });
                 }
-
+                console.log("her", row.volume);
                 const volumeExists = await Volume.findById(row.volume);
                 if (!volumeExists) {
                     return res.status(400).json({
@@ -172,12 +204,17 @@ exports.createFullPurchaseInvoice = async (req, res) => {
             return sum + quantity * buyPrice;
         }, 0);
 
-        // ✅ Step 3: Create invoice with cost
+        // Generate serial number
+        const serial = await generatePurchaseInvoiceSerial(date);
+
+        // ✅ Step 3: Create invoice with cost and serial
         newInvoice = await PurchaseInvoice.create({
             date,
             supplier: supplier || null,
             user: req.user?._id || null,
             cost: recalculatedCost,
+            serial,
+            createdAt: new Date(),
         });
 
         // ✅ Step 4: Create items

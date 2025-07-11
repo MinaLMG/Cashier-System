@@ -101,25 +101,41 @@ exports.createFullProduct = async (req, res) => {
             minStock !== undefined &&
             (isNaN(Number(minStock)) || Number(minStock) < 0)
         ) {
-            return res
-                .status(400)
-                .json({
-                    error: "الحد الأدنى للمخزون يجب أن يكون رقمًا غير سالب",
-                });
+            return res.status(400).json({
+                error: "الحد الأدنى للمخزون يجب أن يكون رقمًا غير سالب",
+            });
         }
 
         // Validate conversions
-        for (const conv of conversions) {
-            if (!conv.from || !conv.to) {
-                return res.status(400).json({
-                    error: "جميع التحويلات يجب أن تحتوي على وحدات المصدر والهدف",
-                });
-            }
+        for (let i = 0; i < conversions.length; i++) {
+            const conv = conversions[i];
 
-            if (isNaN(Number(conv.value)) || Number(conv.value) <= 0) {
-                return res.status(400).json({
-                    error: "قيمة التحويل يجب أن تكون رقمًا موجبًا",
-                });
+            // First conversion only needs 'from' and 'value'
+            if (i === 0) {
+                if (!conv.from) {
+                    return res.status(400).json({
+                        error: "الوحدة الأساسية مطلوبة",
+                    });
+                }
+
+                if (isNaN(Number(conv.value)) || Number(conv.value) <= 0) {
+                    return res.status(400).json({
+                        error: "قيمة التحويل يجب أن تكون رقمًا موجبًا",
+                    });
+                }
+            } else {
+                // Other conversions need both 'from', 'to', and 'value'
+                if (!conv.from || !conv.to) {
+                    return res.status(400).json({
+                        error: "جميع التحويلات يجب أن تحتوي على وحدات المصدر والهدف",
+                    });
+                }
+
+                if (isNaN(Number(conv.value)) || Number(conv.value) <= 0) {
+                    return res.status(400).json({
+                        error: "قيمة التحويل يجب أن تكون رقمًا موجبًا",
+                    });
+                }
             }
         }
 
@@ -207,6 +223,39 @@ exports.updateFullProduct = async (req, res) => {
 
     if (!name || !conversions?.length || !values?.length) {
         return res.status(400).json({ error: "بيانات المنتج غير مكتملة" });
+    }
+
+    // Validate conversions
+    for (let i = 0; i < conversions.length; i++) {
+        const conv = conversions[i];
+
+        // First conversion only needs 'from' and 'value'
+        if (i === 0) {
+            if (!conv.from) {
+                return res.status(400).json({
+                    error: "الوحدة الأساسية مطلوبة",
+                });
+            }
+
+            if (isNaN(Number(conv.value)) || Number(conv.value) <= 0) {
+                return res.status(400).json({
+                    error: "قيمة التحويل يجب أن تكون رقمًا موجبًا",
+                });
+            }
+        } else {
+            // Other conversions need both 'from', 'to', and 'value'
+            if (!conv.from || !conv.to) {
+                return res.status(400).json({
+                    error: "جميع التحويلات يجب أن تحتوي على وحدات المصدر والهدف",
+                });
+            }
+
+            if (isNaN(Number(conv.value)) || Number(conv.value) <= 0) {
+                return res.status(400).json({
+                    error: "قيمة التحويل يجب أن تكون رقمًا موجبًا",
+                });
+            }
+        }
     }
 
     // Step 0: Check for duplicate barcodes inside the request itself

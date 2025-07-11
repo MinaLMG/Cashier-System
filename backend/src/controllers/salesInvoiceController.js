@@ -7,6 +7,37 @@ const Volume = require("../models/Volume");
 const updateProductRemaining = require("../helpers/updateProductRemaining");
 const updateProductPrices = require("../helpers/productPricing");
 
+// Helper function to generate serial number
+const generateSalesInvoiceSerial = async (date) => {
+    const dateObj = new Date(date);
+    const dateStr = dateObj.toISOString().split("T")[0].replace(/-/g, "");
+    const timeStr = dateObj
+        .toTimeString()
+        .split(" ")[0]
+        .replace(/:/g, "")
+        .substring(0, 4);
+
+    // Base serial format: YYYYMMDD-HHMM-
+    const baseSerial = `${dateStr}-${timeStr}-`;
+
+    // Find the highest existing serial with this prefix
+    const latestInvoice = await SalesInvoice.findOne(
+        { serial: new RegExp(`^${baseSerial}`) },
+        { serial: 1 },
+        { sort: { serial: -1 } }
+    );
+
+    let counter = 1;
+    if (latestInvoice && latestInvoice.serial) {
+        const parts = latestInvoice.serial.split("-");
+        if (parts.length === 3) {
+            counter = parseInt(parts[2], 10) + 1 || 1;
+        }
+    }
+
+    return `${baseSerial}${counter}`;
+};
+
 exports.getAllSalesInvoices = async (req, res) => {
     try {
         const invoices = await SalesInvoice.find();
@@ -270,6 +301,9 @@ exports.createFullSalesInvoice = async (req, res) => {
             }
         }
 
+        // Generate serial number
+        const serial = await generateSalesInvoiceSerial(date);
+
         // Step 5: Create SalesInvoice
         newInvoice = await SalesInvoice.create({
             date,
@@ -279,6 +313,8 @@ exports.createFullSalesInvoice = async (req, res) => {
             base: baseCost, // Add the base cost
             customer: customer ? customer : null,
             offer,
+            serial,
+            createdAt: new Date(),
         });
 
         // Step 6: Create all sales items

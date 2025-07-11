@@ -1,9 +1,11 @@
 import { IoMdAddCircle } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
+import { FaCircle } from "react-icons/fa";
 import Select from "../../Basic/Select";
 import TextInput from "../../Basic/TextInput";
 import DateTimeInput from "../../Basic/DateTimeInput";
 import classes from "./InvoiceRow.module.css";
+
 // Extracted InvoiceRow Component
 export default function InvoiceRow({
     row,
@@ -16,6 +18,11 @@ export default function InvoiceRow({
     isLastRow,
     canRemove,
 }) {
+    // Function to reset expiry date
+    const resetExpiryDate = () => {
+        onChange(index, "expiry", null);
+    };
+
     return (
         <tr>
             <th className={classes.item} scope="row">
@@ -51,6 +58,7 @@ export default function InvoiceRow({
                     value={row.quantity}
                     onchange={(val) => onChange(index, "quantity", val)}
                     disabled={false}
+                    min={0}
                 />
                 {errors.quantity && (
                     <div className={classes.error}>{errors.quantity}</div>
@@ -92,6 +100,7 @@ export default function InvoiceRow({
                     value={row["buy_price"]}
                     onchange={(val) => onChange(index, "buy_price", val)}
                     disabled={false}
+                    min={0}
                 />
                 {errors.buy_price && (
                     <div className={classes.error}>{errors.buy_price}</div>
@@ -109,6 +118,7 @@ export default function InvoiceRow({
                     value={row["phar_price"]}
                     onchange={(val) => onChange(index, "phar_price", val)}
                     disabled={false}
+                    min={0}
                 />
                 {errors.phar_price && (
                     <div className={classes.error}>{errors.phar_price}</div>
@@ -126,6 +136,7 @@ export default function InvoiceRow({
                     value={row["cust_price"]}
                     onchange={(val) => onChange(index, "cust_price", val)}
                     disabled={false}
+                    min={0}
                 />
                 {errors.cust_price && (
                     <div className={classes.error}>{errors.cust_price}</div>
@@ -134,15 +145,22 @@ export default function InvoiceRow({
 
             {/* تاريخ الصلاحية */}
             <td className={classes.item}>
-                <DateTimeInput
-                    className={classes["no-margin"]}
-                    label="تاريخ الانتهاء"
-                    id={`expiry${index}`}
-                    value={row.expiry || new Date().toISOString()}
-                    onchange={(val) => onChange(index, "expiry", val)}
-                    includeTime={false}
-                    disabled={false}
-                />
+                <div className={classes.expiryContainer}>
+                    <FaCircle
+                        className={classes.resetExpiry}
+                        onClick={resetExpiryDate}
+                        title="إعادة ضبط تاريخ الانتهاء"
+                    />
+                    <DateTimeInput
+                        className={classes["no-margin"]}
+                        label="تاريخ الانتهاء"
+                        id={`expiry${index}`}
+                        value={row.expiry || null}
+                        onchange={(val) => onChange(index, "expiry", val)}
+                        includeTime={false}
+                        disabled={false}
+                    />
+                </div>
                 {errors.expiry && (
                     <div className={classes.error}>{errors.expiry}</div>
                 )}
@@ -159,6 +177,7 @@ export default function InvoiceRow({
                     value={row["remaining"]}
                     onchange={(val) => onChange(index, "remaining", val)}
                     disabled={false}
+                    min={0}
                 />
                 {errors.remaining && (
                     <div className={classes.error}>{errors.remaining}</div>

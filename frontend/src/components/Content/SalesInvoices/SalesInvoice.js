@@ -358,8 +358,8 @@ export default function SalesInvoice(props) {
                         <th>#</th>
                         <th>الباركود</th>
                         <th>المنتج</th>
-                        <th>العبوة</th>
                         <th>الكمية</th>
+                        <th>العبوة</th>
                         <th>السعر</th>
                         <th>الإجمالي</th>
                         <th></th>

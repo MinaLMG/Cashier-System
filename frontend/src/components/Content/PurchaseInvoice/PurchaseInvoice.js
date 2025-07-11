@@ -7,6 +7,8 @@ import InvoiceRow from "./InvoiceRow";
 import useInvoiceRows from "../../../hooks/useInvoiceRows";
 import classes from "./PurchaseInvoice.module.css";
 import DateTimeInput from "../../Basic/DateTimeInput";
+import ProductForm from "../AddProduct/ProductForm";
+import Modal from "../../UI/Modal";
 
 export default function PurchaseInvoice(props) {
     const [suppliers, setSuppliers] = useState([]);
@@ -17,6 +19,7 @@ export default function PurchaseInvoice(props) {
         isError: false,
     });
     const [submitError, setSubmitError] = useState("");
+    const [showAddProductModal, setShowAddProductModal] = useState(false);
 
     // Define the initial empty row
     const emptyRow = {
@@ -27,7 +30,7 @@ export default function PurchaseInvoice(props) {
         buy_price: "",
         phar_price: "",
         cust_price: "",
-        expiry: "",
+        expiry: null,
         remaining: "",
     };
 
@@ -222,6 +225,43 @@ export default function PurchaseInvoice(props) {
         }
     };
 
+    // Handle add product success
+    const handleAddProductSuccess = (id) => {
+        // Fetch the full product details from the backend using the ID
+        axios
+            .get(`${process.env.REACT_APP_BACKEND}products/${id}`)
+            .then((response) => {
+                const newProduct = response.data;
+
+                // Add the new product to the products list
+                setProducts((prevProducts) => [...prevProducts, newProduct]);
+
+                // Close the modal
+                setShowAddProductModal(false);
+
+                // Optionally, select the new product in the current row
+                if (invoiceRows.length > 0) {
+                    const lastRowIndex = invoiceRows.length - 1;
+                    const lastRow = invoiceRows[lastRowIndex];
+
+                    if (!lastRow.product) {
+                        handleRowChange(
+                            lastRowIndex,
+                            "product",
+                            newProduct._id
+                        );
+                    }
+                }
+            })
+            .catch((error) => {
+                console.error("Error fetching new product:", error);
+                setSubmitMessage({
+                    text: `❌ حدث خطأ في جلب بيانات المنتج: ${error.message}`,
+                    isError: true,
+                });
+            });
+    };
+
     return (
         <div className={classes.container}>
             <h2 className={classes.formTitle}>
@@ -229,6 +269,14 @@ export default function PurchaseInvoice(props) {
                     ? "تعديل فاتورة مشتريات"
                     : "إضافة فاتورة مشتريات"}
             </h2>
+
+            <div className="d-flex justify-content-end mb-3">
+                <Button
+                    content="إضافة منتج جديد"
+                    onClick={() => setShowAddProductModal(true)}
+                    type="primary"
+                />
+            </div>
 
             <div className="row mb-3">
                 <div className="col-md-6">
@@ -269,11 +317,12 @@ export default function PurchaseInvoice(props) {
                         <th className={classes.head} scope="col">
                             المنتج
                         </th>
-                        <th className={classes.head} scope="col">
-                            العبوة
-                        </th>
+
                         <th className={classes.head} scope="col">
                             الكمية
+                        </th>
+                        <th className={classes.head} scope="col">
+                            العبوة
                         </th>
                         <th className={classes.head} scope="col">
                             سعر الشراء
@@ -354,6 +403,21 @@ export default function PurchaseInvoice(props) {
                 >
                     {submitMessage.text}
                 </div>
+            )}
+
+            {/* Add Product Modal */}
+            {showAddProductModal && (
+                <Modal
+                    title="إضافة منتج جديد"
+                    onClose={() => setShowAddProductModal(false)}
+                    size="lg"
+                >
+                    <ProductForm
+                        mode="add"
+                        onSuccess={handleAddProductSuccess}
+                        inModal={true}
+                    />
+                </Modal>
             )}
         </div>
     );
