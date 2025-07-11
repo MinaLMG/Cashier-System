@@ -1,0 +1,38 @@
+.sortableTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.sortableHeader {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortableHeader:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.headerContent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 4px;
+}
+
+.sortIconContainer {
+    display: inline-flex;
+    margin-right: 5px;
+    margin-left: 5px;
+}
+
+.sortIcon {
+    font-size: 16px;
+    color: #666;
+    opacity: 0.8;
+}
+
+.emptyMessage {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}

@@ -471,7 +471,7 @@ exports.createFullSalesInvoice = async (req, res) => {
 
         // Generate serial number
         const serial = await generateSalesInvoiceSerial(date);
-
+        console.log(date);
         // Step 5: Create SalesInvoice
         newInvoice = await SalesInvoice.create({
             date,
@@ -551,7 +551,7 @@ exports.getFullSalesInvoices = async (req, res) => {
                     _id: inv._id,
                     customer: inv.customer || "",
                     type: inv.type || "walkin",
-                    date: inv.date.toISOString().split("T")[0],
+                    date: inv.date,
                     offer: inv.offer || 0,
                     rows: items.map((item) => ({
                         product: item.product,
