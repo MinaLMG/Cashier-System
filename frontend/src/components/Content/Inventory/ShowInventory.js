@@ -1,4 +1,5 @@
 import classes from "./ShowInventory.module.css";
+import commonStyles from "../../../styles/common.module.css";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaEdit } from "react-icons/fa";
@@ -84,7 +85,8 @@ export default function ShowInventory(props) {
                                             className={classes.edit}
                                         />
                                         <MdDelete
-                                            className={`${classes.remove} ${classes.disabled}`}
+                                            className={`${classes.remove} ${commonStyles.disabledIcon}`}
+                                            title="حذف المنتج غير متاح حاليًا"
                                         />
                                     </td>
                                 </tr>

@@ -16,7 +16,8 @@
 
 .edit,
 .remove,
-.view {
+.view,
+.print {
     font-size: 30px;
     margin: 0 5px;
     cursor: pointer;
@@ -29,8 +30,4 @@
 
 .remove {
     color: #848484;
-}
-.remove.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }

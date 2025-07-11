@@ -1,8 +1,9 @@
 import classes from "./ShowPurchaseInvoices.module.css";
+import commonStyles from "../../../styles/common.module.css";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaEdit } from "react-icons/fa";
-import { FaEye } from "react-icons/fa";
+import { FaEdit, FaEye, FaPrint } from "react-icons/fa";
+import { MdDelete } from "react-icons/md";
 
 export default function ShowPurchaseInvoices(props) {
     const [invoices, setInvoices] = useState([]);
@@ -74,17 +75,22 @@ export default function ShowPurchaseInvoices(props) {
                                     {inv.total_cost}
                                 </td>
                                 <td className={classes.item}>
-                                    <FaEye className={classes.view} />
                                     <FaEdit
                                         onClick={() => props.onEdit?.(inv)}
                                         className={classes.edit}
                                     />
-                                    {/* <MdDelete
-                                        onClick={() =>
-                                            props.onDelete?.(inv._id)
-                                        }
-                                        className={classes.remove}
-                                    /> */}
+                                    <FaEye
+                                        className={`${classes.view} ${commonStyles.disabledIcon}`}
+                                        title="عرض التفاصيل غير متاح حاليًا"
+                                    />
+                                    <FaPrint
+                                        className={`${classes.print} ${commonStyles.disabledIcon}`}
+                                        title="طباعة الفاتورة غير متاح حاليًا"
+                                    />
+                                    <MdDelete
+                                        className={`${classes.remove} ${commonStyles.disabledIcon}`}
+                                        title="حذف الفاتورة غير متاح حاليًا"
+                                    />
                                 </td>
                             </tr>
                         ))

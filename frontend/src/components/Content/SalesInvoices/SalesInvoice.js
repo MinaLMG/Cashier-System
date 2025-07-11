@@ -7,6 +7,7 @@ import Select from "../../Basic/Select";
 import SalesInvoiceRow from "./SalesInvoiceRow";
 import useInvoiceRows from "../../../hooks/useInvoiceRows";
 import classes from "./SalesInvoice.module.css";
+import FormMessage from "../../Basic/FormMessage";
 
 export default function SalesInvoice(props) {
     const [customers, setCustomers] = useState([]);
@@ -193,6 +194,59 @@ export default function SalesInvoice(props) {
 
     // Handle form submission
     const handleSubmit = async () => {
+        // For edit mode, we'll only validate and update the main invoice data
+        if (props.mode === "edit") {
+            // Validate required fields
+            if (!invoice.date || !invoice.type) {
+                setSubmitError("⚠️ يجب إدخال النوع والتاريخ");
+                return;
+            }
+
+            // Validate offer is a non-negative number
+            if (isNaN(Number(invoice.offer)) || Number(invoice.offer) < 0) {
+                setSubmitError("⚠️ يجب أن يكون الخصم رقمًا غير سالب");
+                return;
+            }
+
+            setIsSubmitting(true);
+
+            // In edit mode, we only update the main invoice data
+            const requestBody = {
+                customer: invoice.customer || null,
+                type: invoice.type,
+                date: invoice.date,
+                offer: Number(invoice.offer || 0),
+            };
+
+            try {
+                const response = await axios.put(
+                    `${process.env.REACT_APP_BACKEND}sales-invoices/${props.invoice._id}`,
+                    requestBody
+                );
+
+                setSubmitMessage({
+                    text: "✅ تم تحديث بيانات الفاتورة بنجاح",
+                    isError: false,
+                });
+
+                if (props.onSuccess) {
+                    props.onSuccess(response.data);
+                }
+            } catch (error) {
+                console.error("Error updating invoice:", error);
+                setSubmitMessage({
+                    text: `❌ حدث خطأ أثناء تحديث الفاتورة: ${
+                        error.response?.data?.error || error.message
+                    }`,
+                    isError: true,
+                });
+            } finally {
+                setIsSubmitting(false);
+            }
+            return;
+        }
+
+        // For add mode, continue with the existing logic
         // Validate all rows before submission
         validateAllRows();
 
@@ -208,10 +262,41 @@ export default function SalesInvoice(props) {
 
         setIsSubmitting(true);
 
+        // Calculate total selling price for add mode
+        const total_selling_price = validRows.reduce((total, row) => {
+            const product = products.find((p) => p._id === row.product);
+            if (!product) return total;
+
+            // Get unit price based on customer type
+            const u_price =
+                invoice.type === "walkin"
+                    ? product.u_walkin_price
+                    : product.u_pharmacy_price;
+
+            // Find the volume conversion value
+            const volumeEntry = product?.values?.find(
+                (v) => v.id === row.volume
+            );
+            const value = Number(volumeEntry?.val || 1);
+
+            // Calculate volume price
+            const v_price = u_price * value;
+
+            const quantity = Number(row.quantity);
+
+            return (
+                total +
+                (isNaN(quantity) || isNaN(v_price) ? 0 : quantity * v_price)
+            );
+        }, 0);
+
+        // Calculate final amount
+        const final_amount = total_selling_price - Number(invoice.offer || 0);
+
         const requestBody = {
             customer: invoice.customer,
             type: invoice.type,
-            date: invoice.date, // Send the full ISO datetime string
+            date: invoice.date,
             offer: Number(invoice.offer || 0),
             rows: validRows.map((row) => ({
                 product: row.product,
@@ -223,24 +308,13 @@ export default function SalesInvoice(props) {
         };
 
         try {
-            let response;
-            if (props.mode === "edit") {
-                response = await axios.put(
-                    `${process.env.REACT_APP_BACKEND}sales-invoices/full/${props.invoice._id}`,
-                    requestBody
-                );
-            } else {
-                response = await axios.post(
-                    `${process.env.REACT_APP_BACKEND}sales-invoices/full`,
-                    requestBody
-                );
-            }
+            const response = await axios.post(
+                `${process.env.REACT_APP_BACKEND}sales-invoices/full`,
+                requestBody
+            );
 
             setSubmitMessage({
-                text:
-                    props.mode === "edit"
-                        ? "✅ تم تحديث الفاتورة بنجاح"
-                        : "✅ تم إضافة الفاتورة بنجاح",
+                text: "✅ تم إضافة الفاتورة بنجاح",
                 isError: false,
             });
 
@@ -259,10 +333,12 @@ export default function SalesInvoice(props) {
             if (props.onSuccess) {
                 props.onSuccess(response.data);
             }
-        } catch (err) {
-            console.error("Error submitting invoice:", err);
+        } catch (error) {
+            console.error("Error submitting invoice:", error);
             setSubmitMessage({
-                text: `❌ حدث خطأ: ${err.response?.data?.error || err.message}`,
+                text: `❌ حدث خطأ: ${
+                    error.response?.data?.error || error.message
+                }`,
                 isError: true,
             });
         } finally {
@@ -323,7 +399,7 @@ export default function SalesInvoice(props) {
         <div className={classes.container}>
             <h2 className={classes.formTitle}>
                 {props.mode === "edit"
-                    ? "تعديل فاتورة مبيعات"
+                    ? "تعديل بيانات فاتورة مبيعات"
                     : "إضافة فاتورة مبيعات"}
             </h2>
 
@@ -337,100 +413,174 @@ export default function SalesInvoice(props) {
                         includeTime={true}
                     />
                 </div>
-                <div className="col-md-2">
+                <div className="col-md-3">
                     <Select
-                        title="العميل"
-                        value={invoice.customer || ""}
-                        onchange={(value) =>
-                            handleInvoiceChange("customer", value)
-                        }
-                        options={[
-                            ...customers.map((c) => ({
-                                value: c._id,
-                                label: c.name,
-                            })),
-                        ]}
-                    />
-                </div>
-                <div className="col-md-6">
-                    <Select
-                        title="نوع العميل"
+                        label="نوع العميل"
                         value={invoice.type}
-                        onchange={(value) => handleInvoiceChange("type", value)}
                         options={[
                             { value: "walkin", label: "زبون" },
                             { value: "pharmacy", label: "صيدلية" },
                         ]}
+                        onchange={(val) => handleInvoiceChange("type", val)}
+                    />
+                </div>
+                <div className="col-md-3">
+                    <Select
+                        label="العميل"
+                        value={invoice.customer}
+                        options={[
+                            { value: "", label: "بدون عميل" },
+                            ...customers
+                                .filter(
+                                    (c) =>
+                                        !invoice.type || c.type === invoice.type
+                                )
+                                .map((c) => ({
+                                    value: c._id,
+                                    label: c.name,
+                                })),
+                        ]}
+                        onchange={(val) => handleInvoiceChange("customer", val)}
+                    />
+                </div>
+                <div className="col-md-3">
+                    <TextInput
+                        type="number"
+                        label="خصم"
+                        value={invoice.offer}
+                        onchange={(val) =>
+                            handleInvoiceChange(
+                                "offer",
+                                isNaN(Number(val)) ? 0 : Number(val)
+                            )
+                        }
                     />
                 </div>
             </div>
 
-            <table
-                className={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
-            >
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>الباركود</th>
-                        <th>المنتج</th>
-                        <th>الكمية</th>
-                        <th>العبوة</th>
-                        <th>السعر</th>
-                        <th>الإجمالي</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {invoiceRows.map((row, i) => {
-                        return (
-                            <SalesInvoiceRow
-                                key={i}
-                                row={row}
-                                index={i}
-                                onChange={handleRowChange}
-                                onRemove={removeRow}
-                                onAdd={addRow}
-                                isLastRow={i === invoiceRows.length - 1}
-                                canRemove={
-                                    invoiceRows.length > 1 &&
-                                    i !== invoiceRows.length - 1
-                                }
-                                products={products}
-                                salesType={invoice.type}
-                                errors={rowErrors[i] || {}}
-                                onBarcodeChange={handleBarcodeChange}
-                            />
-                        );
-                    })}
+            {/* Only show the items table in add mode */}
+            {props.mode !== "edit" && (
+                <>
+                    <table
+                        className={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
+                    >
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>الباركود</th>
+                                <th>المنتج</th>
+                                <th>الكمية</th>
+                                <th>العبوة</th>
+                                <th>السعر</th>
+                                <th>الإجمالي</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {invoiceRows.map((row, i) => {
+                                return (
+                                    <SalesInvoiceRow
+                                        key={i}
+                                        row={row}
+                                        index={i}
+                                        onChange={handleRowChange}
+                                        onRemove={removeRow}
+                                        onAdd={addRow}
+                                        isLastRow={i === invoiceRows.length - 1}
+                                        canRemove={
+                                            invoiceRows.length > 1 &&
+                                            i !== invoiceRows.length - 1
+                                        }
+                                        products={products}
+                                        salesType={invoice.type}
+                                        errors={rowErrors[i] || {}}
+                                        onBarcodeChange={handleBarcodeChange}
+                                    />
+                                );
+                            })}
 
-                    <tr>
-                        <td></td>
-                        <td colSpan={4}>
-                            <TextInput
-                                type="number"
-                                label="خصم"
-                                value={invoice.offer}
-                                onchange={(val) =>
-                                    handleInvoiceChange(
-                                        "offer",
-                                        isNaN(Number(val)) ? 0 : Number(val)
-                                    )
-                                }
-                            />
-                        </td>
-                        <td colSpan={3}>
-                            <strong>{finalTotal.toFixed(2)} ج.م</strong>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                            <tr>
+                                <td></td>
+                                <td colSpan={4}>
+                                    <TextInput
+                                        type="number"
+                                        label="خصم"
+                                        value={invoice.offer}
+                                        onchange={(val) =>
+                                            handleInvoiceChange(
+                                                "offer",
+                                                isNaN(Number(val))
+                                                    ? 0
+                                                    : Number(val)
+                                            )
+                                        }
+                                    />
+                                </td>
+                                <td colSpan={3}>
+                                    <strong>{finalTotal.toFixed(2)} ج.م</strong>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </>
+            )}
+
+            {/* In edit mode, show a summary of the invoice */}
+            {props.mode === "edit" && (
+                <div className="card mb-4">
+                    <div className="card-header bg-light">
+                        <h5 className="mb-0">ملخص الفاتورة</h5>
+                    </div>
+                    <div className="card-body">
+                        <div className="row">
+                            <div className="col-md-4">
+                                <p>
+                                    <strong>إجمالي قبل الخصم:</strong>{" "}
+                                    {props.invoice?.total_selling_price?.toFixed(
+                                        2
+                                    ) || 0}{" "}
+                                    ج.م
+                                </p>
+                            </div>
+                            <div className="col-md-4">
+                                <p>
+                                    <strong>الخصم:</strong>{" "}
+                                    {invoice.offer?.toFixed(2) || 0} ج.م
+                                </p>
+                            </div>
+                            <div className="col-md-4">
+                                <p>
+                                    <strong>الإجمالي بعد الخصم:</strong>{" "}
+                                    {(
+                                        props.invoice?.total_selling_price -
+                                        Number(invoice.offer || 0)
+                                    ).toFixed(2) || 0}{" "}
+                                    ج.م
+                                </p>
+                            </div>
+                        </div>
+                        <div className="alert alert-info">
+                            <i className="fas fa-info-circle me-2"></i>
+                            ملاحظة: لتعديل عناصر الفاتورة، يرجى حذف الفاتورة
+                            وإنشاء فاتورة جديدة. أو استخدم نظام المرتجعات و
+                            الاضافة.
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <Button
                 content={
-                    props.mode === "edit" ? "تحديث الفاتورة" : "حفظ الفاتورة"
+                    props.mode === "edit"
+                        ? "تحديث بيانات الفاتورة"
+                        : "حفظ الفاتورة"
                 }
                 onClick={handleSubmit}
-                disabled={!isFormValid || isSubmitting}
+                disabled={
+                    props.mode === "edit"
+                        ? isSubmitting
+                        : !isFormValid || isSubmitting
+                }
             />
 
             {submitError && (
@@ -438,17 +588,11 @@ export default function SalesInvoice(props) {
                     {submitError}
                 </div>
             )}
-            {submitMessage.text && (
-                <div
-                    style={{
-                        marginTop: "10px",
-                        fontWeight: "bold",
-                        color: submitMessage.isError ? "red" : "green",
-                    }}
-                >
-                    {submitMessage.text}
-                </div>
-            )}
+            <FormMessage
+                text={submitMessage.text}
+                isError={submitMessage.isError}
+                className="mt-3"
+            />
         </div>
     );
 }

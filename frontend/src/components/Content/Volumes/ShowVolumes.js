@@ -1,4 +1,5 @@
 import classes from "../ShowInvoices/ShowPurchaseInvoices.module.css"; // reuse same styles
+import commonStyles from "../../../styles/common.module.css";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaEdit } from "react-icons/fa";

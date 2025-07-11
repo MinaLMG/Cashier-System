@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Button from "../../Basic/Button";
 import TextInput from "../../Basic/TextInput";
+import FormMessage from "../../Basic/FormMessage";
 import formStyles from "../../../styles/forms.module.css";
 import commonStyles from "../../../styles/common.module.css";
 
@@ -139,17 +140,10 @@ export default function SupplierForm({
                         className={formStyles.secondaryButton}
                     />
                 </div>
-                {submitMessage.text && (
-                    <div
-                        className={
-                            submitMessage.isError
-                                ? formStyles.errorMessage
-                                : formStyles.successMessage
-                        }
-                    >
-                        {submitMessage.text}
-                    </div>
-                )}
+                <FormMessage
+                    text={submitMessage.text}
+                    isError={submitMessage.isError}
+                />
             </form>
         </div>
     );

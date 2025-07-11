@@ -1,7 +1,8 @@
 import classes from "./ShowPurchaseInvoices.module.css"; // reuse same styles
+import commonStyles from "../../../styles/common.module.css";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaEdit, FaEye } from "react-icons/fa";
+import { FaEdit, FaEye, FaPrint } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 
 export default function ShowSalesInvoices(props) {
@@ -99,9 +100,21 @@ export default function ShowSalesInvoices(props) {
                                 <td>
                                     <div className="d-flex justify-content-around">
                                         <FaEdit
-                                            className="text-primary"
+                                            className={classes.edit}
                                             style={{ cursor: "pointer" }}
                                             onClick={() => handleEdit(invoice)}
+                                        />
+                                        <FaEye
+                                            className={`${classes.view} ${commonStyles.disabledIcon}`}
+                                            title="عرض التفاصيل غير متاح حاليًا"
+                                        />
+                                        <FaPrint
+                                            className={`${classes.print} ${commonStyles.disabledIcon}`}
+                                            title="طباعة الفاتورة غير متاح حاليًا"
+                                        />
+                                        <MdDelete
+                                            className={`${classes.remove} ${commonStyles.disabledIcon}`}
+                                            title="حذف الفاتورة غير متاح حاليًا"
                                         />
                                     </div>
                                 </td>

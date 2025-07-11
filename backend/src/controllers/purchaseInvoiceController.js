@@ -3,6 +3,8 @@ const PurchaseItem = require("../models/PurchaseItem");
 const HasVolume = require("../models/HasVolume");
 const Product = require("../models/Product");
 const Volume = require("../models/Volume");
+const Supplier = require("../models/Supplier");
+
 const updateProductPrices = require("../helpers/productPricing");
 const updateProductRemaining = require("../helpers/updateProductRemaining");
 

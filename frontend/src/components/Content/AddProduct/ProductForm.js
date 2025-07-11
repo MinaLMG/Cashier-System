@@ -5,6 +5,7 @@ import TextInput from "../../Basic/TextInput";
 import classes from "./ProductForm.module.css";
 import { FaPlus, FaMinus } from "react-icons/fa6";
 import Button from "../../Basic/Button";
+import FormMessage from "../../Basic/FormMessage";
 
 export default function ProductForm({
     mode = "add",
@@ -488,17 +489,10 @@ export default function ProductForm({
                         ⚠️ {submitError}
                     </div>
                 )}
-                {submitMessage.text && (
-                    <div
-                        style={{
-                            marginTop: "10px",
-                            fontWeight: "bold",
-                            color: submitMessage.isError ? "red" : "green",
-                        }}
-                    >
-                        {submitMessage.text}
-                    </div>
-                )}
+                <FormMessage
+                    text={submitMessage.text}
+                    isError={submitMessage.isError}
+                />
             </div>
         </div>
     );

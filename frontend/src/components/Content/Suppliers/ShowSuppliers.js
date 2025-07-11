@@ -1,7 +1,8 @@
 import classes from "../ShowInvoices/ShowPurchaseInvoices.module.css"; // reuse same styles
+import commonStyles from "../../../styles/common.module.css";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaEdit } from "react-icons/fa";
+import { FaEdit, FaEye } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import SupplierForm from "./SupplierForm";
 import Modal from "../../general/Modal";
@@ -135,6 +136,10 @@ export default function ShowSuppliers() {
                                                     handleEdit(supplier)
                                                 }
                                                 className={classes.edit}
+                                            />
+                                            <FaEye
+                                                className={`${classes.view} ${commonStyles.disabledIcon}`}
+                                                title="عرض التفاصيل غير متاح حاليًا"
                                             />
                                             <MdDelete
                                                 onClick={() =>

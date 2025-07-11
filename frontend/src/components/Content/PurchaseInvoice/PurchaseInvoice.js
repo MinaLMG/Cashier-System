@@ -9,6 +9,7 @@ import classes from "./PurchaseInvoice.module.css";
 import DateTimeInput from "../../Basic/DateTimeInput";
 import ProductForm from "../AddProduct/ProductForm";
 import Modal from "../../UI/Modal";
+import FormMessage from "../../Basic/FormMessage";
 
 export default function PurchaseInvoice(props) {
     const [suppliers, setSuppliers] = useState([]);
@@ -394,17 +395,11 @@ export default function PurchaseInvoice(props) {
                     {submitError}
                 </div>
             )}
-            {submitMessage.text && (
-                <div
-                    style={{
-                        marginTop: "10px",
-                        fontWeight: "bold",
-                        color: submitMessage.isError ? "red" : "green",
-                    }}
-                >
-                    {submitMessage.text}
-                </div>
-            )}
+            <FormMessage
+                text={submitMessage.text}
+                isError={submitMessage.isError}
+                className="mt-3"
+            />
 
             {/* Add Product Modal */}
             {showAddProductModal && (

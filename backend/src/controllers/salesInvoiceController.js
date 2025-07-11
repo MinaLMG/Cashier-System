@@ -63,19 +63,182 @@ exports.createSalesInvoice = async (req, res) => {
 
 exports.updateSalesInvoice = async (req, res) => {
     try {
-        const invoice = await SalesInvoice.findByIdAndUpdate(
+        const { customer, type, date, offer } = req.body;
+
+        // Validate required fields
+        if (!date || !type) {
+            return res.status(400).json({
+                error: "بيانات ناقصة",
+                details: "يجب إدخال التاريخ ونوع العميل",
+            });
+        }
+
+        // Validate date format
+        if (isNaN(new Date(date).getTime())) {
+            return res.status(400).json({
+                error: "تاريخ الفاتورة غير صالح",
+            });
+        }
+
+        // Validate type
+        if (type !== "walkin" && type !== "pharmacy") {
+            return res.status(400).json({
+                error: "نوع العميل غير صالح",
+            });
+        }
+
+        // Validate offer if provided
+        if (offer !== undefined) {
+            if (isNaN(Number(offer)) || Number(offer) < 0) {
+                return res.status(400).json({
+                    error: "قيمة الخصم يجب أن تكون رقمًا غير سالب",
+                });
+            }
+        }
+
+        // Validate customer if provided
+        if (customer) {
+            try {
+                const customerExists = await Customer.findById(customer);
+                if (!customerExists) {
+                    return res.status(400).json({
+                        error: "العميل غير موجود",
+                    });
+                }
+
+                // Validate customer type matches invoice type
+                if (customerExists.type !== type) {
+                    return res.status(400).json({
+                        error: "نوع العميل لا يتطابق مع نوع الفاتورة",
+                    });
+                }
+            } catch (err) {
+                return res.status(400).json({
+                    error: "معرف العميل غير صالح",
+                });
+            }
+        }
+
+        // Get the existing invoice with its items
+        const existingInvoice = await SalesInvoice.findById(req.params.id);
+        if (!existingInvoice) {
+            return res.status(404).json({ error: "الفاتورة غير موجودة" });
+        }
+
+        // Get all sales items for this invoice
+        const salesItems = await SalesItem.find({
+            sales_invoice: req.params.id,
+        })
+            .populate("product")
+            .populate("sources.purchase_item");
+
+        let updateData = {
+            date: new Date(date),
+            customer: customer || null,
+            offer: Number(offer || 0),
+        };
+
+        // Check if customer type has changed
+        if (type !== existingInvoice.type) {
+            // Type has changed, need to recalculate total_selling_price
+            let newTotalSellingPrice = 0;
+
+            // Calculate new selling price based on the new customer type
+            for (const item of salesItems) {
+                const product = item.product;
+                if (!product) continue;
+
+                // Get the volume value from the HasVolume model
+                const hasVolume = await HasVolume.findOne({
+                    product: item.product._id,
+                    volume: item.volume,
+                });
+
+                if (!hasVolume) continue;
+
+                // IMPORTANT: For each item, check the purchase items that were the sources
+                // to determine what the price would have been at the time of invoice creation
+                let highestUnitPrice =
+                    type === "walkin"
+                        ? product.u_walkin_price
+                        : product.u_pharmacy_price;
+
+                // If we have sources, check their prices
+                if (item.sources && item.sources.length > 0) {
+                    for (const source of item.sources) {
+                        if (!source.purchase_item) continue;
+
+                        // Get the purchase item that was the source
+                        const purchaseItem = source.purchase_item;
+
+                        // Get the volume value for the purchase item
+                        const purchaseHasVolume = await HasVolume.findOne({
+                            product: purchaseItem.product,
+                            volume: purchaseItem.volume,
+                        });
+
+                        if (!purchaseHasVolume) continue;
+
+                        // Calculate the unit price based on the new customer type
+                        const unitPrice =
+                            type === "walkin"
+                                ? purchaseItem.v_walkin_price /
+                                  purchaseHasVolume.value
+                                : purchaseItem.v_pharmacy_price /
+                                  purchaseHasVolume.value;
+
+                        // Keep track of the highest unit price
+                        if (unitPrice > highestUnitPrice) {
+                            highestUnitPrice = unitPrice;
+                        }
+                    }
+                }
+
+                // Calculate the volume price
+                const volumePrice = highestUnitPrice * hasVolume.value;
+
+                // Add to the total
+                newTotalSellingPrice += item.quantity * volumePrice;
+
+                // Update the item's price in the database
+                await SalesItem.findByIdAndUpdate(item._id, {
+                    v_price: volumePrice,
+                });
+            }
+
+            // Update the invoice with the new total selling price
+            updateData.total_selling_price = newTotalSellingPrice;
+            updateData.type = type;
+
+            // Calculate new final amount
+            updateData.final_amount = newTotalSellingPrice - Number(offer || 0);
+
+            // Calculate new profit (revenue)
+            updateData.total_purchase_cost =
+                existingInvoice.total_purchase_cost;
+        } else {
+            // Type hasn't changed, just recalculate final_amount based on new offer
+            updateData.final_amount =
+                existingInvoice.total_selling_price - Number(offer || 0);
+        }
+
+        // Update the invoice
+        const updatedInvoice = await SalesInvoice.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            updateData,
             {
                 new: true,
                 runValidators: true,
             }
         );
-        if (!invoice)
-            return res.status(404).json({ error: "Sales invoice not found." });
-        res.status(200).json(invoice);
+
+        res.status(200).json(updatedInvoice);
     } catch (err) {
-        res.status(500).json({ error: "Failed to update sales invoice." });
+        console.error("Error updating sales invoice:", err);
+        res.status(500).json({
+            error: "فشل في تحديث فاتورة المبيعات",
+            details: err.message,
+        });
     }
 };
 
