@@ -9,6 +9,12 @@ export default function ShowPurchaseInvoices(props) {
     const [invoices, setInvoices] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
 
+    const handleView = (invoice) => {
+        if (props.onView) {
+            props.onView(invoice);
+        }
+    };
+
     useEffect(() => {
         axios
             .get(process.env.REACT_APP_BACKEND + "purchase-invoices/full")
@@ -80,8 +86,8 @@ export default function ShowPurchaseInvoices(props) {
                                         className={classes.edit}
                                     />
                                     <FaEye
-                                        className={`${classes.view} ${commonStyles.disabledIcon}`}
-                                        title="عرض التفاصيل غير متاح حاليًا"
+                                        onClick={() => handleView(inv)}
+                                        className={classes.view}
                                     />
                                     <FaPrint
                                         className={`${classes.print} ${commonStyles.disabledIcon}`}

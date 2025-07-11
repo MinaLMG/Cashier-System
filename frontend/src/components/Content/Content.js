@@ -38,10 +38,20 @@ export default function Content(props) {
                     onSuccess={props.onEditPurchaseInvoiceSuccess}
                 ></PurchaseInvoice>
             )}
+            {props.selected === "عرض فاتورة مشتريات" && (
+                <PurchaseInvoice
+                    mode="view"
+                    invoice={props.purchaseInvoiceToView}
+                    onBack={props.onBackFromView}
+                ></PurchaseInvoice>
+            )}
             {props.selected === "اعرض كل فواتير المشتريات" && (
                 <ShowPurchaseInvoices
                     onEdit={(e) => {
                         props.onEditPurchaseInvoice(e);
+                    }}
+                    onView={(e) => {
+                        props.onViewPurchaseInvoice(e);
                     }}
                 ></ShowPurchaseInvoices>
             )}
@@ -55,10 +65,20 @@ export default function Content(props) {
                     onSuccess={props.onEditSalesInvoiceSuccess}
                 ></SalesInvoice>
             )}
+            {props.selected === "عرض فاتورة بيع" && (
+                <SalesInvoice
+                    mode="view"
+                    invoice={props.salesInvoiceToView}
+                    onBack={props.onBackFromView}
+                ></SalesInvoice>
+            )}
             {props.selected === "اعرض كل فواتير البيع" && (
                 <ShowSalesInvoices
                     onEdit={(e) => {
                         props.onEditSalesInvoice(e);
+                    }}
+                    onView={(e) => {
+                        props.onViewSalesInvoice(e);
                     }}
                 ></ShowSalesInvoices>
             )}

@@ -56,3 +56,8 @@
     right: auto;
     left: -15px;
 }
+.viewText {
+    padding: 8px 0;
+    font-weight: normal;
+    text-align: center;
+}

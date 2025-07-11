@@ -37,6 +37,13 @@ export default function ShowSalesInvoices(props) {
         }
     };
 
+    // Add the handleView function
+    const handleView = (invoice) => {
+        if (props.onView) {
+            props.onView(invoice);
+        }
+    };
+
     return (
         <div style={{ width: "70%", margin: "100px auto " }}>
             <table
@@ -105,8 +112,9 @@ export default function ShowSalesInvoices(props) {
                                             onClick={() => handleEdit(invoice)}
                                         />
                                         <FaEye
-                                            className={`${classes.view} ${commonStyles.disabledIcon}`}
-                                            title="عرض التفاصيل غير متاح حاليًا"
+                                            className={classes.view}
+                                            style={{ cursor: "pointer" }}
+                                            onClick={() => handleView(invoice)}
                                         />
                                         <FaPrint
                                             className={`${classes.print} ${commonStyles.disabledIcon}`}

@@ -117,9 +117,9 @@ export default function SalesInvoice(props) {
         fetchData();
     }, []);
 
-    // Load invoice data if in edit mode
+    // Load invoice data if in edit or view mode
     useEffect(() => {
-        if (props.mode === "edit" && props.invoice) {
+        if ((props.mode === "edit" || props.mode === "view") && props.invoice) {
             const { date, customer, type, offer, rows, base } = props.invoice;
             setInvoice({
                 date: new Date(date).toISOString(), // Convert to ISO string with time
@@ -395,11 +395,21 @@ export default function SalesInvoice(props) {
         [invoiceRows, setInvoiceRows, addRow]
     );
 
+    // Determine if we're in view mode
+    const isViewMode = props.mode === "view";
+
+    // Use this function to disable inputs in view mode
+    const getDisabledState = () => {
+        return isViewMode;
+    };
+
     return (
         <div className={classes.container}>
             <h2 className={classes.formTitle}>
                 {props.mode === "edit"
                     ? "تعديل بيانات فاتورة مبيعات"
+                    : props.mode === "view"
+                    ? "عرض فاتورة مبيعات"
                     : "إضافة فاتورة مبيعات"}
             </h2>
 
@@ -411,6 +421,7 @@ export default function SalesInvoice(props) {
                         value={invoice.date}
                         onchange={(value) => handleInvoiceChange("date", value)}
                         includeTime={true}
+                        disabled={getDisabledState()}
                     />
                 </div>
                 <div className="col-md-3">
@@ -422,6 +433,7 @@ export default function SalesInvoice(props) {
                             { value: "pharmacy", label: "صيدلية" },
                         ]}
                         onchange={(val) => handleInvoiceChange("type", val)}
+                        disabled={getDisabledState()}
                     />
                 </div>
                 <div className="col-md-3">
@@ -441,6 +453,7 @@ export default function SalesInvoice(props) {
                                 })),
                         ]}
                         onchange={(val) => handleInvoiceChange("customer", val)}
+                        disabled={getDisabledState()}
                     />
                 </div>
                 <div className="col-md-3">
@@ -454,11 +467,12 @@ export default function SalesInvoice(props) {
                                 isNaN(Number(val)) ? 0 : Number(val)
                             )
                         }
+                        disabled={getDisabledState()}
                     />
                 </div>
             </div>
 
-            {/* Only show the items table in add mode */}
+            {/* Only show the items table in add mode or view mode */}
             {props.mode !== "edit" && (
                 <>
                     <table
@@ -473,7 +487,7 @@ export default function SalesInvoice(props) {
                                 <th>العبوة</th>
                                 <th>السعر</th>
                                 <th>الإجمالي</th>
-                                <th></th>
+                                {!isViewMode && <th></th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -495,38 +509,18 @@ export default function SalesInvoice(props) {
                                         salesType={invoice.type}
                                         errors={rowErrors[i] || {}}
                                         onBarcodeChange={handleBarcodeChange}
+                                        disabled={getDisabledState()}
+                                        viewMode={isViewMode}
                                     />
                                 );
                             })}
-
-                            <tr>
-                                <td></td>
-                                <td colSpan={4}>
-                                    <TextInput
-                                        type="number"
-                                        label="خصم"
-                                        value={invoice.offer}
-                                        onchange={(val) =>
-                                            handleInvoiceChange(
-                                                "offer",
-                                                isNaN(Number(val))
-                                                    ? 0
-                                                    : Number(val)
-                                            )
-                                        }
-                                    />
-                                </td>
-                                <td colSpan={3}>
-                                    <strong>{finalTotal.toFixed(2)} ج.م</strong>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
                 </>
             )}
 
-            {/* In edit mode, show a summary of the invoice */}
-            {props.mode === "edit" && (
+            {/* In edit mode or view mode, show a summary of the invoice */}
+            {(props.mode === "edit" || props.mode === "view") && (
                 <div className="card mb-4">
                     <div className="card-header bg-light">
                         <h5 className="mb-0">ملخص الفاتورة</h5>
@@ -559,40 +553,54 @@ export default function SalesInvoice(props) {
                                 </p>
                             </div>
                         </div>
-                        <div className="alert alert-info">
-                            <i className="fas fa-info-circle me-2"></i>
-                            ملاحظة: لتعديل عناصر الفاتورة، يرجى حذف الفاتورة
-                            وإنشاء فاتورة جديدة. أو استخدم نظام المرتجعات و
-                            الاضافة.
-                        </div>
+
+                        {props.mode === "edit" && (
+                            <div className="alert alert-info">
+                                <i className="fas fa-info-circle me-2"></i>
+                                ملاحظة: لتعديل عناصر الفاتورة، يرجى حذف الفاتورة
+                                وإنشاء فاتورة جديدة. أو استخدم نظام المرتجعات و
+                                الاضافة.
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
 
-            <Button
-                content={
-                    props.mode === "edit"
-                        ? "تحديث بيانات الفاتورة"
-                        : "حفظ الفاتورة"
-                }
-                onClick={handleSubmit}
-                disabled={
-                    props.mode === "edit"
-                        ? isSubmitting
-                        : !isFormValid || isSubmitting
-                }
-            />
+            {/* Show appropriate buttons based on mode */}
+            {isViewMode ? (
+                <Button
+                    content="العودة"
+                    onClick={props.onBack || (() => window.history.back())}
+                    type="secondary"
+                />
+            ) : (
+                <Button
+                    content={
+                        props.mode === "edit"
+                            ? "تحديث بيانات الفاتورة"
+                            : "حفظ الفاتورة"
+                    }
+                    onClick={handleSubmit}
+                    disabled={
+                        props.mode === "edit"
+                            ? isSubmitting
+                            : !isFormValid || isSubmitting
+                    }
+                />
+            )}
 
-            {submitError && (
+            {submitError && !isViewMode && (
                 <div style={{ color: "red", marginTop: "10px" }}>
                     {submitError}
                 </div>
             )}
-            <FormMessage
-                text={submitMessage.text}
-                isError={submitMessage.isError}
-                className="mt-3"
-            />
+            {!isViewMode && (
+                <FormMessage
+                    text={submitMessage.text}
+                    isError={submitMessage.isError}
+                    className="mt-3"
+                />
+            )}
         </div>
     );
 }

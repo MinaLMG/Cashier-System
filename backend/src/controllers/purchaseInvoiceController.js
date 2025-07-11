@@ -346,6 +346,8 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
 
     let oldInvoice = null;
     let oldItems = [];
+    let oldInvoiceData = null;
+    let insertedItems = [];
 
     try {
         // Step 3: Backup current state
@@ -417,6 +419,29 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                     });
                 }
 
+                // Get hasVolume to calculate base units
+                const hasVolume = await HasVolume.findOne({
+                    product: item.product,
+                    volume: item.volume,
+                });
+
+                // Calculate burnt quantity in base units
+                const originalTotalUnits = item.quantity * hasVolume.value;
+                const burntQuantity = originalTotalUnits - item.remaining;
+
+                // Calculate new remaining based on new quantity minus burnt quantity
+                const newQuantity = Number(incoming.quantity);
+                const newTotalUnits = newQuantity * hasVolume.value;
+                const newRemaining = newTotalUnits - burntQuantity;
+
+                // Check if new remaining would be negative
+                if (newRemaining < 0) {
+                    return res.status(400).json({
+                        error: "لا يمكن تقليل الكمية لأقل من الكمية المستهلكة بالفعل",
+                        details: `المنتج: ${item.product}, الكمية المستهلكة: ${burntQuantity}`,
+                    });
+                }
+
                 // Modify fields
                 item.quantity = Number(incoming.quantity);
                 item.v_buy_price = Number(incoming.v_buy_price);
@@ -425,11 +450,18 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                 item.expiry = incoming.expiry
                     ? new Date(incoming.expiry)
                     : null;
-                item.remaining = incoming.remaining;
+                item.remaining = newRemaining;
                 await item.save();
                 updatedIds.add(item._id.toString());
             } else {
                 // Item removed by user
+                // Check if item has been partially used
+                if (item.quantity > item.remaining) {
+                    return res.status(400).json({
+                        error: "لا يمكن حذف عنصر تم استخدامه بالفعل في المبيعات",
+                        details: `المنتج: ${item.product}`,
+                    });
+                }
                 await PurchaseItem.findByIdAndDelete(item._id);
             }
         }

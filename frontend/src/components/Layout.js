@@ -150,6 +150,17 @@ export default function Layout() {
                 break;
         }
     };
+    const [salesInvoiceToView, setSalesInvoiceToView] = useState(null);
+    const [purchaseInvoiceToView, setPurchaseInvoiceToView] = useState(null);
+
+    // Function to handle back from view
+    const handleBackFromView = () => {
+        if (selected === "عرض فاتورة بيع") {
+            setSelected("اعرض كل فواتير البيع");
+        } else if (selected === "عرض فاتورة مشتريات") {
+            setSelected("اعرض كل فواتير المشتريات");
+        }
+    };
     return (
         <Fragment>
             <Header></Header>
@@ -201,6 +212,20 @@ export default function Layout() {
                     onEditSalesInvoiceSuccess={() => {
                         executeEditSalesInvoiceSuccess();
                     }}
+                    // View sales invoice props
+                    onViewSalesInvoice={(e) => {
+                        setSalesInvoiceToView(e);
+                        setSelected("عرض فاتورة بيع");
+                    }}
+                    salesInvoiceToView={salesInvoiceToView}
+                    // View purchase invoice props
+                    onViewPurchaseInvoice={(e) => {
+                        setPurchaseInvoiceToView(e);
+                        setSelected("عرض فاتورة مشتريات");
+                    }}
+                    purchaseInvoiceToView={purchaseInvoiceToView}
+                    // Back from view handler
+                    onBackFromView={handleBackFromView}
                 ></Content>
             </div>
             ;

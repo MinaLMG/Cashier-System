@@ -22,6 +22,24 @@ export default function PurchaseInvoice(props) {
     const [submitError, setSubmitError] = useState("");
     const [showAddProductModal, setShowAddProductModal] = useState(false);
 
+    // Determine if we're in view mode
+    const isViewMode = props.mode === "view";
+
+    // Use this function to disable inputs in view mode
+    const getDisabledState = (field) => {
+        if (isViewMode) return true;
+
+        // In edit mode, disable product, volume and quantity fields
+        // if (
+        //     props.mode === "edit" &&
+        //     ["product", "volume", "quantity"].includes(field)
+        // ) {
+        //     return true;
+        // }
+
+        return false;
+    };
+
     // Define the initial empty row
     const emptyRow = {
         _id: null,
@@ -129,9 +147,9 @@ export default function PurchaseInvoice(props) {
         fetchData();
     }, []);
 
-    // Load invoice data if in edit mode
+    // Load invoice data if in edit or view mode
     useEffect(() => {
-        if (props.mode === "edit" && props.invoice) {
+        if ((props.mode === "edit" || props.mode === "view") && props.invoice) {
             const { date, supplier, rows, total_cost } = props.invoice;
             setInvoice({
                 date,
@@ -264,24 +282,34 @@ export default function PurchaseInvoice(props) {
             });
     };
 
+    // Add this function to handle product addition success
+    const handleProductAdded = (newProduct) => {
+        // This should call the existing handleAddProductSuccess function
+        handleAddProductSuccess(newProduct._id);
+    };
+
     return (
         <div className={classes.container}>
             <h2 className={classes.formTitle}>
                 {props.mode === "edit"
                     ? "تعديل فاتورة مشتريات"
+                    : props.mode === "view"
+                    ? "عرض فاتورة مشتريات"
                     : "إضافة فاتورة مشتريات"}
             </h2>
 
-            <div className="d-flex justify-content-end mb-3">
-                <Button
-                    content="إضافة منتج جديد"
-                    onClick={() => setShowAddProductModal(true)}
-                    type="primary"
-                />
-            </div>
+            {!isViewMode && (
+                <div className="d-flex justify-content-end mb-3">
+                    <Button
+                        content="إضافة منتج جديد"
+                        onClick={() => setShowAddProductModal(true)}
+                        type="primary"
+                    />
+                </div>
+            )}
 
             <div className="row mb-3">
-                <div className="col-md-6">
+                <div className="col-md-4">
                     <DateTimeInput
                         label="التاريخ"
                         id="invoice-date"
@@ -290,20 +318,19 @@ export default function PurchaseInvoice(props) {
                         includeTime={false}
                     />
                 </div>
-                <div className="col-md-6">
+                <div className="col-md-4">
                     <Select
                         title="المورد"
                         value={invoice.supplier || ""}
-                        onchange={(value) =>
-                            handleInvoiceChange("supplier", value)
-                        }
                         options={[
-                            { value: "", label: "بدون مورد" },
+                            { value: "", label: "بدون مورّد" },
                             ...suppliers.map((s) => ({
                                 value: s._id,
                                 label: s.name,
                             })),
                         ]}
+                        onchange={(val) => handleInvoiceChange("supplier", val)}
+                        disabled={getDisabledState()}
                     />
                 </div>
             </div>
@@ -319,7 +346,6 @@ export default function PurchaseInvoice(props) {
                         <th className={classes.head} scope="col">
                             المنتج
                         </th>
-
                         <th className={classes.head} scope="col">
                             الكمية
                         </th>
@@ -341,7 +367,9 @@ export default function PurchaseInvoice(props) {
                         <th className={classes.head} scope="col">
                             الباقى( لو فاتورة باثر رجعى)
                         </th>
-                        <th className={classes.head} scope="col"></th>
+                        {!isViewMode && (
+                            <th className={classes.head} scope="col"></th>
+                        )}
                     </tr>
                 </thead>
                 <tbody>
@@ -355,12 +383,14 @@ export default function PurchaseInvoice(props) {
                                 onChange={handleRowChange}
                                 onRemove={removeRow}
                                 onAdd={addRow}
-                                errors={rowErrors[i] || {}}
+                                errors={isViewMode ? {} : rowErrors[i] || {}}
                                 isLastRow={i === invoiceRows.length - 1}
                                 canRemove={
                                     invoiceRows.length > 1 &&
                                     i !== invoiceRows.length - 1
                                 }
+                                disabled={getDisabledState}
+                                viewMode={isViewMode}
                             />
                         );
                     })}
@@ -370,48 +400,59 @@ export default function PurchaseInvoice(props) {
                         <td colSpan="4" className={classes.item}>
                             <strong>إجمالي الفاتورة:</strong>
                         </td>
-                        <td colSpan="5" className={classes.item}>
+                        <td
+                            colSpan={isViewMode ? "5" : "6"}
+                            className={classes.item}
+                        >
                             <div className="d-flex justify-content-between">
                                 <strong>
                                     {Number(invoice.total_cost).toFixed(2)} ج.م
                                 </strong>
                             </div>
                         </td>
-                        <td className={classes.item}></td>
                     </tr>
                 </tbody>
             </table>
 
-            <Button
-                content={
-                    props.mode === "edit" ? "تحديث الفاتورة" : "حفظ الفاتورة"
-                }
-                onClick={handleSubmit}
-                disabled={!isFormValid || isSubmitting}
-            />
+            {/* Show appropriate buttons based on mode */}
+            {isViewMode ? (
+                <Button
+                    content="العودة"
+                    onClick={props.onBack || (() => window.history.back())}
+                    type="secondary"
+                />
+            ) : (
+                <Button
+                    content={
+                        props.mode === "edit"
+                            ? "تحديث الفاتورة"
+                            : "حفظ الفاتورة"
+                    }
+                    onClick={handleSubmit}
+                    disabled={!isFormValid || isSubmitting}
+                />
+            )}
 
-            {submitError && (
+            {submitError && !isViewMode && (
                 <div style={{ color: "red", marginTop: "10px" }}>
                     {submitError}
                 </div>
             )}
-            <FormMessage
-                text={submitMessage.text}
-                isError={submitMessage.isError}
-                className="mt-3"
-            />
+            {!isViewMode && (
+                <FormMessage
+                    text={submitMessage.text}
+                    isError={submitMessage.isError}
+                    className="mt-3"
+                />
+            )}
 
-            {/* Add Product Modal */}
+            {/* Modal for adding new product */}
             {showAddProductModal && (
-                <Modal
-                    title="إضافة منتج جديد"
-                    onClose={() => setShowAddProductModal(false)}
-                    size="lg"
-                >
+                <Modal onClose={() => setShowAddProductModal(false)}>
                     <ProductForm
                         mode="add"
-                        onSuccess={handleAddProductSuccess}
-                        inModal={true}
+                        onSuccess={handleProductAdded}
+                        onCancel={() => setShowAddProductModal(false)}
                     />
                 </Modal>
             )}
