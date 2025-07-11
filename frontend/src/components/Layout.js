@@ -69,14 +69,14 @@ export default function Layout() {
                 product: null,
                 quantity: "",
                 volume: null,
-                buy_price: "",
-                phar_price: "",
-                cust_price: "",
+                v_buy_price: "",
+                v_pharmacy_price: "",
+                v_walkin_price: "",
                 expiry: "",
                 remaining: "",
             },
         ],
-        cost: "0",
+        total_cost: "0", // Was 'cost'
     });
     const [onEditPurchaseInvoiceSuccess, setOnEditPurchaseInvoiceSuccess] =
         useState(null);
@@ -93,14 +93,14 @@ export default function Layout() {
                             product: null,
                             quantity: "",
                             volume: null,
-                            buy_price: "",
-                            phar_price: "",
-                            cust_price: "",
+                            v_buy_price: "",
+                            v_pharmacy_price: "",
+                            v_walkin_price: "",
                             expiry: "",
                             remaining: "",
                         },
                     ],
-                    cost: "0",
+                    total_cost: "0", // Was 'cost'
                 });
                 setOnEditPurchaseInvoiceSuccess("");
                 break;

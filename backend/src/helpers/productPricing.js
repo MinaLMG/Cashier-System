@@ -24,27 +24,28 @@ const updateProductPrices = async (productId) => {
         });
 
         // 3. Normalize prices and find max of each type
-        let maxWalkin = 0;
+        let maxWalkin = 0; // Was maxCustomer
         let maxPharmacy = 0;
 
         for (const item of items) {
             const volumeValue = volumeMap.get(item.volume.toString());
             if (!volumeValue || volumeValue <= 0) continue;
 
-            const walkinBase = item.walkin_price / volumeValue;
-            const pharmacyBase = item.pharmacy_price / volumeValue;
+            // Calculate unit prices
+            const u_walkin = item.v_walkin_price / volumeValue; // Was customer/cust price
+            const u_pharmacy = item.v_pharmacy_price / volumeValue;
 
-            if (walkinBase > maxWalkin) maxWalkin = walkinBase;
-            if (pharmacyBase > maxPharmacy) maxPharmacy = pharmacyBase;
+            if (u_walkin > maxWalkin) maxWalkin = u_walkin; // Was maxCustomer
+            if (u_pharmacy > maxPharmacy) maxPharmacy = u_pharmacy;
         }
 
-        // 4. Update product
+        // 4. Update product with unit prices
         await Product.findByIdAndUpdate(productId, {
-            walkin_price: maxWalkin,
-            pharmacy_price: maxPharmacy,
+            u_walkin_price: maxWalkin, // Was customer/cust price
+            u_pharmacy_price: maxPharmacy,
         });
 
-        return { walkin_price: maxWalkin, pharmacy_price: maxPharmacy };
+        return { u_walkin_price: maxWalkin, u_pharmacy_price: maxPharmacy }; // Was customer/cust price
     } catch (err) {
         console.error(
             `❌ Failed to update prices for product ${productId}:`,

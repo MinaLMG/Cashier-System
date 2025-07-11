@@ -40,13 +40,13 @@ const runSeeder = async () => {
 
         // Customers
         const customers = await Customer.insertMany([
-            { name: "Ali Pharmacy", type: "pharmacy", phone: "0100000001" },
+            { name: "Ali pharmacy", type: "pharmacy", phone: "0100000001" },
             { name: "Walkin Customer", type: "walkin", phone: "" },
         ]);
 
         // Suppliers
         const suppliers = await Supplier.insertMany([
-            { name: "Pharma Distributor", phone: "0111111111" },
+            { name: "pharmacyma Distributor", phone: "0111111111" },
             { name: "Medical Co", phone: "0122222222" },
         ]);
 

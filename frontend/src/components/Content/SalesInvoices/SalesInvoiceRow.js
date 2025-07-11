@@ -22,15 +22,14 @@ export default function SalesInvoiceRow({
 
     const basePrice =
         salesType === "walkin"
-            ? selectedProduct?.walkin_price
-            : selectedProduct?.pharmacy_price;
+            ? selectedProduct?.u_walkin_price // Was customer/cust price
+            : selectedProduct?.u_pharmacy_price;
 
     const volumeValue = selectedProduct?.values?.find(
         (v) => v.id === row.volume
     )?.val;
 
-    const unitPrice =
-        basePrice && volumeValue ? Number(basePrice) * Number(volumeValue) : "";
+    const unitPrice = basePrice && volumeValue ? basePrice * volumeValue : "";
 
     const total = Number(row.quantity || 0) * Number(unitPrice || 0);
 

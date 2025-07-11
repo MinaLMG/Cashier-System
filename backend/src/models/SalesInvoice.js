@@ -7,10 +7,11 @@ const salesInvoiceSchema = new mongoose.Schema({
         ref: "Customer",
     },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    cost: { type: Number, required: true },
-    base: { type: Number, required: true, default: 0 },
+    total_selling_price: { type: Number, required: true }, // Total selling price before discount
+    final_amount: { type: Number, required: true }, // Final amount after discount (new field)
+    total_purchase_cost: { type: Number, required: true, default: 0 }, // Total purchase cost
     type: { type: String, enum: ["walkin", "pharmacy"], required: true },
-    offer: { type: Number, required: true, default: 0 },
+    offer: { type: Number, required: true, default: 0 }, // Discount amount
     serial: { type: String, unique: true },
     createdAt: { type: Date, default: Date.now },
 });

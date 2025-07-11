@@ -79,10 +79,14 @@ export default function ShowSalesInvoices(props) {
                                         ? "زبون"
                                         : "صيدلية"}
                                 </td>
-                                <td>{invoice.total.toFixed(2)} ج.م</td>
+                                <td>
+                                    {invoice.total_selling_price.toFixed(2)} ج.م
+                                </td>
                                 <td>{invoice.offer.toFixed(2)} ج.م</td>
-                                <td>{invoice.finalTotal.toFixed(2)} ج.م</td>
-                                <td>{invoice.base.toFixed(2)} ج.م</td>
+                                <td>{invoice.final_amount.toFixed(2)} ج.م</td>
+                                <td>
+                                    {invoice.total_purchase_cost.toFixed(2)} ج.م
+                                </td>
                                 <td
                                     className={
                                         invoice.profit > 0

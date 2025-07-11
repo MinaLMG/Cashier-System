@@ -26,8 +26,9 @@ const productSchema = new mongoose.Schema({
             },
         },
     ],
-    walkin_price: { type: Number, required: true, default: 0 },
-    pharmacy_price: { type: Number, required: true, default: 0 },
+    // Unit-based prices (per base unit)
+    u_walkin_price: { type: Number, required: true, default: 0 },
+    u_pharmacy_price: { type: Number, required: true, default: 0 },
     total_remaining: {
         type: Number,
         default: 0,

@@ -129,49 +129,55 @@ export default function SalesInvoice(props) {
             setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
             setBaseCost(base || 0);
         }
-    }, [props.mode, props.invoice, setInvoiceRows, emptyRow]);
+    }, []);
 
     // Calculate total whenever rows or invoice type changes
     useEffect(() => {
         const calculateTotal = () => {
             return invoiceRows.reduce((total, row) => {
                 const product = products.find((p) => p._id === row.product);
-                const price =
-                    invoice.type === "walkin"
-                        ? product?.walkin_price
-                        : product?.pharmacy_price;
+                if (!product) return total;
 
+                // Get unit price based on customer type
+                const u_price =
+                    invoice.type === "walkin"
+                        ? product.u_walkin_price
+                        : product.u_pharmacy_price;
+
+                // Find the volume conversion value
                 const volumeEntry = product?.values?.find(
                     (v) => v.id === row.volume
                 );
                 const value = Number(volumeEntry?.val || 1);
 
+                // Calculate volume price
+                const v_price = u_price * value;
+
                 const quantity = Number(row.quantity);
-                const unitPrice = Number(price);
 
                 return (
                     total +
-                    (isNaN(quantity) || isNaN(unitPrice) || isNaN(value)
-                        ? 0
-                        : quantity * value * unitPrice)
+                    (isNaN(quantity) || isNaN(v_price) ? 0 : quantity * v_price)
                 );
             }, 0);
         };
 
-        const newTotal = calculateTotal() - Number(invoice.offer || 0);
-        setFinalTotal(newTotal);
+        const total_selling_price = calculateTotal();
+        const final_amount = total_selling_price - Number(invoice.offer || 0);
 
-        // Calculate profit (only in edit mode when we know the base cost)
+        setFinalTotal(final_amount);
+
+        // Calculate profit (only in edit mode when we know the purchase cost)
         if (props.mode === "edit") {
-            setProfit(newTotal - baseCost);
+            setProfit(final_amount - (props.invoice?.total_purchase_cost || 0));
         }
     }, [
         invoiceRows,
         invoice.offer,
         invoice.type,
         products,
-        baseCost,
         props.mode,
+        props.invoice?.total_purchase_cost,
     ]);
 
     // Handle invoice field changes
@@ -212,7 +218,7 @@ export default function SalesInvoice(props) {
                 volume: row.volume,
                 quantity: Number(row.quantity),
             })),
-            total: finalTotal,
+            total_selling_price: finalTotal,
             finalTotal: finalTotal,
         };
 
@@ -267,7 +273,8 @@ export default function SalesInvoice(props) {
     // Add this function to handle barcode scanning
     const handleBarcodeChange = useCallback(
         async (index, barcode) => {
-            console.log("called");
+            if (!barcode || barcode.trim() === "") return; // Skip empty barcodes
+
             try {
                 // Find product and volume by barcode
                 const response = await axios.get(
@@ -280,6 +287,15 @@ export default function SalesInvoice(props) {
 
                     // Update the row with the found product and volume
                     const updatedRows = [...invoiceRows];
+
+                    // Skip if the product and volume are already set to these values
+                    if (
+                        updatedRows[index].product === productId &&
+                        updatedRows[index].volume === volumeId
+                    ) {
+                        return;
+                    }
+
                     updatedRows[index].product = productId;
                     updatedRows[index].volume = volumeId;
 
@@ -329,7 +345,6 @@ export default function SalesInvoice(props) {
                             handleInvoiceChange("customer", value)
                         }
                         options={[
-                            { value: "", label: "بدون عميل" },
                             ...customers.map((c) => ({
                                 value: c._id,
                                 label: c.name,
@@ -407,33 +422,6 @@ export default function SalesInvoice(props) {
                             <strong>{finalTotal.toFixed(2)} ج.م</strong>
                         </td>
                     </tr>
-
-                    {/* Show profit information in edit mode */}
-                    {props.mode === "edit" && (
-                        <tr>
-                            <td></td>
-                            <td colSpan={4}>
-                                <div className="d-flex justify-content-between">
-                                    <strong>تكلفة الشراء:</strong>
-                                    <strong>{baseCost.toFixed(2)} ج.م</strong>
-                                </div>
-                            </td>
-                            <td colSpan={3}>
-                                <div className="d-flex justify-content-between">
-                                    <strong>الربح:</strong>
-                                    <strong
-                                        className={
-                                            profit > 0
-                                                ? "text-success"
-                                                : "text-danger"
-                                        }
-                                    >
-                                        {profit.toFixed(2)} ج.م
-                                    </strong>
-                                </div>
-                            </td>
-                        </tr>
-                    )}
                 </tbody>
             </table>
 

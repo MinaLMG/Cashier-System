@@ -26,10 +26,10 @@ export default function Revenue(props) {
 
     // State for totals
     const [totals, setTotals] = useState({
-        total: 0,
+        total_selling_price: 0,
         offer: 0,
-        finalTotal: 0,
-        base: 0,
+        final_amount: 0,
+        total_purchase_cost: 0,
         profit: 0,
     });
 
@@ -153,14 +153,20 @@ export default function Revenue(props) {
             // Calculate totals
             const newTotals = sortedInvoices.reduce(
                 (acc, invoice) => {
-                    acc.total += invoice.total || 0;
+                    acc.total_selling_price += invoice.total_selling_price || 0;
                     acc.offer += invoice.offer || 0;
-                    acc.finalTotal += invoice.finalTotal || 0;
-                    acc.base += invoice.base || 0;
+                    acc.final_amount += invoice.final_amount || 0;
+                    acc.total_purchase_cost += invoice.total_purchase_cost || 0;
                     acc.profit += invoice.profit || 0;
                     return acc;
                 },
-                { total: 0, offer: 0, finalTotal: 0, base: 0, profit: 0 }
+                {
+                    total_selling_price: 0,
+                    offer: 0,
+                    final_amount: 0,
+                    total_purchase_cost: 0,
+                    profit: 0,
+                }
             );
 
             setTotals(newTotals);
@@ -339,7 +345,9 @@ export default function Revenue(props) {
                                                         : "صيدلية"}
                                                 </td>
                                                 <td>
-                                                    {invoice.total.toFixed(2)}{" "}
+                                                    {invoice.total_selling_price.toFixed(
+                                                        2
+                                                    )}{" "}
                                                     ج.م
                                                 </td>
                                                 <td>
@@ -347,13 +355,15 @@ export default function Revenue(props) {
                                                     ج.م
                                                 </td>
                                                 <td>
-                                                    {invoice.finalTotal.toFixed(
+                                                    {invoice.final_amount.toFixed(
                                                         2
                                                     )}{" "}
                                                     ج.م
                                                 </td>
                                                 <td>
-                                                    {invoice.base.toFixed(2)}{" "}
+                                                    {invoice.total_purchase_cost.toFixed(
+                                                        2
+                                                    )}{" "}
                                                     ج.م
                                                 </td>
                                                 <td
@@ -394,7 +404,9 @@ export default function Revenue(props) {
                                             </td>
                                             <td>
                                                 <strong>
-                                                    {totals.total.toFixed(2)}{" "}
+                                                    {totals.total_selling_price.toFixed(
+                                                        2
+                                                    )}{" "}
                                                     ج.م
                                                 </strong>
                                             </td>
@@ -406,7 +418,7 @@ export default function Revenue(props) {
                                             </td>
                                             <td>
                                                 <strong>
-                                                    {totals.finalTotal.toFixed(
+                                                    {totals.final_amount.toFixed(
                                                         2
                                                     )}{" "}
                                                     ج.م
@@ -414,7 +426,10 @@ export default function Revenue(props) {
                                             </td>
                                             <td>
                                                 <strong>
-                                                    {totals.base.toFixed(2)} ج.م
+                                                    {totals.total_purchase_cost.toFixed(
+                                                        2
+                                                    )}{" "}
+                                                    ج.م
                                                 </strong>
                                             </td>
                                             <td

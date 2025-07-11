@@ -93,14 +93,21 @@ exports.deletePurchaseInvoice = async (req, res) => {
 };
 
 exports.createFullPurchaseInvoice = async (req, res) => {
-    const { date, supplier, rows, cost } = req.body;
+    const { date, supplier, rows, total_cost } = req.body; // Was 'cost'
 
     // Basic validation
-    if (!date || !rows?.length || typeof cost !== "number" || cost <= 0) {
+    if (
+        !date ||
+        !rows?.length ||
+        typeof total_cost !== "number" ||
+        total_cost <= 0
+    ) {
+        // Was 'cost'
         const missing = [];
         if (!date) missing.push("تاريخ الفاتورة");
         if (!rows?.length) missing.push("عناصر الفاتورة");
-        if (typeof cost !== "number" || cost <= 0)
+        if (typeof total_cost !== "number" || total_cost <= 0)
+            // Was 'cost'
             missing.push("إجمالى الفاتورة");
 
         return res.status(400).json({
@@ -141,13 +148,13 @@ exports.createFullPurchaseInvoice = async (req, res) => {
                 r.product &&
                 r.volume &&
                 r.quantity &&
-                r.buy_price &&
-                r.phar_price &&
-                r.cust_price &&
+                r.v_buy_price &&
+                r.v_pharmacy_price &&
+                r.v_walkin_price &&
                 !isNaN(Number(r.quantity)) &&
-                !isNaN(Number(r.buy_price)) &&
-                !isNaN(Number(r.phar_price)) &&
-                !isNaN(Number(r.cust_price))
+                !isNaN(Number(r.v_buy_price)) &&
+                !isNaN(Number(r.v_pharmacy_price)) &&
+                !isNaN(Number(r.v_walkin_price))
         );
 
         if (validRows.length === 0) {
@@ -165,7 +172,6 @@ exports.createFullPurchaseInvoice = async (req, res) => {
                         error: `المنتج غير موجود: ${row.product}`,
                     });
                 }
-                console.log("her", row.volume);
                 const volumeExists = await Volume.findById(row.volume);
                 if (!volumeExists) {
                     return res.status(400).json({
@@ -197,24 +203,23 @@ exports.createFullPurchaseInvoice = async (req, res) => {
         }
 
         // ✅ Step 2: Calculate total cost
-
         const recalculatedCost = validRows.reduce((sum, r) => {
             const quantity = Number(r.quantity);
-            const buyPrice = Number(r.buy_price);
+            const buyPrice = Number(r.v_buy_price);
             return sum + quantity * buyPrice;
         }, 0);
 
         // Generate serial number
         const serial = await generatePurchaseInvoiceSerial(date);
 
-        // ✅ Step 3: Create invoice with cost and serial
+        // ✅ Step 3: Create invoice with total_cost and serial
         newInvoice = await PurchaseInvoice.create({
             date,
             supplier: supplier || null,
             user: req.user?._id || null,
-            cost: recalculatedCost,
-            serial,
+            total_cost: recalculatedCost, // Was 'cost'
             createdAt: new Date(),
+            serial,
         });
 
         // ✅ Step 4: Create items
@@ -232,9 +237,9 @@ exports.createFullPurchaseInvoice = async (req, res) => {
                     product: r.product,
                     volume: r.volume,
                     quantity: Number(r.quantity),
-                    buy_price: Number(r.buy_price),
-                    pharmacy_price: Number(r.phar_price),
-                    walkin_price: Number(r.cust_price),
+                    v_buy_price: Number(r.v_buy_price),
+                    v_pharmacy_price: Number(r.v_pharmacy_price),
+                    v_walkin_price: Number(r.v_walkin_price),
                     expiry: r.expiry ? new Date(r.expiry) : null,
                     remaining: remaining_quantity,
                 };
@@ -322,13 +327,13 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
             r.product &&
             r.volume &&
             r.quantity &&
-            r.buy_price &&
-            r.phar_price &&
-            r.cust_price &&
+            r.v_buy_price &&
+            r.v_pharmacy_price &&
+            r.v_walkin_price &&
             !isNaN(Number(r.quantity)) &&
-            !isNaN(Number(r.buy_price)) &&
-            !isNaN(Number(r.phar_price)) &&
-            !isNaN(Number(r.cust_price))
+            !isNaN(Number(r.v_buy_price)) &&
+            !isNaN(Number(r.v_pharmacy_price)) &&
+            !isNaN(Number(r.v_walkin_price))
     );
 
     if (validRows.length === 0) {
@@ -347,10 +352,10 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
             return res.status(404).json({ error: "الفاتورة غير موجودة" });
 
         oldItems = await PurchaseItem.find({ purchase_invoice: invoiceId });
-        // Step X: Recalculate cost from valid rows (in both create and update)
+        // Step X: Recalculate total_cost from valid rows (in both create and update)
         const recalculatedCost = validRows.reduce((sum, r) => {
             const quantity = Number(r.quantity);
-            const buyPrice = Number(r.buy_price);
+            const buyPrice = Number(r.v_buy_price);
             return sum + quantity * buyPrice;
         }, 0);
         // Step 4: Update invoice main fields
@@ -359,7 +364,7 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
             {
                 date,
                 supplier: supplier || null,
-                cost: recalculatedCost,
+                total_cost: recalculatedCost, // Was 'cost'
             },
             { runValidators: true }
         );
@@ -384,9 +389,9 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                     product: r.product,
                     volume: r.volume,
                     quantity: Number(r.quantity),
-                    buy_price: Number(r.buy_price),
-                    pharmacy_price: Number(r.phar_price),
-                    walkin_price: Number(r.cust_price),
+                    v_buy_price: Number(r.v_buy_price),
+                    v_pharmacy_price: Number(r.v_pharmacy_price),
+                    v_walkin_price: Number(r.v_walkin_price),
                     expiry: r.expiry ? new Date(r.expiry) : null,
                     remaining: remaining_quantity,
                 });
@@ -412,9 +417,9 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
 
                 // Modify fields
                 item.quantity = Number(incoming.quantity);
-                item.buy_price = Number(incoming.buy_price);
-                item.pharmacy_price = Number(incoming.phar_price);
-                item.walkin_price = Number(incoming.cust_price);
+                item.v_buy_price = Number(incoming.v_buy_price);
+                item.v_pharmacy_price = Number(incoming.v_pharmacy_price);
+                item.v_walkin_price = Number(incoming.v_walkin_price);
                 item.expiry = incoming.expiry
                     ? new Date(incoming.expiry)
                     : null;
@@ -501,9 +506,9 @@ exports.getFullPurchaseInvoiceById = async (req, res) => {
             product: item.product.toString(),
             quantity: item.quantity.toString(),
             volume: item.volume.toString(),
-            buy_price: item.buy_price.toString(),
-            phar_price: item.pharmacy_price.toString(),
-            cust_price: item.walkin_price.toString(),
+            v_buy_price: item.v_buy_price.toString(),
+            v_pharmacy_price: item.v_pharmacy_price.toString(),
+            v_walkin_price: item.v_walkin_price.toString(),
             expiry: item.expiry ? item.expiry.toISOString().split("T")[0] : "",
             remaining: item.remaining?.toString() || "",
         }));
@@ -513,7 +518,7 @@ exports.getFullPurchaseInvoiceById = async (req, res) => {
             date: invoice.date.toISOString().split("T")[0],
             supplier: invoice.supplier || null,
             rows,
-            cost: invoice.cost,
+            total_cost: invoice.total_cost, // Was 'cost'
         });
     } catch (err) {
         console.error("getFullPurchaseInvoiceById error:", err);
@@ -536,9 +541,9 @@ exports.getAllFullPurchaseInvoices = async (req, res) => {
                     product: item.product.toString(),
                     quantity: item.quantity.toString(),
                     volume: item.volume.toString(),
-                    buy_price: item.buy_price.toString(),
-                    phar_price: item.pharmacy_price.toString(),
-                    cust_price: item.walkin_price.toString(),
+                    v_buy_price: item.v_buy_price.toString(),
+                    v_pharmacy_price: item.v_pharmacy_price.toString(),
+                    v_walkin_price: item.v_walkin_price.toString(),
                     expiry: item.expiry
                         ? item.expiry.toISOString().split("T")[0]
                         : "",
@@ -550,7 +555,7 @@ exports.getAllFullPurchaseInvoices = async (req, res) => {
                     date: invoice.date.toISOString().split("T")[0],
                     supplier: invoice.supplier || null,
                     rows,
-                    cost: invoice.cost,
+                    total_cost: invoice.total_cost, // Was 'cost'
                 };
             })
         );

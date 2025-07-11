@@ -37,7 +37,7 @@ export default function ShowPurchaseInvoices(props) {
                         <th className={classes.head}></th>
                         <th className={classes.head}>المورّد</th>
                         <th className={classes.head}>التاريخ</th>
-                        <th className={classes.head}>السعر</th>
+                        <th className={classes.head}>الإجمالي</th>
                         <th
                             className={classes.head}
                             style={{ width: "220px" }}
@@ -70,7 +70,9 @@ export default function ShowPurchaseInvoices(props) {
                                         // )
                                     }
                                 </td>
-                                <td className={classes.item}>{inv.cost}</td>
+                                <td className={classes.item}>
+                                    {inv.total_cost}
+                                </td>
                                 <td className={classes.item}>
                                     <FaEye className={classes.view} />
                                     <FaEdit

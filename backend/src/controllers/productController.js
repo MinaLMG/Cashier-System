@@ -475,8 +475,8 @@ exports.getAllFullProducts = async (req, res) => {
                     "min-stock": product.min_stock,
                     conversions: product.conversions,
                     values,
-                    walkin_price: product.walkin_price,
-                    pharmacy_price: product.pharmacy_price,
+                    u_walkin_price: product.u_walkin_price, // Was customer/cust price
+                    u_pharmacy_price: product.u_pharmacy_price,
                     total_remaining: product.total_remaining,
                 };
             })

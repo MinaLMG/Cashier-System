@@ -27,9 +27,9 @@ export default function PurchaseInvoice(props) {
         product: null,
         quantity: "",
         volume: null,
-        buy_price: "",
-        phar_price: "",
-        cust_price: "",
+        v_buy_price: "",
+        v_pharmacy_price: "",
+        v_walkin_price: "",
         expiry: null,
         remaining: "",
     };
@@ -48,23 +48,23 @@ export default function PurchaseInvoice(props) {
         }
 
         // Price validation
-        const buyPrice = Number(row.buy_price);
-        const pharPrice = Number(row.phar_price);
-        const custPrice = Number(row.cust_price);
+        const v_buy_price = Number(row.v_buy_price);
+        const v_pharmacyPrice = Number(row.v_pharmacy_price);
+        const v_walkinPrice = Number(row.v_walkin_price);
 
-        if (isNaN(buyPrice) || buyPrice <= 0)
-            errors.buy_price = "سعر شراء غير صحيح";
-        if (isNaN(pharPrice) || pharPrice <= 0)
-            errors.phar_price = "سعر صيدلية غير صحيح";
-        if (isNaN(custPrice) || custPrice <= 0)
-            errors.cust_price = "سعر زبون غير صحيح";
+        if (isNaN(v_buy_price) || v_buy_price <= 0)
+            errors.v_buy_price = "سعر شراء غير صحيح";
+        if (isNaN(v_pharmacyPrice) || v_pharmacyPrice <= 0)
+            errors.v_pharmacy_price = "سعر صيدلية غير صحيح";
+        if (isNaN(v_walkinPrice) || v_walkinPrice <= 0)
+            errors.v_walkin_price = "سعر زبون غير صحيح";
 
-        if (pharPrice < buyPrice) {
-            errors.phar_price = "يجب أن يكون سعر الصيدلية ≥ سعر الشراء";
+        if (v_pharmacyPrice < v_buy_price) {
+            errors.v_pharmacy_price = "يجب أن يكون سعر الصيدلية ≥ سعر الشراء";
         }
 
-        if (custPrice < pharPrice) {
-            errors.cust_price = "يجب أن يكون سعر الزبون ≥ سعر الصيدلية";
+        if (v_walkinPrice < v_pharmacyPrice) {
+            errors.v_walkin_price = "يجب أن يكون سعر الزبون ≥ سعر الصيدلية";
         }
 
         return errors;
@@ -86,7 +86,7 @@ export default function PurchaseInvoice(props) {
     const [invoice, setInvoice] = useState({
         date: new Date().toISOString(),
         supplier: null,
-        cost: "0",
+        total_cost: "0",
     });
 
     // Calculate total cost whenever rows change
@@ -94,7 +94,7 @@ export default function PurchaseInvoice(props) {
         let total = 0;
         invoiceRows.forEach((row) => {
             const quantity = Number(row.quantity);
-            const buyPrice = Number(row.buy_price);
+            const v_buy_price = Number(row.v_buy_price);
 
             // Only add if the row is valid
             if (
@@ -102,13 +102,13 @@ export default function PurchaseInvoice(props) {
                 row.volume &&
                 !isNaN(quantity) &&
                 quantity > 0 &&
-                !isNaN(buyPrice) &&
-                buyPrice > 0
+                !isNaN(v_buy_price) &&
+                v_buy_price > 0
             ) {
-                total += quantity * buyPrice;
+                total += quantity * v_buy_price;
             }
         });
-        setInvoice((prev) => ({ ...prev, cost: total.toString() }));
+        setInvoice((prev) => ({ ...prev, total_cost: total.toString() }));
     }, [invoiceRows]);
 
     // Fetch data on component mount
@@ -131,18 +131,19 @@ export default function PurchaseInvoice(props) {
     // Load invoice data if in edit mode
     useEffect(() => {
         if (props.mode === "edit" && props.invoice) {
-            const { date, supplier, rows, cost } = props.invoice;
+            const { date, supplier, rows, total_cost } = props.invoice;
             setInvoice({
                 date,
                 supplier,
-                cost,
+                total_cost,
             });
             setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
         }
-    }, [props.mode, props.invoice, setInvoiceRows, emptyRow]);
+    }, []);
 
     // Handle invoice field changes
     const handleInvoiceChange = (field, value) => {
+        console.log(field, value);
         setInvoice((prev) => ({ ...prev, [field]: value }));
     };
 
@@ -176,7 +177,7 @@ export default function PurchaseInvoice(props) {
                 ...row,
                 expiry: row.expiry || null,
             })),
-            cost: Number(invoice.cost),
+            total_cost: Number(invoice.total_cost),
         };
 
         try {
@@ -206,7 +207,7 @@ export default function PurchaseInvoice(props) {
                 setInvoice({
                     date: new Date().toISOString(),
                     supplier: "",
-                    cost: "0",
+                    total_cost: "0",
                 });
                 setInvoiceRows([{ ...emptyRow }]);
             }
@@ -371,7 +372,7 @@ export default function PurchaseInvoice(props) {
                         <td colSpan="5" className={classes.item}>
                             <div className="d-flex justify-content-between">
                                 <strong>
-                                    {Number(invoice.cost).toFixed(2)} ج.م
+                                    {Number(invoice.total_cost).toFixed(2)} ج.م
                                 </strong>
                             </div>
                         </td>

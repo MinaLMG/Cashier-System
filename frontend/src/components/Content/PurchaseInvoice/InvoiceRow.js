@@ -96,14 +96,14 @@ export default function InvoiceRow({
                     type="number"
                     placeholder="سعر الشراء"
                     label="سعر الشراء"
-                    id={`buy_price` + index}
-                    value={row["buy_price"]}
-                    onchange={(val) => onChange(index, "buy_price", val)}
+                    id={`v_buy_price` + index}
+                    value={row["v_buy_price"]}
+                    onchange={(val) => onChange(index, "v_buy_price", val)}
                     disabled={false}
                     min={0}
                 />
-                {errors.buy_price && (
-                    <div className={classes.error}>{errors.buy_price}</div>
+                {errors.v_buy_price && (
+                    <div className={classes.error}>{errors.v_buy_price}</div>
                 )}
             </td>
 
@@ -114,14 +114,16 @@ export default function InvoiceRow({
                     type="number"
                     placeholder="سعر البيع للصيدلية"
                     label="سعر البيع للصيدلية"
-                    id={`phar_price` + index}
-                    value={row["phar_price"]}
-                    onchange={(val) => onChange(index, "phar_price", val)}
+                    id={`v_pharmacy_price` + index}
+                    value={row["v_pharmacy_price"]}
+                    onchange={(val) => onChange(index, "v_pharmacy_price", val)}
                     disabled={false}
                     min={0}
                 />
-                {errors.phar_price && (
-                    <div className={classes.error}>{errors.phar_price}</div>
+                {errors.v_pharmacy_price && (
+                    <div className={classes.error}>
+                        {errors.v_pharmacy_price}
+                    </div>
                 )}
             </td>
 
@@ -132,14 +134,14 @@ export default function InvoiceRow({
                     type="number"
                     placeholder="سعر البيع للزبون"
                     label="سعر البيع للزبون"
-                    id={`cust_price` + index}
-                    value={row["cust_price"]}
-                    onchange={(val) => onChange(index, "cust_price", val)}
+                    id={`v_walkin_price` + index}
+                    value={row["v_walkin_price"]}
+                    onchange={(val) => onChange(index, "v_walkin_price", val)}
                     disabled={false}
                     min={0}
                 />
-                {errors.cust_price && (
-                    <div className={classes.error}>{errors.cust_price}</div>
+                {errors.v_walkin_price && (
+                    <div className={classes.error}>{errors.v_walkin_price}</div>
                 )}
             </td>
 

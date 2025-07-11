@@ -4,6 +4,7 @@ const PurchaseItem = require("../models/PurchaseItem");
 const Product = require("../models/Product");
 const HasVolume = require("../models/HasVolume");
 const Volume = require("../models/Volume");
+const Customer = require("../models/Customer");
 const updateProductRemaining = require("../helpers/updateProductRemaining");
 const updateProductPrices = require("../helpers/productPricing");
 
@@ -252,28 +253,31 @@ exports.createFullSalesInvoice = async (req, res) => {
             }
 
             const product = await Product.findById(row.product);
-            const price =
+            const u_price =
                 type === "walkin"
-                    ? product.walkin_price
-                    : product.pharmacy_price;
+                    ? product.u_walkin_price
+                    : product.u_pharmacy_price;
 
             salesItems.push({
                 product: row.product,
                 volume: row.volume,
                 quantity: Number(row.quantity),
-                price,
+                u_price,
                 sources,
                 val: hasVolume.value,
             });
         }
 
-        // Step 4: Calculate total cost and base cost
-        const cost = salesItems.reduce((sum, item) => {
-            return sum + item.quantity * item.price * item.val;
+        // Step 4: Calculate total selling price
+        const total_selling_price = salesItems.reduce((sum, item) => {
+            return sum + item.quantity * item.u_price * item.val;
         }, 0);
 
-        // Calculate base cost (buying price)
-        let baseCost = 0;
+        // Calculate final amount after discount
+        const final_amount = total_selling_price - (offer || 0);
+
+        // Calculate total purchase cost (buying price)
+        let total_purchase_cost = 0;
         for (const item of salesItems) {
             for (const source of item.sources) {
                 const purchaseItem = await PurchaseItem.findById(
@@ -294,11 +298,11 @@ exports.createFullSalesInvoice = async (req, res) => {
                 }
 
                 // Calculate the cost per base unit
-                const costPerBaseUnit =
-                    purchaseItem.buy_price / purchaseHasVolume.value;
+                const u_cost =
+                    purchaseItem.v_buy_price / purchaseHasVolume.value;
 
                 // Add to the base cost (source.quantity is already in base units)
-                baseCost += source.quantity * costPerBaseUnit;
+                total_purchase_cost += source.quantity * u_cost;
             }
         }
 
@@ -310,12 +314,13 @@ exports.createFullSalesInvoice = async (req, res) => {
             date,
             type,
             user: req.user?._id || null,
-            cost,
-            base: baseCost, // Add the base cost
+            total_selling_price: total_selling_price,
+            final_amount: final_amount,
+            total_purchase_cost: total_purchase_cost,
             customer: customer ? customer : null,
-            offer,
-            serial,
             createdAt: new Date(),
+            offer: offer || 0,
+            serial,
         });
 
         // Step 6: Create all sales items
@@ -325,7 +330,7 @@ exports.createFullSalesInvoice = async (req, res) => {
                 product: item.product,
                 volume: item.volume,
                 quantity: item.quantity,
-                price: item.price,
+                v_price: item.u_price * item.val,
                 sources: item.sources,
             });
         }
@@ -377,8 +382,7 @@ exports.getFullSalesInvoices = async (req, res) => {
                     sales_invoice: inv._id,
                 });
 
-                const finalTotal = (inv.cost || 0) - (inv.offer || 0);
-                const profit = finalTotal - (inv.base || 0);
+                const profit = inv.final_amount - inv.total_purchase_cost;
 
                 return {
                     _id: inv._id,
@@ -391,19 +395,19 @@ exports.getFullSalesInvoices = async (req, res) => {
                         volume: item.volume,
                         quantity: item.quantity,
                     })),
-                    total: inv.cost || 0,
-                    finalTotal,
-                    base: inv.base || 0,
+                    total_selling_price: inv.total_selling_price || 0,
+                    final_amount: inv.final_amount || 0,
+                    total_purchase_cost: inv.total_purchase_cost || 0,
                     profit: profit,
                 };
             })
         );
 
-        res.json(result);
+        return res.status(200).json(result);
     } catch (err) {
-        console.error("❌ Error in getFullSalesInvoices:", err);
-        res.status(500).json({
-            error: "فشل في تحميل فواتير البيع",
+        console.error("Error fetching sales invoices:", err);
+        return res.status(500).json({
+            error: "فشل في جلب فواتير المبيعات",
         });
     }
 };

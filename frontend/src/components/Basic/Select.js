@@ -12,9 +12,10 @@ export default function Select(props) {
                 className={`form-select ${classes.select}`}
                 aria-label="Default select example"
                 value={props.value}
-                onChange={(e) =>
-                    props.onchange && props.onchange(e.target.value)
-                }
+                onChange={(e) => {
+                    props.onchange && props.onchange(e.currentTarget.value);
+                }}
+                dir="rtl"
             >
                 <option value="">{props.title || "اختر من القائمة"}</option>
                 {props.options.map((op, index) => (

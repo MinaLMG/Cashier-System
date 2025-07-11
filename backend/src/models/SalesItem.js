@@ -17,7 +17,7 @@ const salesItemSchema = new mongoose.Schema({
         required: true,
     },
     quantity: { type: Number, required: true }, // total quantity sold (in selected volume unit)
-    price: { type: Number, required: true }, // unit price at sale
+    v_price: { type: Number, required: true }, // volume unit price at sale (renamed from price)
     sources: [
         {
             purchase_item: {
