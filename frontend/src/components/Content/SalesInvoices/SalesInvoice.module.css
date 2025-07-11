@@ -9,3 +9,17 @@
 .item {
     align-content: center;
 }
+
+.totalRow td {
+    background-color: #f8f9fa;
+    padding: 20px 15px;
+}
+
+.totalLabel {
+    text-align: center;
+}
+
+.totalValue {
+    text-align: center;
+    padding: 12px 15px;
+}

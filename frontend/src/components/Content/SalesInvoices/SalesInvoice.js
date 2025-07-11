@@ -183,6 +183,29 @@ export default function SalesInvoice(props) {
 
     // Handle invoice field changes
     const handleInvoiceChange = (field, value) => {
+        if (field === "customer" && value) {
+            // If a customer is selected, set the type based on the customer's type
+            const selectedCustomer = customers.find((c) => c._id === value);
+            if (selectedCustomer) {
+                setInvoice((prev) => ({
+                    ...prev,
+                    [field]: value,
+                    type: selectedCustomer.type, // Set type based on customer type
+                }));
+                return;
+            }
+        } else if (field === "type" && invoice.customer) {
+            // If type is changed manually and a customer is selected,
+            // clear the customer selection
+            setInvoice((prev) => ({
+                ...prev,
+                [field]: value,
+                customer: "", // Clear customer when type changes
+            }));
+            return;
+        }
+
+        // For other fields or when customer is cleared
         setInvoice((prev) => ({ ...prev, [field]: value }));
     };
 
@@ -412,7 +435,6 @@ export default function SalesInvoice(props) {
                     ? "عرض فاتورة مبيعات"
                     : "إضافة فاتورة مبيعات"}
             </h2>
-
             <div className="row mb-3">
                 <div className="col-md-5">
                     <DateTimeInput
@@ -421,6 +443,22 @@ export default function SalesInvoice(props) {
                         value={invoice.date}
                         onchange={(value) => handleInvoiceChange("date", value)}
                         includeTime={true}
+                        disabled={getDisabledState()}
+                    />
+                </div>
+            </div>
+            <div className="row mb-3">
+                <div className="col-md-3">
+                    <Select
+                        label="العميل"
+                        value={invoice.customer}
+                        options={[
+                            ...customers.map((c) => ({
+                                value: c._id,
+                                label: c.name,
+                            })),
+                        ]}
+                        onchange={(val) => handleInvoiceChange("customer", val)}
                         disabled={getDisabledState()}
                     />
                 </div>
@@ -433,40 +471,6 @@ export default function SalesInvoice(props) {
                             { value: "pharmacy", label: "صيدلية" },
                         ]}
                         onchange={(val) => handleInvoiceChange("type", val)}
-                        disabled={getDisabledState()}
-                    />
-                </div>
-                <div className="col-md-3">
-                    <Select
-                        label="العميل"
-                        value={invoice.customer}
-                        options={[
-                            { value: "", label: "بدون عميل" },
-                            ...customers
-                                .filter(
-                                    (c) =>
-                                        !invoice.type || c.type === invoice.type
-                                )
-                                .map((c) => ({
-                                    value: c._id,
-                                    label: c.name,
-                                })),
-                        ]}
-                        onchange={(val) => handleInvoiceChange("customer", val)}
-                        disabled={getDisabledState()}
-                    />
-                </div>
-                <div className="col-md-3">
-                    <TextInput
-                        type="number"
-                        label="خصم"
-                        value={invoice.offer}
-                        onchange={(val) =>
-                            handleInvoiceChange(
-                                "offer",
-                                isNaN(Number(val)) ? 0 : Number(val)
-                            )
-                        }
                         disabled={getDisabledState()}
                     />
                 </div>
@@ -514,6 +518,19 @@ export default function SalesInvoice(props) {
                                     />
                                 );
                             })}
+
+                            {/* Total row */}
+                            <tr className={classes.totalRow}>
+                                <td colSpan="4" className={classes.totalLabel}>
+                                    <strong>إجمالي الفاتورة:</strong>
+                                </td>
+                                <td
+                                    colSpan={isViewMode ? "3" : "4"}
+                                    className={classes.totalValue}
+                                >
+                                    <strong>{finalTotal.toFixed(2)} ج.م</strong>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </>

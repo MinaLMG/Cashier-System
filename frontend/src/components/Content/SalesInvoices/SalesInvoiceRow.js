@@ -156,30 +156,44 @@ export default function SalesInvoiceRow({
 
             {/* Unit Price */}
             <td>
-                <TextInput
-                    className={classes["no-margin"]}
-                    type="number"
-                    label="السعر"
-                    value={
-                        unitPrice !== ""
-                            ? typeof unitPrice === "number"
-                                ? unitPrice.toFixed(2)
-                                : unitPrice
-                            : ""
-                    }
-                    disabled
-                />
+                {viewMode ? (
+                    <div className={classes.viewText}>
+                        {unitPrice !== ""
+                            ? `${Number(unitPrice).toFixed(2)} ج.م`
+                            : "—"}
+                    </div>
+                ) : (
+                    <TextInput
+                        className={classes["no-margin"]}
+                        type="number"
+                        label="السعر"
+                        value={
+                            unitPrice !== ""
+                                ? typeof unitPrice === "number"
+                                    ? unitPrice.toFixed(2)
+                                    : unitPrice
+                                : ""
+                        }
+                        disabled
+                    />
+                )}
             </td>
 
             {/* Total */}
             <td>
-                <TextInput
-                    className={classes["no-margin"]}
-                    type="number"
-                    label="الإجمالى"
-                    value={total.toFixed(2)}
-                    disabled
-                />
+                {viewMode ? (
+                    <div className={classes.viewText}>
+                        {total > 0 ? `${total.toFixed(2)} ج.م` : "—"}
+                    </div>
+                ) : (
+                    <TextInput
+                        className={classes["no-margin"]}
+                        type="number"
+                        label="الإجمالى"
+                        value={total.toFixed(2)}
+                        disabled
+                    />
+                )}
             </td>
 
             {/* Controls */}
