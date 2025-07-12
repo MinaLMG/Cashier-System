@@ -1,11 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const controller = require("../controllers/hasVolumeController");
+const hasVolumeController = require("../controllers/hasVolumeController");
 
 // Existing routes
-router.get("/", controller.getAllHasVolumes);
-router.post("/", controller.createHasVolume);
-// Add new route for barcode lookup
-router.get("/barcode/:barcode", controller.findByBarcode);
+router.get("/", hasVolumeController.getAllHasVolumes);
+router.post("/", hasVolumeController.createHasVolume);
+router.put("/:id", hasVolumeController.updateHasVolume);
+router.delete("/:id", hasVolumeController.deleteHasVolume);
+router.get("/barcode/:barcode", hasVolumeController.findByBarcode);
+
+// New route to get barcode by product and volume
+router.get(
+    "/product/:productId/volume/:volumeId/barcode",
+    hasVolumeController.findBarcodeByProductAndVolume
+);
 
 module.exports = router;

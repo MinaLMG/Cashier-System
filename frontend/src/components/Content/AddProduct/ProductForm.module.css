@@ -1,46 +1,78 @@
-.add {
-    padding: 50px;
-    /* display: flex; */
+/* Add these styles for the conversion table */
+.conversionTable {
+    width: 100%;
+    margin-bottom: 20px;
 }
+
 .table {
     width: 100%;
-    display: grid;
-    grid-template-columns: auto 125px auto 200px 130px;
-    grid-gap: 5px;
+    border-collapse: collapse;
 }
-.table {
-    padding: 0 10px;
+
+.table th {
+    background-color: #f8f9fa;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid #dee2e6;
+}
+
+.table td {
+    padding: 8px;
+    vertical-align: middle;
+    border: 1px solid #dee2e6;
+}
+
+.evenRow {
+    background-color: #f8f9fa;
+}
+
+.oddRow {
+    background-color: #ffffff;
+}
+
+.actionColumn {
+    text-align: center;
+    width: 80px;
 }
 
 .plus-icon {
-    color: white;
+    color: #28a745;
     cursor: pointer;
-    margin-top: 11px;
-    margin-right: 20px;
-    border-radius: 5px;
-    background-color: green;
+    margin-right: 10px;
 }
-.plus-icon:hover {
-    opacity: 0.8;
-}
+
 .minus-icon {
-    color: white;
+    color: #dc3545;
     cursor: pointer;
-    margin-top: 11px;
-    margin-right: 20px;
-    border-radius: 5px;
-    background-color: red;
 }
-.minus-icon:hover {
-    opacity: 0.8;
+
+/* Keep your existing styles */
+.add {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    width: 100%;
 }
-.save {
-    padding: 10px 25px;
-    border-radius: 10px;
-    outline: none;
-    border: 1px solid #ccc;
-    background-color: #203749;
-    font-size: large;
-    color: white;
-    font-weight: bold;
+
+.table {
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.table > div {
+    padding: 10px;
+    text-align: center;
+}
+
+.plus-icon {
+    color: green;
+    cursor: pointer;
+}
+
+.minus-icon {
+    color: red;
+    cursor: pointer;
 }

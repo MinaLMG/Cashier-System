@@ -87,3 +87,34 @@ exports.findByBarcode = async (req, res) => {
         res.status(500).json({ error: "Failed to find product by barcode" });
     }
 };
+
+// Add this new function to find a barcode by product and volume
+exports.findBarcodeByProductAndVolume = async (req, res) => {
+    const { productId, volumeId } = req.params;
+
+    if (!productId || !volumeId) {
+        return res
+            .status(400)
+            .json({ error: "Product ID and Volume ID are required" });
+    }
+
+    try {
+        const hasVolume = await HasVolume.findOne({
+            product: productId,
+            volume: volumeId,
+        });
+
+        if (!hasVolume) {
+            return res.status(404).json({
+                error: "No matching product-volume combination found",
+            });
+        }
+
+        res.status(200).json({
+            barcode: hasVolume.barcode,
+        });
+    } catch (err) {
+        console.error("Error finding barcode by product and volume:", err);
+        res.status(500).json({ error: "Failed to find barcode" });
+    }
+};

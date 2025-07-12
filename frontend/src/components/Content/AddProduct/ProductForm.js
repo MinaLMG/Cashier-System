@@ -290,7 +290,7 @@ export default function ProductForm({
 
     return (
         <div className={classes.add}>
-            <div style={{ width: inModal ? "100%" : "50%" }}>
+            <div style={{ width: inModal ? "80%" : "50%" }}>
                 <TextInput
                     type="text"
                     placeholder="اسم المنتج"
@@ -301,109 +301,128 @@ export default function ProductForm({
                 />
             </div>
 
-            <div style={{ width: inModal ? "100%" : "70%" }}>
-                <div className={classes.table}>
-                    <div> الوحدة بتاعتنا </div>
-                    <div>كام </div>
-                    <div>من ايه؟ </div>
-                    <div>الباركود</div>
-                    <div></div>
-
-                    {product.conversions.map((row, index) => (
-                        <Fragment key={index}>
-                            <div>
-                                <Select
-                                    title="الوحدة"
-                                    value={row.from}
-                                    onchange={(val) =>
-                                        handleConversionChange(
-                                            index,
-                                            "from",
-                                            val
-                                        )
+            <div style={{ width: inModal ? "90%" : "70%" }}>
+                <div className={classes.conversionTable}>
+                    <table
+                        className={`table table-striped table-bordered ${classes.table}`}
+                    >
+                        <thead>
+                            <tr>
+                                <th>الوحدة بتاعتنا</th>
+                                <th>كام</th>
+                                <th>من ايه؟</th>
+                                <th>الباركود</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {product.conversions.map((row, index) => (
+                                <tr
+                                    key={index}
+                                    className={
+                                        index % 2 === 0
+                                            ? classes.evenRow
+                                            : classes.oddRow
                                     }
-                                    options={volumes.map((v) => ({
-                                        value: v._id,
-                                        label: v.name,
-                                    }))}
-                                    disabled={false}
-                                />
-                            </div>
-                            <div>
-                                <TextInput
-                                    type="number"
-                                    placeholder="كام"
-                                    label="كام"
-                                    id={`value-${index}`}
-                                    value={row.value}
-                                    onchange={(e) =>
-                                        handleConversionChange(
-                                            index,
-                                            "value",
-                                            Number(e)
-                                        )
-                                    }
-                                    disabled={index === 0}
-                                />
-                            </div>
-                            <div>
-                                {index > 0 && (
-                                    <Select
-                                        title="من"
-                                        value={row.to}
-                                        onchange={(val) =>
-                                            handleConversionChange(
-                                                index,
-                                                "to",
-                                                val
-                                            )
-                                        }
-                                        options={volumes.map((v) => ({
-                                            value: v._id,
-                                            label: v.name,
-                                        }))}
-                                        disabled={index === 0}
-                                    />
-                                )}
-                            </div>
-                            <div>
-                                <TextInput
-                                    type="text"
-                                    placeholder="باركود"
-                                    label="باركود"
-                                    id={`barcode-${index}`}
-                                    value={row.barcode || ""}
-                                    onchange={(e) =>
-                                        handleConversionChange(
-                                            index,
-                                            "barcode",
-                                            e
-                                        )
-                                    }
-                                />
-                            </div>
-                            <div>
-                                {index === product.conversions.length - 1 && (
-                                    <FaPlus
-                                        className={classes["plus-icon"]}
-                                        size="2.5em"
-                                        onClick={handleAddRow}
-                                    />
-                                )}
-                                {index > 0 && (
-                                    <FaMinus
-                                        className={classes["minus-icon"]}
-                                        size="2.5em"
-                                        onClick={() => removeRow(index)}
-                                    />
-                                )}
-                            </div>
-                        </Fragment>
-                    ))}
+                                >
+                                    <td>
+                                        <Select
+                                            title="الوحدة"
+                                            value={row.from}
+                                            onchange={(val) =>
+                                                handleConversionChange(
+                                                    index,
+                                                    "from",
+                                                    val
+                                                )
+                                            }
+                                            options={volumes.map((v) => ({
+                                                value: v._id,
+                                                label: v.name,
+                                            }))}
+                                            disabled={false}
+                                        />
+                                    </td>
+                                    <td>
+                                        <TextInput
+                                            type="number"
+                                            placeholder="كام"
+                                            label="كام"
+                                            id={`value-${index}`}
+                                            value={row.value}
+                                            onchange={(e) =>
+                                                handleConversionChange(
+                                                    index,
+                                                    "value",
+                                                    Number(e)
+                                                )
+                                            }
+                                            disabled={index === 0}
+                                        />
+                                    </td>
+                                    <td>
+                                        {index > 0 && (
+                                            <Select
+                                                title="من"
+                                                value={row.to}
+                                                onchange={(val) =>
+                                                    handleConversionChange(
+                                                        index,
+                                                        "to",
+                                                        val
+                                                    )
+                                                }
+                                                options={volumes.map((v) => ({
+                                                    value: v._id,
+                                                    label: v.name,
+                                                }))}
+                                                disabled={index === 0}
+                                            />
+                                        )}
+                                    </td>
+                                    <td>
+                                        <TextInput
+                                            type="text"
+                                            placeholder="باركود"
+                                            label="باركود"
+                                            id={`barcode-${index}`}
+                                            value={row.barcode || ""}
+                                            onchange={(e) =>
+                                                handleConversionChange(
+                                                    index,
+                                                    "barcode",
+                                                    e
+                                                )
+                                            }
+                                        />
+                                    </td>
+                                    <td className={classes.actionColumn}>
+                                        {index ===
+                                            product.conversions.length - 1 && (
+                                            <FaPlus
+                                                className={classes["plus-icon"]}
+                                                size="1.5em"
+                                                onClick={handleAddRow}
+                                            />
+                                        )}
+                                        {index > 0 && (
+                                            <FaMinus
+                                                className={
+                                                    classes["minus-icon"]
+                                                }
+                                                size="1.5em"
+                                                onClick={() => removeRow(index)}
+                                            />
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div style={{ width: inModal ? "100%" : "50%" }}>
+            <div style={{ width: inModal ? "80%" : "50%" }}>
                 <TextInput
                     type="number"
                     label="الحد الأدنى للمخزون"

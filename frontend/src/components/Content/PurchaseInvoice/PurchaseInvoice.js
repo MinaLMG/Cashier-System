@@ -453,6 +453,7 @@ export default function PurchaseInvoice(props) {
                         mode="add"
                         onSuccess={handleProductAdded}
                         onCancel={() => setShowAddProductModal(false)}
+                        inModal={true}
                     />
                 </Modal>
             )}
