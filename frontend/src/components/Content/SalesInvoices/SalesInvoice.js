@@ -22,6 +22,12 @@ export default function SalesInvoice(props) {
     const [baseCost, setBaseCost] = useState(0);
     const [profit, setProfit] = useState(0);
 
+    // Add this state to track when we're updating fields to prevent infinite loops
+    const [isUpdatingFields, setIsUpdatingFields] = useState(false);
+
+    // Add a state to track barcode validation requests
+    const [barcodeValidationCache, setBarcodeValidationCache] = useState({});
+
     // Define the initial empty row
     const emptyRow = {
         barcode: "",
@@ -52,6 +58,25 @@ export default function SalesInvoice(props) {
 
             if (!row.product) errors.product = "الرجاء اختيار منتج";
             if (!row.volume) errors.volume = "الرجاء اختيار عبوة";
+
+            // Add barcode validation - only if barcode is provided and product/volume are selected
+            if (row.barcode && row.product && row.volume) {
+                // Check if we have a cached validation result for this combination
+                const cacheKey = `${row.product}-${row.volume}-${row.barcode}`;
+                const cachedResult = barcodeValidationCache[cacheKey];
+
+                if (cachedResult === false) {
+                    // We've already validated this combination and it's invalid
+                    errors.barcode = `الباركود ${row.barcode} غير صحيح لهذا المنتج والعبوة`;
+                } else if (cachedResult === true) {
+                    // We've already validated this combination and it's valid
+                    // No error needed
+                } else if (!isUpdatingFields) {
+                    // If we're not updating fields and don't have a cached result,
+                    // we'll need to verify with the backend
+                    // For now, we'll just skip validation
+                }
+            }
 
             if (!quantityNum || quantityNum <= 0) {
                 errors.quantity = "الكمية غير صحيحة";
@@ -85,7 +110,7 @@ export default function SalesInvoice(props) {
 
             return errors;
         },
-        [products]
+        [products, isUpdatingFields, barcodeValidationCache]
     );
 
     // Use our custom hook for row management
@@ -93,11 +118,12 @@ export default function SalesInvoice(props) {
         rows: invoiceRows,
         rowErrors,
         isFormValid,
-        handleRowChange,
+        handleRowChange: originalHandleRowChange,
         addRow,
         removeRow,
         setRows: setInvoiceRows,
         validateRows,
+        setRowErrors, // Add this to destructure setRowErrors from the hook
     } = useInvoiceRows(emptyRow, validateRow, [products, invoice.type]);
 
     // Fetch data on component mount
@@ -369,10 +395,150 @@ export default function SalesInvoice(props) {
         }
     };
 
-    // Add this function to handle barcode scanning
+    // Add a function to validate barcode with the backend
+    const validateBarcode = useCallback(
+        async (index, row) => {
+            if (!row.barcode || !row.product || !row.volume) return;
+
+            const cacheKey = `${row.product}-${row.volume}-${row.barcode}`;
+
+            // Skip if we already have a cached result
+            if (barcodeValidationCache[cacheKey] !== undefined) {
+                // If we have a cached result and it's false, set the error
+                if (barcodeValidationCache[cacheKey] === false) {
+                    const newErrors = [...rowErrors];
+                    if (!newErrors[index]) newErrors[index] = {};
+
+                    // Get the correct barcode from cache if available
+                    const correctBarcode =
+                        barcodeValidationCache[
+                            `${row.product}-${row.volume}-correct`
+                        ];
+                    if (correctBarcode) {
+                        newErrors[
+                            index
+                        ].barcode = `الباركود الصحيح لهذا المنتج والعبوة هو ${correctBarcode}`;
+                    } else {
+                        newErrors[
+                            index
+                        ].barcode = `الباركود ${row.barcode} غير صحيح لهذا المنتج والعبوة`;
+                    }
+
+                    setRowErrors(newErrors);
+                }
+                return;
+            }
+
+            setIsUpdatingFields(true);
+
+            try {
+                // Get the correct barcode for this product/volume
+                const response = await axios.get(
+                    `${process.env.REACT_APP_BACKEND}has-volumes/product-volume-barcode/${row.product}/${row.volume}`
+                );
+
+                if (response.data && response.data.barcode) {
+                    // Store the correct barcode in cache
+                    setBarcodeValidationCache((prev) => ({
+                        ...prev,
+                        [`${row.product}-${row.volume}-correct`]:
+                            response.data.barcode,
+                    }));
+
+                    // Check if the barcode matches
+                    const isValid = response.data.barcode === row.barcode;
+
+                    // Update the cache
+                    setBarcodeValidationCache((prev) => ({
+                        ...prev,
+                        [cacheKey]: isValid,
+                    }));
+
+                    // If invalid, update the row errors
+                    if (!isValid) {
+                        const newErrors = [...rowErrors];
+                        if (!newErrors[index]) newErrors[index] = {};
+                        newErrors[
+                            index
+                        ].barcode = `الباركود الصحيح لهذا المنتج والعبوة هو ${response.data.barcode}`;
+                        setRowErrors(newErrors);
+                    } else {
+                        // Clear any barcode errors
+                        const newErrors = [...rowErrors];
+                        if (newErrors[index] && newErrors[index].barcode) {
+                            delete newErrors[index].barcode;
+                            setRowErrors(newErrors);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Error validating barcode:", error);
+            } finally {
+                setIsUpdatingFields(false);
+            }
+        },
+        [barcodeValidationCache, rowErrors, setRowErrors]
+    );
+
+    // Improved handleProductOrVolumeChange function with correct API endpoint
+    const handleProductOrVolumeChange = useCallback(
+        async (index, field, value) => {
+            if (isUpdatingFields) return; // Prevent infinite loops
+
+            // Update the field first
+            originalHandleRowChange(index, field, value);
+
+            // Get the updated row data
+            const updatedRow = { ...invoiceRows[index], [field]: value };
+
+            // Only proceed if both product and volume are selected
+            if (!updatedRow.product || !updatedRow.volume) return;
+
+            setIsUpdatingFields(true);
+
+            try {
+                // Make a direct API call to get the barcode using the correct endpoint
+                const response = await axios.get(
+                    `${process.env.REACT_APP_BACKEND}has-volumes/product/${updatedRow.product}/volume/${updatedRow.volume}/barcode`
+                );
+
+                // If we got a barcode, update the row
+                if (response.data && response.data.barcode) {
+                    // Update the barcode field
+                    const newRows = [...invoiceRows];
+                    newRows[index].barcode = response.data.barcode;
+                    setInvoiceRows(newRows);
+
+                    // Clear any barcode errors
+                    const newErrors = [...rowErrors];
+                    if (newErrors[index] && newErrors[index].barcode) {
+                        delete newErrors[index].barcode;
+                        setRowErrors(newErrors);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching barcode:", error);
+            } finally {
+                setIsUpdatingFields(false);
+            }
+        },
+        [
+            invoiceRows,
+            originalHandleRowChange,
+            rowErrors,
+            setRowErrors,
+            setInvoiceRows,
+            isUpdatingFields,
+        ]
+    );
+
+    // Improved handleBarcodeChange function to clear product/volume for invalid barcodes
     const handleBarcodeChange = useCallback(
         async (index, barcode) => {
+            if (isUpdatingFields) return; // Prevent infinite loops
             if (!barcode || barcode.trim() === "") return; // Skip empty barcodes
+
+            setIsUpdatingFields(true);
 
             try {
                 // Find product and volume by barcode
@@ -380,7 +546,11 @@ export default function SalesInvoice(props) {
                     `${process.env.REACT_APP_BACKEND}has-volumes/barcode/${barcode}`
                 );
 
-                if (response.data) {
+                if (
+                    response.data &&
+                    response.data.product &&
+                    response.data.volume
+                ) {
                     const { product: productId, volume: volumeId } =
                         response.data;
 
@@ -392,11 +562,13 @@ export default function SalesInvoice(props) {
                         updatedRows[index].product === productId &&
                         updatedRows[index].volume === volumeId
                     ) {
+                        setIsUpdatingFields(false);
                         return;
                     }
 
                     updatedRows[index].product = productId;
                     updatedRows[index].volume = volumeId;
+                    updatedRows[index].barcode = barcode;
 
                     // Set default quantity to 1 if not already set
                     if (!updatedRows[index].quantity) {
@@ -405,18 +577,139 @@ export default function SalesInvoice(props) {
 
                     setInvoiceRows(updatedRows);
 
+                    // Clear any barcode errors
+                    const newErrors = [...rowErrors];
+                    if (newErrors[index]) {
+                        delete newErrors[index].barcode;
+                    }
+                    setRowErrors(newErrors);
+
                     // If this is the last row, add a new row for the next scan
                     if (index === invoiceRows.length - 1) {
                         addRow();
                     }
+                } else {
+                    // Invalid barcode - clear product and volume
+                    const updatedRows = [...invoiceRows];
+                    updatedRows[index].product = "";
+                    updatedRows[index].volume = "";
+                    // Keep the barcode for error display
+                    updatedRows[index].barcode = barcode;
+                    setInvoiceRows(updatedRows);
+
+                    // Set barcode error directly
+                    const newErrors = [...rowErrors];
+                    if (!newErrors[index]) newErrors[index] = {};
+                    newErrors[index].barcode = `الباركود ${barcode} غير موجود`;
+                    setRowErrors(newErrors);
                 }
             } catch (error) {
                 console.error("Error finding product by barcode:", error);
-                // You could set an error message here if needed
+
+                // Clear product and volume on error
+                const updatedRows = [...invoiceRows];
+                updatedRows[index].product = "";
+                updatedRows[index].volume = "";
+                // Keep the barcode for error display
+                updatedRows[index].barcode = barcode;
+                setInvoiceRows(updatedRows);
+
+                // Set barcode error directly
+                const newErrors = [...rowErrors];
+                if (!newErrors[index]) newErrors[index] = {};
+                newErrors[index].barcode = "خطأ في قراءة الباركود";
+                setRowErrors(newErrors);
+            } finally {
+                setIsUpdatingFields(false);
             }
         },
-        [invoiceRows, setInvoiceRows, addRow]
+        [
+            invoiceRows,
+            rowErrors,
+            addRow,
+            isUpdatingFields,
+            setRowErrors,
+            setInvoiceRows,
+        ]
     );
+
+    // Improved validateManualBarcode function to ensure errors persist
+    const validateManualBarcode = useCallback(
+        async (index, barcode) => {
+            if (!barcode) return;
+
+            const row = invoiceRows[index];
+            if (!row.product || !row.volume) return;
+
+            // Don't validate if we're already updating fields
+            if (isUpdatingFields) return;
+
+            try {
+                // Get the correct barcode for this product/volume
+                const response = await axios.get(
+                    `${process.env.REACT_APP_BACKEND}has-volumes/product/${row.product}/volume/${row.volume}/barcode`
+                );
+
+                if (response.data && response.data.barcode) {
+                    // Check if the barcode matches
+                    const isValid = response.data.barcode === barcode;
+
+                    // Update errors if needed
+                    const newErrors = [...rowErrors];
+                    if (!newErrors[index]) newErrors[index] = {};
+
+                    if (!isValid) {
+                        // For invalid barcodes, clear product and volume
+                        const updatedRows = [...invoiceRows];
+                        updatedRows[index].product = "";
+                        updatedRows[index].volume = "";
+                        // Keep the barcode for error display
+                        updatedRows[index].barcode = barcode;
+                        setInvoiceRows(updatedRows);
+
+                        // Set the error message
+                        newErrors[
+                            index
+                        ].barcode = `الباركود ${barcode} غير صحيح`;
+                        setRowErrors(newErrors);
+                    } else {
+                        // For valid barcodes, clear any errors
+                        delete newErrors[index].barcode;
+                        setRowErrors(newErrors);
+                    }
+                }
+            } catch (error) {
+                console.error("Error validating barcode:", error);
+            }
+        },
+        [invoiceRows, rowErrors, setRowErrors, isUpdatingFields, setInvoiceRows]
+    );
+
+    // Add this useEffect to ensure errors persist
+    useEffect(() => {
+        // This effect ensures that barcode errors persist
+        // by preventing them from being cleared during re-renders
+        const validateAllRows = () => {
+            invoiceRows.forEach((row, index) => {
+                if (row.barcode && (!row.product || !row.volume)) {
+                    // If we have a barcode but no product/volume, this might be an invalid barcode
+                    // Make sure the error persists
+                    const newErrors = [...rowErrors];
+                    if (!newErrors[index]) newErrors[index] = {};
+                    if (!newErrors[index].barcode) {
+                        newErrors[
+                            index
+                        ].barcode = `الباركود ${row.barcode} غير موجود`;
+                        setRowErrors(newErrors);
+                    }
+                }
+            });
+        };
+
+        if (!isUpdatingFields) {
+            validateAllRows();
+        }
+    }, [invoiceRows, rowErrors, setRowErrors, isUpdatingFields]);
 
     // Determine if we're in view mode
     const isViewMode = props.mode === "view";
@@ -425,6 +718,25 @@ export default function SalesInvoice(props) {
     const getDisabledState = () => {
         return isViewMode;
     };
+
+    // Rename the function to avoid confusion with the original handleRowChange
+    const handleBarcodeFieldChange = useCallback(
+        async (index, field, value) => {
+            // First update the field normally
+            originalHandleRowChange(index, field, value);
+
+            // If the barcode field changed and we have product and volume selected,
+            // validate the barcode
+            if (field === "barcode" && value) {
+                const row = { ...invoiceRows[index], [field]: value };
+                if (row.product && row.volume) {
+                    // Validate the barcode against the backend
+                    await validateBarcode(index, row);
+                }
+            }
+        },
+        [invoiceRows, originalHandleRowChange, validateBarcode]
+    );
 
     return (
         <div className={classes.container}>
@@ -501,7 +813,45 @@ export default function SalesInvoice(props) {
                                         key={i}
                                         row={row}
                                         index={i}
-                                        onChange={handleRowChange}
+                                        onChange={(index, field, value) => {
+                                            if (
+                                                field === "product" ||
+                                                field === "volume"
+                                            ) {
+                                                handleProductOrVolumeChange(
+                                                    index,
+                                                    field,
+                                                    value
+                                                );
+                                            } else if (field === "barcode") {
+                                                // First update the field normally
+                                                originalHandleRowChange(
+                                                    index,
+                                                    field,
+                                                    value
+                                                );
+
+                                                // Then validate the barcode if it's not empty
+                                                if (
+                                                    value &&
+                                                    value.trim() !== ""
+                                                ) {
+                                                    // Use setTimeout to ensure the validation happens after the state update
+                                                    setTimeout(() => {
+                                                        validateManualBarcode(
+                                                            index,
+                                                            value
+                                                        );
+                                                    }, 10);
+                                                }
+                                            } else {
+                                                originalHandleRowChange(
+                                                    index,
+                                                    field,
+                                                    value
+                                                );
+                                            }
+                                        }}
                                         onRemove={removeRow}
                                         onAdd={addRow}
                                         isLastRow={i === invoiceRows.length - 1}

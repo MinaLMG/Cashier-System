@@ -16,6 +16,7 @@ const hasVolumeSchema = new mongoose.Schema({
     sale_price: { type: Number },
 });
 
+// Ensure barcode uniqueness for non-empty values
 hasVolumeSchema.index(
     { barcode: 1 },
     {
@@ -25,5 +26,8 @@ hasVolumeSchema.index(
         },
     }
 );
+
+// Add a compound index for product and volume to ensure uniqueness
+hasVolumeSchema.index({ product: 1, volume: 1 }, { unique: true });
 
 module.exports = mongoose.model("HasVolume", hasVolumeSchema);

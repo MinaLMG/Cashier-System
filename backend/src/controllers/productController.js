@@ -153,6 +153,24 @@ exports.createFullProduct = async (req, res) => {
             }
         }
 
+        // Check for existing barcodes in the database
+        const barcodes = conversions
+            .map((conv) => conv.barcode?.trim())
+            .filter(Boolean);
+
+        if (barcodes.length > 0) {
+            const existingBarcodes = await HasVolume.find({
+                barcode: { $in: barcodes },
+            });
+
+            if (existingBarcodes.length > 0) {
+                const duplicateBarcode = existingBarcodes[0].barcode;
+                return res.status(400).json({
+                    error: `الباركود "${duplicateBarcode}" مستخدم من قبل في منتج آخر`,
+                });
+            }
+        }
+
         // Step 1: Create the product
         const newProduct = await Product.create({
             name,
@@ -273,6 +291,25 @@ exports.updateFullProduct = async (req, res) => {
         return res.status(400).json({
             error: `الباركود "${duplicateInRequest}" مكرر داخل نفس المنتج`,
         });
+    }
+
+    // Check for existing barcodes in the database that belong to other products
+    const barcodes = conversions
+        .map((conv) => conv.barcode?.trim())
+        .filter(Boolean);
+
+    if (barcodes.length > 0) {
+        const existingBarcodes = await HasVolume.find({
+            barcode: { $in: barcodes },
+            product: { $ne: productId }, // Exclude current product
+        });
+
+        if (existingBarcodes.length > 0) {
+            const duplicateBarcode = existingBarcodes[0].barcode;
+            return res.status(400).json({
+                error: `الباركود "${duplicateBarcode}" مستخدم من قبل في منتج آخر`,
+            });
+        }
     }
 
     let oldProduct = null;

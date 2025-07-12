@@ -57,7 +57,6 @@ exports.deleteHasVolume = async (req, res) => {
 
 // Add this new function to find a product by barcode
 exports.findByBarcode = async (req, res) => {
-    console.log("entered");
     const { barcode } = req.params;
 
     if (!barcode) {

@@ -59,15 +59,27 @@ export default function SalesInvoiceRow({
                 {viewMode ? (
                     <div className={classes.viewText}>{row.barcode || "—"}</div>
                 ) : (
-                    <TextInput
-                        placeholder="الباركود"
-                        value={row.barcode || ""}
-                        onchange={(val) => {
-                            onChange(index, "barcode", val);
-                            onBarcodeChange(index, val);
-                        }}
-                        disabled={disabled}
-                    />
+                    <div>
+                        <TextInput
+                            placeholder="الباركود"
+                            value={row.barcode || ""}
+                            onchange={(val) => {
+                                // First update the value
+                                onChange(index, "barcode", val);
+
+                                // Then trigger barcode lookup if not empty
+                                if (val && val.trim() !== "") {
+                                    onBarcodeChange(index, val);
+                                }
+                            }}
+                            disabled={disabled}
+                        />
+                        {errors.barcode && (
+                            <div className={classes.error}>
+                                {errors.barcode}
+                            </div>
+                        )}
+                    </div>
                 )}
             </td>
 
@@ -76,24 +88,23 @@ export default function SalesInvoiceRow({
                 {viewMode ? (
                     <div className={classes.viewText}>{productName}</div>
                 ) : (
-                    <>
+                    <div>
                         <Select
+                            placeholder="اختر المنتج"
+                            value={row.product || ""}
                             options={products.map((p) => ({
                                 value: p._id,
                                 label: p.name,
                             }))}
-                            disabled={disabled}
-                            className={classes["no-margin"]}
-                            title="المنتج"
-                            value={row.product || ""}
                             onchange={(val) => onChange(index, "product", val)}
+                            disabled={disabled}
                         />
                         {errors.product && (
                             <div className={classes.error}>
                                 {errors.product}
                             </div>
                         )}
-                    </>
+                    </div>
                 )}
             </td>
 

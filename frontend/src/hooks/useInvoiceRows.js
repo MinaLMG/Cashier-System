@@ -142,5 +142,6 @@ export default function useInvoiceRows(
         removeRow,
         setRows,
         validateRows,
+        setRowErrors, // Export setRowErrors function
     };
 }
