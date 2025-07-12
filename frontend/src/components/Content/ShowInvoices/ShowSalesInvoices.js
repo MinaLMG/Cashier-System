@@ -62,9 +62,8 @@ export default function ShowSalesInvoices(props) {
     // Render row function for the SortableTable
     const renderRow = (invoice, index) => {
         const customerName = invoice.customer
-            ? customers.find((c) => c._id === invoice.customer)?.name ||
-              "غير معروف"
-            : "زبون عادي";
+            ? customers.find((c) => c._id === invoice.customer)?.name
+            : "--";
 
         const typeLabel = invoice.type === "walkin" ? "زبون" : "صيدلية";
 

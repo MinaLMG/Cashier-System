@@ -557,6 +557,7 @@ exports.getFullSalesInvoices = async (req, res) => {
                         product: item.product,
                         volume: item.volume,
                         quantity: item.quantity,
+                        v_price: item.v_price,
                     })),
                     total_selling_price: inv.total_selling_price || 0,
                     final_amount: inv.final_amount || 0,

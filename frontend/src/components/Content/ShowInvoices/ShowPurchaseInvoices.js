@@ -47,9 +47,8 @@ export default function ShowPurchaseInvoices(props) {
     // Render row function for the SortableTable
     const renderRow = (invoice, index) => {
         const supplierName = invoice.supplier
-            ? suppliers.find((s) => s._id === invoice.supplier)?.name ||
-              "غير معروف"
-            : "بدون مورد";
+            ? suppliers.find((s) => s._id === invoice.supplier)?.name
+            : "--";
 
         return (
             <tr key={invoice._id}>

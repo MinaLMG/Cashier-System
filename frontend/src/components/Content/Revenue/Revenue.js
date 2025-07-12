@@ -336,7 +336,7 @@ export default function Revenue(props) {
                                                               (c) =>
                                                                   c._id ===
                                                                   invoice.customer
-                                                          )?.name || "غير معروف"
+                                                          )?.name || "--"
                                                         : "بدون عميل"}
                                                 </td>
                                                 <td>
