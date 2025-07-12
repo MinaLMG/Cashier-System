@@ -493,7 +493,8 @@ exports.getFullProductById = async (req, res) => {
 
 exports.getAllFullProducts = async (req, res) => {
     try {
-        const products = await Product.find();
+        // Update the query to sort by name
+        const products = await Product.find().sort({ name: 1 });
 
         const result = await Promise.all(
             products.map(async (product) => {
