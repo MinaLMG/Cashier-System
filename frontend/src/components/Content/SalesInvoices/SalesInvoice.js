@@ -535,7 +535,7 @@ export default function SalesInvoice(props) {
     // Improved handleBarcodeChange function to clear product/volume for invalid barcodes
     const handleBarcodeChange = useCallback(
         async (index, barcode) => {
-            if (isUpdatingFields) return; // Prevent infinite loops
+            // if (isUpdatingFields) return; // Prevent infinite loops
             if (!barcode || barcode.trim() === "") return; // Skip empty barcodes
 
             setIsUpdatingFields(true);

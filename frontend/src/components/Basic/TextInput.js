@@ -12,6 +12,7 @@ export default function TextInput({
     disabled = false,
     className = "",
     min,
+    hidden,
 }) {
     // Only add min attribute if it's explicitly provided
     const minProps = min !== undefined ? { min } : {};
@@ -20,6 +21,7 @@ export default function TextInput({
         <div
             className={`form-floating mb-3 ${className ? className : ""}`}
             dir="rtl"
+            style={{ display: hidden ? "none" : "" }}
         >
             <input
                 type={type}

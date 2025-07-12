@@ -162,7 +162,6 @@ export default function PurchaseInvoice(props) {
 
     // Handle invoice field changes
     const handleInvoiceChange = (field, value) => {
-        console.log(field, value);
         setInvoice((prev) => ({ ...prev, [field]: value }));
     };
 

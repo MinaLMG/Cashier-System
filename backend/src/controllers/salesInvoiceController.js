@@ -344,7 +344,6 @@ exports.createFullSalesInvoice = async (req, res) => {
                         error: `المنتج غير موجود: ${row.product}`,
                     });
                 }
-                console.log(row.volume);
                 const volumeExists = await Volume.findById(row.volume);
                 if (!volumeExists) {
                     return res.status(400).json({
@@ -471,7 +470,7 @@ exports.createFullSalesInvoice = async (req, res) => {
 
         // Generate serial number
         const serial = await generateSalesInvoiceSerial(date);
-        console.log(date);
+
         // Step 5: Create SalesInvoice
         newInvoice = await SalesInvoice.create({
             date,
