@@ -12,7 +12,7 @@
 .remove,
 .add {
     font-size: 30px;
-    margin: 0 5px;
+    margin: 0;
     cursor: pointer;
 }
 .add {

@@ -211,7 +211,7 @@ export default function CustomerForm({
                         { value: "walkin", label: "زبون" },
                         { value: "pharmacy", label: "صيدلية" },
                     ]}
-                    width="300px"
+                    width="58px"
                     error={fieldErrors.type || ""}
                 />
 

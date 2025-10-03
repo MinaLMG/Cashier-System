@@ -25,7 +25,7 @@ const salesItemSchema = new mongoose.Schema({
                 ref: "PurchaseItem",
                 required: true,
             },
-            quantity: { type: Number, required: true }, // quantity taken from this purchase item
+            quantity: { type: Number, required: true }, // quantity taken from this purchase item in the volume unit
         },
     ],
     date: { type: Date, default: Date.now },

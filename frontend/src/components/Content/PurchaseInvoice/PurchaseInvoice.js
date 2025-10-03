@@ -410,7 +410,11 @@ export default function PurchaseInvoice(props) {
             <InputTable error={fieldErrors.rows || ""}>
                 <thead>
                     <tr>
-                        <th className={classes.head} scope="col">
+                        <th
+                            className={classes.head}
+                            scope="col"
+                            style={{ width: "50px" }}
+                        >
                             #
                         </th>
                         <th className={classes.head} scope="col">
@@ -438,7 +442,11 @@ export default function PurchaseInvoice(props) {
                             الباقى( لو فاتورة باثر رجعى)
                         </th>
                         {!isViewMode && (
-                            <th className={classes.head} scope="col"></th>
+                            <th
+                                className={classes.head}
+                                scope="col"
+                                style={{ width: "50px" }}
+                            ></th>
                         )}
                     </tr>
                 </thead>

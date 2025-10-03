@@ -21,7 +21,7 @@ const purchaseItemSchema = new mongoose.Schema({
     v_buy_price: { type: Number, required: true }, // Volume buy price
     v_pharmacy_price: { type: Number, required: true }, // Volume pharmacy price
     v_walkin_price: { type: Number, required: true }, // Volume walkin price (was customer/cust price)
-    remaining: { type: Number },
+    remaining: { type: Number }, // remaining quantity in the volume unit
 });
 
 purchaseItemSchema.index({ product: 1 });
