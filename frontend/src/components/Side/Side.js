@@ -1,6 +1,40 @@
 // eslint-disable-next-line no-unused-vars
 import { Fragment, useState } from "react";
 import classes from "./Side.module.css";
+import {
+    FaBox,
+    FaEdit,
+    FaEye,
+    FaFileInvoice,
+    FaFileAlt,
+    FaChartLine,
+    FaUsers,
+    FaUserFriends,
+    FaBoxes,
+    FaUserCog,
+    FaShoppingCart,
+    FaReceipt,
+} from "react-icons/fa";
+
+// Icon mapping for navigation items
+const getIconForTask = (task) => {
+    const iconMap = {
+        "زود منتج": FaBox,
+        "اعرض كل البضاعة": FaEye,
+        "زود فاتورة بيع": FaShoppingCart,
+        "اعرض كل فواتير البيع": FaEye,
+        "زود فاتورة مشتريات": FaFileInvoice,
+        "اعرض كل فواتير المشتريات": FaEye,
+        "تقرير الإيرادات": FaChartLine,
+        "إدارة الموردين": FaUsers,
+        "إدارة العملاء": FaUserFriends,
+        "إدارة العبوات": FaBoxes,
+        "إدارة المستخدمين": FaUserCog,
+    };
+
+    return iconMap[task] || FaFileAlt;
+};
+
 export default function Side(props) {
     return (
         <div className={classes["side"]}>
@@ -10,6 +44,7 @@ export default function Side(props) {
                         <div className={classes.title}>{ac.title}</div>
                         <ul>
                             {ac.tasks.map((ta, index2) => {
+                                const IconComponent = getIconForTask(ta);
                                 return (
                                     <li
                                         key={index2}
@@ -22,6 +57,9 @@ export default function Side(props) {
                                             props.onSelect(ta);
                                         }}
                                     >
+                                        <IconComponent
+                                            className={classes.icon}
+                                        />
                                         {ta}
                                     </li>
                                 );

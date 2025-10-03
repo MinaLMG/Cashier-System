@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { FaSortDown, FaSortUp, FaSort } from "react-icons/fa";
 import classes from "./SortableTable.module.css";
+import OutputTable from "./OutputTable";
 
 const SortableTable = ({
     columns,
@@ -10,6 +11,8 @@ const SortableTable = ({
     tableClassName = "",
     renderRow,
     emptyMessage = "لا توجد بيانات",
+    width = "90%",
+    containingErros = true,
 }) => {
     const [sortField, setSortField] = useState(initialSortField);
     const [sortDirection, setSortDirection] = useState(initialSortDirection);
@@ -81,7 +84,7 @@ const SortableTable = ({
     }
 
     return (
-        <table className={`${classes.sortableTable} ${tableClassName}`}>
+        <OutputTable className={tableClassName}>
             <thead>
                 <tr>
                     {columns.map((column) => (
@@ -96,6 +99,7 @@ const SortableTable = ({
                                     ? classes.sortableHeader
                                     : ""
                             }
+                            style={{ width: `${100 / columns.length}%` }}
                         >
                             <div className={classes.headerContent}>
                                 <span>{column.title}</span>
@@ -123,7 +127,7 @@ const SortableTable = ({
                     sortedData.map((item, index) => renderRow(item, index))
                 )}
             </tbody>
-        </table>
+        </OutputTable>
     );
 };
 

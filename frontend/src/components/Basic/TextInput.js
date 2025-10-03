@@ -13,6 +13,8 @@ export default function TextInput({
     className = "",
     min,
     hidden,
+    width = "",
+    error = "",
 }) {
     // Only add min attribute if it's explicitly provided
     const minProps = min !== undefined ? { min } : {};
@@ -21,7 +23,12 @@ export default function TextInput({
         <div
             className={`form-floating mb-3 ${className ? className : ""}`}
             dir="rtl"
-            style={{ display: hidden ? "none" : "" }}
+            style={{
+                display: hidden ? "none" : "block",
+                width: width,
+                marginRight: 0,
+                marginLeft: "auto",
+            }}
         >
             <input
                 type={type}
@@ -30,11 +37,12 @@ export default function TextInput({
                 value={value}
                 onChange={(e) => onchange(e.currentTarget.value)}
                 disabled={disabled}
-                className="form-control"
+                className={`form-control ${error ? classes.errorInput : ""}`}
                 {...minProps}
                 min={min !== undefined ? min : ""}
             />
             <label htmlFor={id}>{label}</label>
+            {error && <div className={classes.errorText}>{error}</div>}
         </div>
     );
 }

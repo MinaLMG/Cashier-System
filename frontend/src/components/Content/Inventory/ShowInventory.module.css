@@ -1,6 +1,9 @@
 .table {
     width: 100%;
+    min-width: 600px;
+    table-layout: fixed;
 }
+
 .item {
     align-content: center;
 }
@@ -11,6 +14,7 @@
     margin: 0 25px;
     cursor: pointer;
 }
+
 .edit {
     color: brown;
 }
@@ -18,7 +22,35 @@
 .remove {
     color: #848484;
 }
+
 .remove.disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .table {
+        min-width: 500px;
+        font-size: 14px;
+    }
+
+    .edit,
+    .remove {
+        font-size: 24px;
+        margin: 0 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .table {
+        min-width: 400px;
+        font-size: 12px;
+    }
+
+    .edit,
+    .remove {
+        font-size: 20px;
+        margin: 0 10px;
+    }
 }

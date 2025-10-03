@@ -1,5 +1,90 @@
 .header {
-    text-align: center;
-    border-bottom: 4px solid black;
+    background: linear-gradient(
+        135deg,
+        var(--header-gradient-start) 0%,
+        var(--header-gradient-end) 100%
+    );
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     position: relative;
+    min-height: 80px;
+}
+
+.header img {
+    height: 50px;
+    width: auto;
+}
+
+.headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.headerCenter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.headerRight {
+    background: var(--primary-dark);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logoText {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.heartIcon {
+    color: var(--accent-heart);
+    font-size: 20px;
+    margin: 0 5px;
+}
+
+.userInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.userRole {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 5px 15px;
+    border-radius: 15px;
+    font-size: 14px;
+}
+
+.userIcon,
+.backIcon {
+    font-size: 16px;
+}
+
+.systemTitle {
+    margin-right: 0;
+}
+
+.logoutButton {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.logoutButton:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
 }

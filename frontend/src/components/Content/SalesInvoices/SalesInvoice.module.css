@@ -4,7 +4,17 @@
 
 .table {
     width: 100%;
+    min-width: 700px;
+    table-layout: fixed;
 }
+
+.tableWrapper {
+    width: 100%;
+    max-width: 90%;
+    margin: 0 auto;
+    overflow-x: auto;
+}
+
 .table th,
 .item {
     align-content: center;
@@ -22,4 +32,44 @@
 .totalValue {
     text-align: center;
     padding: 12px 15px;
+}
+
+/* Responsive design for tables */
+@media (max-width: 1200px) {
+    .tableWrapper {
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 768px) {
+    .tableWrapper {
+        max-width: 100%;
+        margin: 0 10px;
+    }
+
+    .table {
+        min-width: 600px;
+        font-size: 14px;
+    }
+
+    .table th,
+    .table td {
+        padding: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tableWrapper {
+        margin: 0 5px;
+    }
+
+    .table {
+        min-width: 500px;
+        font-size: 12px;
+    }
+
+    .table th,
+    .table td {
+        padding: 4px;
+    }
 }

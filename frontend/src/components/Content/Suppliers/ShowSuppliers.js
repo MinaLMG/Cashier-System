@@ -6,6 +6,7 @@ import { FaEdit, FaEye } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import SupplierForm from "./SupplierForm";
 import Modal from "../../general/Modal";
+import SortableTable from "../../Basic/SortableTable";
 
 export default function ShowSuppliers() {
     const [suppliers, setSuppliers] = useState([]);
@@ -61,7 +62,14 @@ export default function ShowSuppliers() {
     };
 
     return (
-        <div style={{ width: "70%", margin: "100px auto" }}>
+        <div
+            style={{
+                width: "100%",
+                maxWidth: "90%",
+                margin: "100px auto",
+                padding: "0 20px",
+            }}
+        >
             {showModal && (
                 <Modal
                     onHide={() => setShowModal(false)}
@@ -88,9 +96,30 @@ export default function ShowSuppliers() {
             ) : (
                 <>
                     <div className="d-flex justify-content-between mb-3">
-                        <h2 className={classes.title}>الموردين</h2>
+                        <h2
+                            className={classes.title}
+                            style={{
+                                color: "var(--text-color)",
+                                fontWeight: "bold",
+                                fontSize: "var(--font-size-xl)",
+                                margin: 0,
+                            }}
+                        >
+                            الموردين
+                        </h2>
                         <button
-                            className={`btn btn-primary ${classes.addButton}`}
+                            className={`btn ${classes.addButton}`}
+                            style={{
+                                background:
+                                    "linear-gradient(135deg, var(--secondary-color), var(--secondary-light))",
+                                border: "none",
+                                color: "white",
+                                padding: "12px 24px",
+                                borderRadius: "var(--border-radius-md)",
+                                fontWeight: "bold",
+                                boxShadow: "var(--shadow-md)",
+                                transition: "all 0.3s ease",
+                            }}
                             onClick={() => {
                                 setIsEditing(false);
                                 setCurrentSupplier(null);
@@ -100,59 +129,52 @@ export default function ShowSuppliers() {
                             إضافة مورد جديد
                         </button>
                     </div>
-                    <table
-                        className={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
-                    >
-                        <thead>
-                            <tr>
-                                <th className={classes.head}>#</th>
-                                <th className={classes.head}>الاسم</th>
-                                <th className={classes.head}>رقم الهاتف</th>
-                                <th className={classes.head}>الإجراءات</th>
+                    <SortableTable
+                        columns={[
+                            { key: "index", title: "#", sortable: false },
+                            { field: "name", title: "الاسم" },
+                            { field: "phone", title: "رقم الهاتف" },
+                            {
+                                key: "actions",
+                                title: "الإجراءات",
+                                sortable: false,
+                            },
+                        ]}
+                        data={suppliers}
+                        initialSortField="name"
+                        initialSortDirection="asc"
+                        tableClassName={`table table-bordered ${classes.table}`}
+                        renderRow={(supplier, index) => (
+                            <tr key={supplier._id}>
+                                <td className={classes.item}>{index + 1}</td>
+                                <td className={classes.item}>
+                                    {supplier.name}
+                                </td>
+                                <td className={classes.item}>
+                                    {supplier.phone || "--"}
+                                </td>
+                                <td className={classes.item}>
+                                    <div className="d-flex justify-content-around">
+                                        <FaEdit
+                                            onClick={() => handleEdit(supplier)}
+                                            className={classes.edit}
+                                        />
+                                        <FaEye
+                                            className={`${classes.view} ${commonStyles.disabledIcon}`}
+                                            title="عرض التفاصيل غير متاح حاليًا"
+                                        />
+                                        <MdDelete
+                                            onClick={() =>
+                                                confirmDelete(supplier)
+                                            }
+                                            className={classes.remove}
+                                        />
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {suppliers.length === 0 ? (
-                                <tr>
-                                    <td colSpan="4" className={classes.item}>
-                                        لا يوجد موردين حتى الآن
-                                    </td>
-                                </tr>
-                            ) : (
-                                suppliers.map((supplier, index) => (
-                                    <tr key={supplier._id}>
-                                        <td className={classes.item}>
-                                            {index + 1}
-                                        </td>
-                                        <td className={classes.item}>
-                                            {supplier.name}
-                                        </td>
-                                        <td className={classes.item}>
-                                            {supplier.phone || "--"}
-                                        </td>
-                                        <td className={classes.item}>
-                                            <FaEdit
-                                                onClick={() =>
-                                                    handleEdit(supplier)
-                                                }
-                                                className={classes.edit}
-                                            />
-                                            <FaEye
-                                                className={`${classes.view} ${commonStyles.disabledIcon}`}
-                                                title="عرض التفاصيل غير متاح حاليًا"
-                                            />
-                                            <MdDelete
-                                                onClick={() =>
-                                                    confirmDelete(supplier)
-                                                }
-                                                className={classes.remove}
-                                            />
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                        )}
+                        emptyMessage="لا يوجد موردين حتى الآن"
+                    />
                 </>
             )}
         </div>

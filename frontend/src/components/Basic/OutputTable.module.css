@@ -1,0 +1,146 @@
+/* Output Table - For displaying data */
+.outputTableWrapper {
+    width: 100%;
+    max-width: 90%;
+    margin: 0 auto;
+    overflow-x: auto;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.outputTable {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+    background: var(--background-color);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+}
+
+.outputTable th {
+    background: linear-gradient(
+        135deg,
+        var(--primary-color) 0%,
+        var(--primary-light) 100%
+    );
+    color: white;
+    font-weight: 700;
+    text-align: center;
+    padding: 15px 12px;
+    border-bottom: 2px solid var(--primary-dark);
+    font-size: var(--font-size-md);
+}
+
+.outputTable td {
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: center;
+    vertical-align: middle;
+    background: var(--background-color);
+    color: var(--text-color);
+}
+
+.outputTable tr:nth-child(even) td {
+    background: rgba(74, 85, 104, 0.05);
+}
+
+.outputTable tr:hover td {
+    background: rgba(74, 85, 104, 0.1);
+}
+
+.outputTable tr:last-child td {
+    border-bottom: none;
+}
+
+/* Action buttons styling */
+.outputTable .actionButton {
+    background: var(--accent-red);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    transition: all 0.2s ease;
+    margin: 0 5px;
+}
+
+.outputTable .actionButton:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.outputTable .actionButton.edit {
+    background: var(--secondary-color);
+}
+
+.outputTable .actionButton.edit:hover {
+    background: var(--secondary-dark);
+}
+
+.outputTable .actionButton.delete {
+    background: var(--accent-red);
+}
+
+.outputTable .actionButton.delete:hover {
+    background: #c53030;
+}
+
+/* Empty state */
+.outputTable .emptyMessage {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-light);
+    font-style: italic;
+    font-size: var(--font-size-lg);
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+    .outputTableWrapper {
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 768px) {
+    .outputTableWrapper {
+        max-width: 100%;
+        margin: 0 10px;
+    }
+
+    .outputTable {
+        min-width: 500px;
+        font-size: 14px;
+    }
+
+    .outputTable th,
+    .outputTable td {
+        padding: 8px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .outputTableWrapper {
+        margin: 0 5px;
+    }
+
+    .outputTable {
+        min-width: 400px;
+        font-size: 12px;
+    }
+
+    .outputTable th,
+    .outputTable td {
+        padding: 6px 4px;
+    }
+}
+
+/* Error styling */
+.errorText {
+    color: var(--accent-red);
+    font-size: 12px;
+    margin-top: 8px;
+    text-align: right;
+    font-weight: 500;
+}

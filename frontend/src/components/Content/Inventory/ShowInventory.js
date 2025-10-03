@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
+import OutputTable from "../../Basic/OutputTable";
 export default function ShowInventory(props) {
     const [inventory, setInventory] = useState([]);
     useEffect(() => {
@@ -15,10 +16,8 @@ export default function ShowInventory(props) {
             .catch((err) => console.error("Failed to fetch volumes:", err));
     }, []);
     return (
-        <div style={{ width: "70%", margin: "100px auto " }}>
-            <table
-                className={`table  table-light table-hover table-bordered border-secondary ${classes.table}`}
-            >
+        <div style={{ width: "90%", maxWidth: "1200px", margin: "100px auto" }}>
+            <OutputTable>
                 <thead>
                     <tr>
                         <th className={classes.head} scope="col"></th>
@@ -94,7 +93,7 @@ export default function ShowInventory(props) {
                         })
                     )}
                 </tbody>
-            </table>
+            </OutputTable>
         </div>
     );
 }

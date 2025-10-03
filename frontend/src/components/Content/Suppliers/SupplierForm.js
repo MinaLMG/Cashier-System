@@ -16,8 +16,9 @@ export default function SupplierForm({
         name: supplier?.name || "",
         phone: supplier?.phone || "",
     });
-    const [errors, setErrors] = useState({});
-    const [isFormValid, setIsFormValid] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [formError, setFormError] = useState(""); // Form-level error below submit button
+    const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track if user has started interacting
     const [submitMessage, setSubmitMessage] = useState({
         text: "",
         isError: false,
@@ -26,32 +27,75 @@ export default function SupplierForm({
 
     // Validate form on every change
     useEffect(() => {
+        // Only validate if user has interacted or we're in edit mode
+        if (!hasUserInteracted && !isEditing) {
+            setFormError("");
+            setFieldErrors({});
+            return;
+        }
+
         const newErrors = {};
+        let hasErrors = false;
 
         if (!formData.name.trim()) {
             newErrors.name = "اسم المورد مطلوب";
+            hasErrors = true;
         }
 
         // Validate phone number format if provided
         if (formData.phone && !/^[\d\+\-\(\) ]{11}$/.test(formData.phone)) {
             newErrors.phone = "صيغة رقم الهاتف غير صحيحة";
+            hasErrors = true;
         }
 
-        setErrors(newErrors);
-        setIsFormValid(Object.keys(newErrors).length === 0);
-    }, [formData]);
+        setFieldErrors(newErrors);
+        setFormError(hasErrors ? "يرجى إصلاح الأخطاء أعلاه" : "");
+    }, [formData, hasUserInteracted, isEditing]);
 
     const handleChange = (field, value) => {
+        // Mark that user has started interacting
+        if (!hasUserInteracted) {
+            setHasUserInteracted(true);
+        }
+
         setFormData({
             ...formData,
             [field]: value,
         });
+
+        // Clear field-specific error when user types
+        if (fieldErrors[field]) {
+            setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+        }
     };
+
+    // Initialize form for edit mode
+    useEffect(() => {
+        if (isEditing && supplier) {
+            setHasUserInteracted(true); // Enable validation for edit mode
+        }
+    }, [isEditing, supplier]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!isFormValid) {
+        // Check if form has errors
+        const hasErrors = Object.keys(fieldErrors).some(
+            (key) => fieldErrors[key]
+        );
+        if (hasErrors || formError) {
+            setSubmitMessage({
+                text: "يرجى إصلاح الأخطاء قبل الإرسال",
+                isError: true,
+            });
+
+            // Clear error after 10 seconds
+            setTimeout(() => {
+                setSubmitMessage({
+                    text: "",
+                    isError: false,
+                });
+            }, 10000);
             return;
         }
 
@@ -67,6 +111,14 @@ export default function SupplierForm({
                     text: "✅ تم تحديث المورد بنجاح",
                     isError: false,
                 });
+
+                // Clear success message after 5 seconds
+                setTimeout(() => {
+                    setSubmitMessage({
+                        text: "",
+                        isError: false,
+                    });
+                }, 5000);
             } else {
                 await axios.post(
                     `${process.env.REACT_APP_BACKEND}suppliers`,
@@ -77,11 +129,22 @@ export default function SupplierForm({
                     isError: false,
                 });
 
+                // Clear success message after 5 seconds
+                setTimeout(() => {
+                    setSubmitMessage({
+                        text: "",
+                        isError: false,
+                    });
+                }, 5000);
+
                 // Reset form to initial state if not editing
                 setFormData({
                     name: "",
                     phone: "",
                 });
+                setFieldErrors({});
+                setFormError("");
+                setHasUserInteracted(false);
             }
             setTimeout(() => {
                 onSubmit();
@@ -94,6 +157,15 @@ export default function SupplierForm({
                         "حدث خطأ أثناء حفظ البيانات"),
                 isError: true,
             });
+
+            // Clear error after 10 seconds
+            setTimeout(() => {
+                setSubmitMessage({
+                    text: "",
+                    isError: false,
+                });
+            }, 10000);
+
             console.error("Error saving supplier:", error);
         } finally {
             setIsSubmitting(false);
@@ -106,32 +178,39 @@ export default function SupplierForm({
                 {isEditing ? "تعديل مورد" : "إضافة مورد جديد"}
             </h2>
             <form className={formStyles.formGrid}>
-                <div className={formStyles.formGroup}>
-                    <TextInput
-                        type="text"
-                        placeholder="اسم المورد"
-                        label="اسم المورد"
-                        id="name"
-                        value={formData.name}
-                        onchange={(value) => handleChange("name", value)}
-                        error={errors.name}
-                    />
-                </div>
-                <div className={formStyles.formGroup}>
-                    <TextInput
-                        type="text"
-                        placeholder="رقم الهاتف"
-                        label="رقم الهاتف"
-                        id="phone"
-                        value={formData.phone}
-                        onchange={(value) => handleChange("phone", value)}
-                    />
-                </div>
+                <TextInput
+                    type="text"
+                    placeholder="اسم المورد"
+                    label="اسم المورد"
+                    id="name"
+                    value={formData.name}
+                    onchange={(value) => handleChange("name", value)}
+                    width="300px"
+                    error={fieldErrors.name || ""}
+                />
+
+                <TextInput
+                    type="text"
+                    placeholder="رقم الهاتف"
+                    label="رقم الهاتف"
+                    id="phone"
+                    value={formData.phone}
+                    onchange={(value) => handleChange("phone", value)}
+                    width="300px"
+                    error={fieldErrors.phone || ""}
+                />
+
                 <div className={formStyles.formActions}>
                     <Button
                         content={isEditing ? "تحديث" : "إضافة"}
                         onClick={handleSubmit}
-                        disabled={!isFormValid || isSubmitting}
+                        disabled={
+                            Object.keys(fieldErrors).some(
+                                (key) => fieldErrors[key]
+                            ) ||
+                            formError ||
+                            isSubmitting
+                        }
                         className={formStyles.primaryButton}
                     />
                     <Button
@@ -140,6 +219,22 @@ export default function SupplierForm({
                         className={formStyles.secondaryButton}
                     />
                 </div>
+
+                {/* Form-level error below submit button */}
+                {formError && (
+                    <div
+                        style={{
+                            color: "var(--accent-red)",
+                            marginTop: "10px",
+                            fontSize: "14px",
+                            textAlign: "right",
+                        }}
+                    >
+                        ⚠️ {formError}
+                    </div>
+                )}
+
+                {/* Submit success/error message */}
                 <FormMessage
                     text={submitMessage.text}
                     isError={submitMessage.isError}

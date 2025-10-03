@@ -1,15 +1,24 @@
 import classes from "./Select.module.css";
 
 export default function Select(props) {
+    const { width = "", error = "", ...otherProps } = props;
+
     return (
         <div
             className={`form-floating mb-3 ${
                 props.className ? props.className : ""
             }`}
+            style={{
+                width: width,
+                marginRight: 0,
+                marginLeft: "auto",
+            }}
         >
             <select
                 disabled={props.disabled}
-                className={`form-select ${classes.select}`}
+                className={`form-select ${classes.select} ${
+                    error ? classes.errorSelect : ""
+                }`}
                 aria-label="Default select example"
                 value={props.value}
                 onChange={(e) => {
@@ -24,6 +33,7 @@ export default function Select(props) {
                     </option>
                 ))}
             </select>
+            {error && <div className={classes.errorText}>{error}</div>}
         </div>
     );
 }

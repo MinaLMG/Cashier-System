@@ -1,3 +1,39 @@
 .select {
     height: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 12px 16px;
+    font-size: var(--font-size-md);
+    color: var(--text-color);
+    background-color: var(--background-color);
+    background-position: right 0.75rem center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: auto !important; /* Override Bootstrap's width */
+    margin: auto;
+}
+
+.select:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    outline: none;
+}
+
+.select:disabled {
+    background-color: #f8f9fa;
+    color: var(--text-light);
+    cursor: not-allowed;
+}
+
+/* Error styling */
+.errorSelect {
+    border-color: var(--accent-red) !important;
+    box-shadow: 0 0 0 0.2rem rgba(229, 62, 62, 0.25) !important;
+}
+
+.errorText {
+    color: var(--accent-red);
+    font-size: 12px;
+    margin-top: 4px;
+    text-align: right;
+    font-weight: 500;
 }

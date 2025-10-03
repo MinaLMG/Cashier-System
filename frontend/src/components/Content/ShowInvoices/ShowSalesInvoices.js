@@ -92,25 +92,43 @@ export default function ShowSalesInvoices(props) {
                 <td>{invoice.offer?.toFixed(2)} ج.م</td>
                 <td>{invoice.final_amount?.toFixed(2)} ج.م</td>
                 <td>{invoice.total_purchase_cost?.toFixed(2)} ج.م</td>
-                <td>{invoice.profit?.toFixed(2)} ج.م</td>
+                <td
+                    style={{
+                        color:
+                            invoice.profit >= 0
+                                ? "var(--success-color)"
+                                : "var(--accent-red)",
+                        fontWeight: "bold",
+                    }}
+                >
+                    {invoice.profit?.toFixed(2)} ج.م
+                </td>
                 <td>
                     <div className="d-flex justify-content-around">
                         <FaEdit
                             className={classes.edit}
-                            style={{ cursor: "pointer" }}
+                            style={{
+                                cursor: "pointer",
+                                color: "var(--secondary-color)",
+                            }}
                             onClick={() => handleEdit(invoice)}
                         />
                         <FaEye
                             className={classes.view}
-                            style={{ cursor: "pointer" }}
+                            style={{
+                                cursor: "pointer",
+                                color: "var(--text-color)",
+                            }}
                             onClick={() => handleView(invoice)}
                         />
                         <FaPrint
                             className={`${classes.print} ${commonStyles.disabledIcon}`}
+                            style={{ color: "var(--text-light)" }}
                             title="طباعة الفاتورة غير متاح حاليًا"
                         />
                         <MdDelete
                             className={`${classes.remove} ${commonStyles.disabledIcon}`}
+                            style={{ color: "var(--text-light)" }}
                             title="حذف الفاتورة غير متاح حاليًا"
                         />
                     </div>
@@ -120,13 +138,13 @@ export default function ShowSalesInvoices(props) {
     };
 
     return (
-        <div style={{ width: "70%", margin: "100px auto " }}>
+        <div>
             <SortableTable
                 columns={columns}
                 data={invoices}
                 initialSortField="date"
                 initialSortDirection="desc"
-                tableClassName={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
+                tableClassName={`table table-bordered ${classes.table}`}
                 renderRow={renderRow}
                 emptyMessage="لا توجد فواتير بيع حتى الآن"
             />

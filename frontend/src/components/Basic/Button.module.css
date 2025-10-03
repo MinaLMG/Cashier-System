@@ -1,20 +1,46 @@
 .btn {
-    padding: 10px 25px;
-    border-radius: 10px;
+    padding: 12px 24px;
+    border-radius: var(--border-radius-md);
     outline: none;
-    border: 1px solid #ccc;
-    background-color: #203749;
-    font-size: large;
+    border: 1px solid var(--secondary-color);
+    background: linear-gradient(
+        135deg,
+        var(--secondary-color) 0%,
+        var(--secondary-light) 100%
+    );
+    font-size: var(--font-size-md);
     color: white;
-    font-weight: bold;
-    transition: all 0.1s ease;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
 }
+
 .btn:hover {
-    padding: 11px 26px;
-    border-radius: 11px;
-    opacity: 0.9;
+    background: linear-gradient(
+        135deg,
+        var(--secondary-dark) 0%,
+        var(--secondary-color) 100%
+    );
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
 }
+
+.btn:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+}
+
 .btn:disabled {
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: 0.6;
+    background: var(--text-light);
+    border-color: var(--text-light);
+    transform: none;
+    box-shadow: none;
+}
+
+.btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
 }

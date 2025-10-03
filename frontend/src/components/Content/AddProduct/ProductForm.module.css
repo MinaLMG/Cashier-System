@@ -1,78 +1,31 @@
-/* Add these styles for the conversion table */
-.conversionTable {
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-.table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.table th {
-    background-color: #f8f9fa;
-    padding: 10px;
-    text-align: center;
-    font-weight: bold;
-    border: 1px solid #dee2e6;
-}
-
-.table td {
-    padding: 8px;
-    vertical-align: middle;
-    border: 1px solid #dee2e6;
-}
-
-.evenRow {
-    background-color: #f8f9fa;
-}
-
-.oddRow {
-    background-color: #ffffff;
-}
-
-.actionColumn {
-    text-align: center;
-    width: 80px;
-}
-
-.plus-icon {
-    color: #28a745;
-    cursor: pointer;
-    margin-right: 10px;
-}
-
-.minus-icon {
-    color: #dc3545;
-    cursor: pointer;
-}
-
-/* Keep your existing styles */
+/* ProductForm specific styles */
 .add {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 20px;
-    padding: 20px;
     width: 100%;
 }
 
-.table {
-    margin-bottom: 20px;
-    align-items: center;
-}
-
-.table > div {
-    padding: 10px;
-    text-align: center;
-}
-
 .plus-icon {
-    color: green;
+    color: var(--success-color);
     cursor: pointer;
+    margin-right: 10px;
+    transition: color 0.2s ease;
+}
+
+.plus-icon:hover {
+    color: var(--success-color);
+    transform: scale(1.1);
 }
 
 .minus-icon {
-    color: red;
+    color: var(--accent-red);
     cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.minus-icon:hover {
+    color: #c53030;
+    transform: scale(1.1);
 }

@@ -1,22 +1,56 @@
+.tableWrapper {
+    width: 100%;
+    max-width: 90%;
+    margin: 0 auto;
+    overflow-x: auto;
+}
+
 .sortableTable {
     width: 100%;
+    min-width: 600px; /* Minimum width to prevent cramping */
     border-collapse: collapse;
+    background: var(--background-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.sortableTable th {
+    background: var(--primary-light);
+    color: white;
+    font-weight: 600;
+    text-align: right;
+    padding: 12px 8px;
+    border-bottom: 2px solid var(--primary-dark);
+}
+
+.sortableTable td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border-color);
+    text-align: right;
+    color: var(--text-color);
+}
+
+.sortableTable tr:hover td {
+    background-color: rgba(102, 126, 234, 0.05);
 }
 
 .sortableHeader {
     cursor: pointer;
     user-select: none;
+    transition: background-color 0.2s ease;
 }
 
 .sortableHeader:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--primary-dark) !important;
 }
 
 .headerContent {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 4px;
+    padding: 0;
 }
 
 .sortIconContainer {
@@ -26,13 +60,55 @@
 }
 
 .sortIcon {
-    font-size: 16px;
-    color: #666;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
     opacity: 0.8;
 }
 
 .emptyMessage {
     text-align: center;
-    padding: 20px;
-    color: #666;
+    padding: 30px;
+    color: var(--text-light);
+    font-style: italic;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+    .tableWrapper {
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 768px) {
+    .tableWrapper {
+        max-width: 100%;
+        margin: 0;
+        padding: 0 10px;
+    }
+
+    .sortableTable {
+        min-width: 500px;
+        font-size: 14px;
+    }
+
+    .sortableTable th,
+    .sortableTable td {
+        padding: 8px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tableWrapper {
+        padding: 0 5px;
+    }
+
+    .sortableTable {
+        min-width: 400px;
+        font-size: 12px;
+    }
+
+    .sortableTable th,
+    .sortableTable td {
+        padding: 6px 4px;
+    }
 }

@@ -19,8 +19,9 @@ export default function CustomerForm({
         address: customer?.address || "",
         type: customer?.type || "walkin",
     });
-    const [errors, setErrors] = useState({});
-    const [isFormValid, setIsFormValid] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [formError, setFormError] = useState(""); // Form-level error below submit button
+    const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track if user has started interacting
     const [submitMessage, setSubmitMessage] = useState({
         text: "",
         isError: false,
@@ -29,39 +30,84 @@ export default function CustomerForm({
 
     // Validate form on every change
     useEffect(() => {
+        // Only validate if user has interacted or we're in edit mode
+        if (!hasUserInteracted && !isEditing) {
+            setFormError("");
+            setFieldErrors({});
+            return;
+        }
+
         const newErrors = {};
+        let hasErrors = false;
 
         if (!formData.name.trim()) {
             newErrors.name = "اسم العميل مطلوب";
+            hasErrors = true;
         }
 
         // Validate phone number format if provided
         if (formData.phone && !/^[\d\+\-\(\) ]{11}$/.test(formData.phone)) {
             newErrors.phone = "صيغة رقم الهاتف غير صحيحة";
+            hasErrors = true;
         }
 
         // Validate type
         if (!formData.type) {
             newErrors.type = "نوع العميل مطلوب";
+            hasErrors = true;
         } else if (formData.type !== "walkin" && formData.type !== "pharmacy") {
             newErrors.type = "نوع العميل غير صالح";
+            hasErrors = true;
         }
 
-        setErrors(newErrors);
-        setIsFormValid(Object.keys(newErrors).length === 0);
-    }, [formData]);
+        setFieldErrors(newErrors);
+        setFormError(hasErrors ? "يرجى إصلاح الأخطاء أعلاه" : "");
+    }, [formData, hasUserInteracted, isEditing]);
 
     const handleChange = (field, value) => {
+        // Mark that user has started interacting
+        if (!hasUserInteracted) {
+            setHasUserInteracted(true);
+        }
+
         setFormData({
             ...formData,
             [field]: value,
         });
+
+        // Clear field-specific error when user types
+        if (fieldErrors[field]) {
+            setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+        }
     };
+
+    // Initialize form for edit mode
+    useEffect(() => {
+        if (isEditing && customer) {
+            setHasUserInteracted(true); // Enable validation for edit mode
+        }
+    }, [isEditing, customer]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!isFormValid) {
+        // Check if form has errors
+        const hasErrors = Object.keys(fieldErrors).some(
+            (key) => fieldErrors[key]
+        );
+        if (hasErrors || formError) {
+            setSubmitMessage({
+                text: "يرجى إصلاح الأخطاء قبل الإرسال",
+                isError: true,
+            });
+
+            // Clear error after 10 seconds
+            setTimeout(() => {
+                setSubmitMessage({
+                    text: "",
+                    isError: false,
+                });
+            }, 10000);
             return;
         }
 
@@ -77,6 +123,14 @@ export default function CustomerForm({
                     text: "✅ تم تحديث العميل بنجاح",
                     isError: false,
                 });
+
+                // Clear success message after 5 seconds
+                setTimeout(() => {
+                    setSubmitMessage({
+                        text: "",
+                        isError: false,
+                    });
+                }, 5000);
             } else {
                 await axios.post(
                     `${process.env.REACT_APP_BACKEND}customers`,
@@ -87,6 +141,14 @@ export default function CustomerForm({
                     isError: false,
                 });
 
+                // Clear success message after 5 seconds
+                setTimeout(() => {
+                    setSubmitMessage({
+                        text: "",
+                        isError: false,
+                    });
+                }, 5000);
+
                 // Reset form to initial state if not editing
                 setFormData({
                     name: "",
@@ -94,6 +156,9 @@ export default function CustomerForm({
                     address: "",
                     type: "walkin",
                 });
+                setFieldErrors({});
+                setFormError("");
+                setHasUserInteracted(false);
             }
             setTimeout(() => {
                 onSubmit();
@@ -106,6 +171,15 @@ export default function CustomerForm({
                         "حدث خطأ أثناء حفظ البيانات"),
                 isError: true,
             });
+
+            // Clear error after 10 seconds
+            setTimeout(() => {
+                setSubmitMessage({
+                    text: "",
+                    isError: false,
+                });
+            }, 10000);
+
             console.error("Error saving customer:", error);
         } finally {
             setIsSubmitting(false);
@@ -118,53 +192,61 @@ export default function CustomerForm({
                 {isEditing ? "تعديل العميل" : "إضافة عميل جديد"}
             </h2>
             <form className={formStyles.formGrid}>
-                <div className={formStyles.formGroup}>
-                    <TextInput
-                        type="text"
-                        placeholder="اسم العميل"
-                        label="اسم العميل"
-                        id="name"
-                        value={formData.name}
-                        onchange={(value) => handleChange("name", value)}
-                        error={errors.name}
-                    />
-                </div>
-                <div className={formStyles.formGroup}>
-                    <Select
-                        title="نوع العميل"
-                        value={formData.type}
-                        onchange={(value) => handleChange("type", value)}
-                        options={[
-                            { value: "walkin", label: "زبون" },
-                            { value: "pharmacy", label: "صيدلية" },
-                        ]}
-                    />
-                </div>
-                <div className={formStyles.formGroup}>
-                    <TextInput
-                        type="text"
-                        placeholder="رقم الهاتف"
-                        label="رقم الهاتف"
-                        id="phone"
-                        value={formData.phone}
-                        onchange={(value) => handleChange("phone", value)}
-                    />
-                </div>
-                <div className={formStyles.formGroup}>
-                    <TextInput
-                        type="text"
-                        placeholder="العنوان"
-                        label="العنوان"
-                        id="address"
-                        value={formData.address}
-                        onchange={(value) => handleChange("address", value)}
-                    />
-                </div>
+                <TextInput
+                    type="text"
+                    placeholder="اسم العميل"
+                    label="اسم العميل"
+                    id="name"
+                    value={formData.name}
+                    onchange={(value) => handleChange("name", value)}
+                    width="300px"
+                    error={fieldErrors.name || ""}
+                />
+
+                <Select
+                    title="نوع العميل"
+                    value={formData.type}
+                    onchange={(value) => handleChange("type", value)}
+                    options={[
+                        { value: "walkin", label: "زبون" },
+                        { value: "pharmacy", label: "صيدلية" },
+                    ]}
+                    width="300px"
+                    error={fieldErrors.type || ""}
+                />
+
+                <TextInput
+                    type="text"
+                    placeholder="رقم الهاتف"
+                    label="رقم الهاتف"
+                    id="phone"
+                    value={formData.phone}
+                    onchange={(value) => handleChange("phone", value)}
+                    width="300px"
+                    error={fieldErrors.phone || ""}
+                />
+
+                <TextInput
+                    type="text"
+                    placeholder="العنوان"
+                    label="العنوان"
+                    id="address"
+                    value={formData.address}
+                    onchange={(value) => handleChange("address", value)}
+                    width="300px"
+                    error={fieldErrors.address || ""}
+                />
                 <div className={formStyles.formActions}>
                     <Button
                         content={isEditing ? "تحديث" : "إضافة"}
                         onClick={handleSubmit}
-                        disabled={!isFormValid || isSubmitting}
+                        disabled={
+                            Object.keys(fieldErrors).some(
+                                (key) => fieldErrors[key]
+                            ) ||
+                            formError ||
+                            isSubmitting
+                        }
                         className={formStyles.primaryButton}
                     />
                     <Button
@@ -173,6 +255,22 @@ export default function CustomerForm({
                         className={formStyles.secondaryButton}
                     />
                 </div>
+
+                {/* Form-level error below submit button */}
+                {formError && (
+                    <div
+                        style={{
+                            color: "var(--accent-red)",
+                            marginTop: "10px",
+                            fontSize: "14px",
+                            textAlign: "right",
+                        }}
+                    >
+                        ⚠️ {formError}
+                    </div>
+                )}
+
+                {/* Submit success/error message */}
                 <FormMessage
                     text={submitMessage.text}
                     isError={submitMessage.isError}

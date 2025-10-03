@@ -6,6 +6,7 @@ import classes from "./ProductForm.module.css";
 import { FaPlus, FaMinus } from "react-icons/fa6";
 import Button from "../../Basic/Button";
 import FormMessage from "../../Basic/FormMessage";
+import InputTable from "../../Basic/InputTable";
 
 export default function ProductForm({
     mode = "add",
@@ -18,43 +19,86 @@ export default function ProductForm({
         "min-stock": "",
         conversions: [{ from: "", to: "", value: 1, barcode: "" }],
         values: [],
-        error: "ادخل الوحدة الاساسية",
     });
 
     const [volumes, setVolumes] = useState([]);
     const [isSubmittable, setIsSubmittable] = useState(false);
-    const [submitError, setSubmitError] = useState(
-        "الرجاء إكمال الحقول المطلوبة"
-    );
+    const [formError, setFormError] = useState(""); // Form-level error below submit button
     const [submitMessage, setSubmitMessage] = useState({
         text: "",
         isError: false,
     });
-    const [errorsAppearing, setErrorsAppearing] = useState(true);
+    const [fieldErrors, setFieldErrors] = useState({}); // Individual field errors
+    const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track if user has started interacting
     const validateForSubmit = useCallback(
         (conversions) => {
-            try {
-                if (!product.name.trim()) {
-                    throw new Error("اسم المنتج مطلوب");
+            // Only validate if user has interacted or we're in edit mode
+            if (!hasUserInteracted && mode !== "edit") {
+                setIsSubmittable(false);
+                setFormError("");
+                setFieldErrors({});
+                return;
+            }
+
+            const newFieldErrors = {};
+            let hasErrors = false;
+
+            // Validate product name
+            if (!product.name.trim()) {
+                newFieldErrors.name = "اسم المنتج مطلوب";
+                hasErrors = true;
+            }
+
+            // Validate min-stock field
+            const minStockValue = Number(product["min-stock"]);
+            if (
+                product["min-stock"] !== "" &&
+                product["min-stock"] !== null &&
+                product["min-stock"] !== undefined
+            ) {
+                if (isNaN(minStockValue) || minStockValue < 0) {
+                    newFieldErrors["min-stock"] =
+                        "الحد الأدنى للمخزون يجب أن يكون صفر أو رقم موجب";
+                    hasErrors = true;
+                }
+            }
+
+            // Validate conversions
+            conversions.forEach(({ from, to, value }, index) => {
+                const isLast = index === conversions.length - 1;
+                const isFirst = index === 0;
+
+                if (isFirst && !from) {
+                    newFieldErrors[`conversion_${index}_from`] =
+                        "الوحدة الأساسية مطلوبة";
+                    hasErrors = true;
                 }
 
+                if (!isFirst && !isLast) {
+                    if (!from) {
+                        newFieldErrors[`conversion_${index}_from`] =
+                            "الوحدة مطلوبة";
+                        hasErrors = true;
+                    }
+                    if (!to) {
+                        newFieldErrors[`conversion_${index}_to`] =
+                            "الوحدة الهدف مطلوبة";
+                        hasErrors = true;
+                    }
+                    if (!value || value <= 0) {
+                        newFieldErrors[`conversion_${index}_value`] =
+                            "القيمة يجب أن تكون أكبر من صفر (لا يمكن أن تكون صفر)";
+                        hasErrors = true;
+                    }
+                }
+            });
+
+            // Check graph connectivity
+            try {
                 const graph = {};
                 const involvedIds = new Set();
 
-                conversions.forEach(({ from, to, value }, index) => {
-                    const isLast = index === conversions.length - 1;
-                    const isFirst = index === 0;
-
-                    if (isFirst && !from) {
-                        throw new Error("الوحدة الأساسية مطلوبة.");
-                    }
-
-                    if (!isFirst && !isLast) {
-                        if (!from || !to || !value || value <= 0) {
-                            throw new Error("أكمل كل الحقول في الصفوف الوسطى.");
-                        }
-                    }
-
+                conversions.forEach(({ from, to, value }) => {
                     if (from && to && value && value > 0) {
                         if (!graph[from]) graph[from] = [];
                         if (!graph[to]) graph[to] = [];
@@ -68,36 +112,37 @@ export default function ProductForm({
                 });
 
                 const baseId = conversions[0]?.from;
-                if (!baseId) throw new Error("الوحدة الأساسية غير معرّفة");
+                if (baseId && involvedIds.size > 0) {
+                    const visitedCheck = {};
+                    const stack = [baseId];
+                    while (stack.length) {
+                        const node = stack.pop();
+                        if (visitedCheck[node]) continue;
+                        visitedCheck[node] = true;
+                        for (const edge of graph[node] || []) {
+                            stack.push(edge.node);
+                        }
+                    }
 
-                // Check graph connectivity
-                const visitedCheck = {};
-                const stack = [baseId];
-                while (stack.length) {
-                    const node = stack.pop();
-                    if (visitedCheck[node]) continue;
-                    visitedCheck[node] = true;
-                    for (const edge of graph[node] || []) {
-                        stack.push(edge.node);
+                    for (const id of involvedIds) {
+                        if (!visitedCheck[id]) {
+                            newFieldErrors.conversions =
+                                "سلسلة التحويل غير مكتملة أو غير متصلة";
+                            hasErrors = true;
+                            break;
+                        }
                     }
                 }
-
-                for (const id of involvedIds) {
-                    if (!visitedCheck[id]) {
-                        throw new Error(
-                            "سلسلة التحويل غير مكتملة أو غير متصلة."
-                        );
-                    }
-                }
-
-                setIsSubmittable(true);
-                setSubmitError("");
             } catch (err) {
-                setIsSubmittable(false);
-                setSubmitError(err.message);
+                newFieldErrors.conversions = "خطأ في التحقق من صحة التحويلات";
+                hasErrors = true;
             }
+
+            setFieldErrors(newFieldErrors);
+            setIsSubmittable(!hasErrors);
+            setFormError(hasErrors ? "يرجى إصلاح الأخطاء أعلاه" : "");
         },
-        [product.name]
+        [product.name, product["min-stock"], hasUserInteracted, mode]
     );
 
     const updateValues = useCallback(
@@ -150,12 +195,11 @@ export default function ProductForm({
                 }
 
                 values.sort((a, b) => a.val - b.val);
-                setProduct((prev) => ({ ...prev, values, error: "" }));
+                setProduct((prev) => ({ ...prev, values }));
             } catch (err) {
                 setProduct((prev) => ({
                     ...prev,
                     values: [],
-                    error: err.message,
                 }));
             }
         },
@@ -163,17 +207,22 @@ export default function ProductForm({
     );
 
     const handleConversionChange = (index, field, value) => {
+        // Mark that user has started interacting
+        if (!hasUserInteracted) {
+            setHasUserInteracted(true);
+        }
+
         const updated = [...product.conversions];
+        const newFieldErrors = { ...fieldErrors };
 
         if (field !== "barcode") {
             if (
                 (field === "from" && updated[index].to === value) ||
                 (field === "to" && updated[index].from === value)
             ) {
-                setProduct((prev) => ({
-                    ...prev,
-                    error: "لا يمكن اختيار نفس الحجم في الخانتين",
-                }));
+                newFieldErrors[`conversion_${index}_${field}`] =
+                    "لا يمكن اختيار نفس الحجم في الخانتين";
+                setFieldErrors(newFieldErrors);
                 return;
             }
 
@@ -182,33 +231,41 @@ export default function ProductForm({
                     (c, i) => i !== index && c.from === value
                 );
                 if (isDuplicate) {
-                    setProduct((prev) => ({
-                        ...prev,
-                        error: "تم اختيار هذا الحجم بالفعل كحجم أساسى في صف آخر",
-                    }));
+                    newFieldErrors[`conversion_${index}_from`] =
+                        "تم اختيار هذا الحجم بالفعل كحجم أساسى في صف آخر";
+                    setFieldErrors(newFieldErrors);
                     return;
                 }
             }
         }
+
+        // Clear field-specific errors when user makes changes
+        delete newFieldErrors[`conversion_${index}_${field}`];
+        delete newFieldErrors.conversions;
+
         updated[index][field] = value;
         setProduct((prev) => ({
             ...prev,
             conversions: updated,
-            error: "",
         }));
+        setFieldErrors(newFieldErrors);
 
         if (field !== "barcode") updateValues(updated);
     };
 
     const handleAddRow = () => {
+        // Mark that user has started interacting
+        if (!hasUserInteracted) {
+            setHasUserInteracted(true);
+        }
+
         const last = product.conversions.at(-1);
         const isFirst = product.conversions.length === 1;
 
         if (isFirst && !last?.from) {
-            setProduct((prev) => ({
-                ...prev,
-                error: "يجب اختيار الحجم الأساسى أولاً قبل إضافة صف جديد",
-            }));
+            setFieldErrors({
+                conversions: "يجب اختيار الحجم الأساسى أولاً قبل إضافة صف جديد",
+            });
             return;
         }
 
@@ -216,10 +273,9 @@ export default function ProductForm({
             !isFirst &&
             (!last?.from || !last?.to || !last?.value || last.value <= 0)
         ) {
-            setProduct((prev) => ({
-                ...prev,
-                error: "يرجى إكمال الصف الأخير قبل إضافة صف جديد",
-            }));
+            setFieldErrors({
+                conversions: "يرجى إكمال الصف الأخير قبل إضافة صف جديد",
+            });
             return;
         }
 
@@ -229,8 +285,8 @@ export default function ProductForm({
                 ...prev.conversions,
                 { from: "", to: "", value: "", barcode: "" },
             ],
-            error: "",
         }));
+        setFieldErrors({});
     };
 
     const removeRow = (index) => {
@@ -254,10 +310,20 @@ export default function ProductForm({
         updateValues(updated);
     };
     const handleChange = (field, value) => {
+        // Mark that user has started interacting
+        if (!hasUserInteracted) {
+            setHasUserInteracted(true);
+        }
+
         setProduct((prev) => ({
             ...prev,
             [field]: value,
         }));
+
+        // Clear field-specific error when user types
+        if (fieldErrors[field]) {
+            setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+        }
     };
     useEffect(() => {
         axios
@@ -268,7 +334,12 @@ export default function ProductForm({
 
     useEffect(() => {
         validateForSubmit(product.conversions);
-    }, [product.conversions, product.name, validateForSubmit]);
+    }, [
+        product.conversions,
+        product.name,
+        product["min-stock"],
+        validateForSubmit,
+    ]);
     useEffect(() => {
         if (mode === "edit" && initialProductData) {
             setProduct({
@@ -277,8 +348,10 @@ export default function ProductForm({
                 conversions: initialProductData.conversions || [
                     { from: "", to: "", value: 1, barcode: "" },
                 ],
-                error: "",
             });
+            setFieldErrors({});
+            setFormError("");
+            setHasUserInteracted(true); // Enable validation for edit mode
         }
     }, [mode, initialProductData]);
     // 2. Separate effect: call updateValues when both conversions and volumes are ready
@@ -290,154 +363,171 @@ export default function ProductForm({
 
     return (
         <div className={classes.add}>
-            <div style={{ width: inModal ? "80%" : "50%" }}>
-                <TextInput
-                    type="text"
-                    placeholder="اسم المنتج"
-                    label="اسم المنتج"
-                    id="product-name"
-                    value={product.name}
-                    onchange={(e) => setProduct({ ...product, name: e })}
-                />
-            </div>
+            <TextInput
+                type="text"
+                placeholder="اسم المنتج"
+                label="اسم المنتج"
+                id="product-name"
+                value={product.name}
+                onchange={(e) => {
+                    // Mark that user has started interacting
+                    if (!hasUserInteracted) {
+                        setHasUserInteracted(true);
+                    }
 
-            <div style={{ width: inModal ? "90%" : "70%" }}>
-                <div className={classes.conversionTable}>
-                    <table
-                        className={`table table-striped table-bordered ${classes.table}`}
-                    >
-                        <thead>
-                            <tr>
-                                <th>الوحدة بتاعتنا</th>
-                                <th>كام</th>
-                                <th>من ايه؟</th>
-                                <th>الباركود</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {product.conversions.map((row, index) => (
-                                <tr
-                                    key={index}
-                                    className={
-                                        index % 2 === 0
-                                            ? classes.evenRow
-                                            : classes.oddRow
+                    setProduct({ ...product, name: e });
+                    // Clear name error when user types
+                    if (fieldErrors.name) {
+                        setFieldErrors((prev) => ({ ...prev, name: "" }));
+                    }
+                }}
+                width={inModal ? "80%" : "50%"}
+                error={fieldErrors.name || ""}
+            />
+
+            <InputTable error={fieldErrors.conversions || ""}>
+                <thead>
+                    <tr>
+                        <th>الوحدة بتاعتنا</th>
+                        <th>كام</th>
+                        <th>من ايه؟</th>
+                        <th>الباركود</th>
+                        <th style={{ width: "100px" }}></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {product.conversions.map((row, index) => (
+                        <tr
+                            key={index}
+                            className={
+                                index % 2 === 0
+                                    ? classes.evenRow
+                                    : classes.oddRow
+                            }
+                        >
+                            <td>
+                                <Select
+                                    title="الوحدة"
+                                    value={row.from}
+                                    onchange={(val) =>
+                                        handleConversionChange(
+                                            index,
+                                            "from",
+                                            val
+                                        )
                                     }
-                                >
-                                    <td>
-                                        <Select
-                                            title="الوحدة"
-                                            value={row.from}
-                                            onchange={(val) =>
-                                                handleConversionChange(
-                                                    index,
-                                                    "from",
-                                                    val
-                                                )
-                                            }
-                                            options={volumes.map((v) => ({
-                                                value: v._id,
-                                                label: v.name,
-                                            }))}
-                                            disabled={false}
-                                        />
-                                    </td>
-                                    <td>
-                                        <TextInput
-                                            type="number"
-                                            placeholder="كام"
-                                            label="كام"
-                                            id={`value-${index}`}
-                                            value={row.value}
-                                            onchange={(e) =>
-                                                handleConversionChange(
-                                                    index,
-                                                    "value",
-                                                    Number(e)
-                                                )
-                                            }
-                                            disabled={index === 0}
-                                        />
-                                    </td>
-                                    <td>
-                                        {index > 0 && (
-                                            <Select
-                                                title="من"
-                                                value={row.to}
-                                                onchange={(val) =>
-                                                    handleConversionChange(
-                                                        index,
-                                                        "to",
-                                                        val
-                                                    )
-                                                }
-                                                options={volumes.map((v) => ({
-                                                    value: v._id,
-                                                    label: v.name,
-                                                }))}
-                                                disabled={index === 0}
-                                            />
-                                        )}
-                                    </td>
-                                    <td>
-                                        <TextInput
-                                            type="text"
-                                            placeholder="باركود"
-                                            label="باركود"
-                                            id={`barcode-${index}`}
-                                            value={row.barcode || ""}
-                                            onchange={(e) =>
-                                                handleConversionChange(
-                                                    index,
-                                                    "barcode",
-                                                    e
-                                                )
-                                            }
-                                        />
-                                    </td>
-                                    <td className={classes.actionColumn}>
-                                        {index ===
-                                            product.conversions.length - 1 && (
-                                            <FaPlus
-                                                className={classes["plus-icon"]}
-                                                size="1.5em"
-                                                onClick={handleAddRow}
-                                            />
-                                        )}
-                                        {index > 0 && (
-                                            <FaMinus
-                                                className={
-                                                    classes["minus-icon"]
-                                                }
-                                                size="1.5em"
-                                                onClick={() => removeRow(index)}
-                                            />
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                    options={volumes.map((v) => ({
+                                        value: v._id,
+                                        label: v.name,
+                                    }))}
+                                    disabled={false}
+                                    error={
+                                        fieldErrors[
+                                            `conversion_${index}_from`
+                                        ] || ""
+                                    }
+                                />
+                            </td>
+                            <td>
+                                <TextInput
+                                    type="number"
+                                    placeholder="كام"
+                                    label="كام"
+                                    id={`value-${index}`}
+                                    value={row.value}
+                                    onchange={(e) =>
+                                        handleConversionChange(
+                                            index,
+                                            "value",
+                                            Number(e)
+                                        )
+                                    }
+                                    disabled={index === 0}
+                                    error={
+                                        fieldErrors[
+                                            `conversion_${index}_value`
+                                        ] || ""
+                                    }
+                                />
+                            </td>
+                            <td>
+                                {index > 0 && (
+                                    <Select
+                                        title="من"
+                                        value={row.to}
+                                        onchange={(val) =>
+                                            handleConversionChange(
+                                                index,
+                                                "to",
+                                                val
+                                            )
+                                        }
+                                        options={volumes.map((v) => ({
+                                            value: v._id,
+                                            label: v.name,
+                                        }))}
+                                        disabled={index === 0}
+                                        error={
+                                            fieldErrors[
+                                                `conversion_${index}_to`
+                                            ] || ""
+                                        }
+                                    />
+                                )}
+                            </td>
+                            <td>
+                                <TextInput
+                                    type="text"
+                                    placeholder="باركود"
+                                    label="باركود"
+                                    id={`barcode-${index}`}
+                                    value={row.barcode || ""}
+                                    onchange={(e) =>
+                                        handleConversionChange(
+                                            index,
+                                            "barcode",
+                                            e
+                                        )
+                                    }
+                                />
+                            </td>
+                            <td className={classes.actionColumn}>
+                                {index === product.conversions.length - 1 && (
+                                    <FaPlus
+                                        className={classes["plus-icon"]}
+                                        size="1.5em"
+                                        onClick={handleAddRow}
+                                    />
+                                )}
+                                {index > 0 && (
+                                    <FaMinus
+                                        className={classes["minus-icon"]}
+                                        size="1.5em"
+                                        onClick={() => removeRow(index)}
+                                    />
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </InputTable>
 
-            <div style={{ width: inModal ? "80%" : "50%" }}>
-                <TextInput
-                    type="number"
-                    label="الحد الأدنى للمخزون"
-                    id="min-stock"
-                    value={product["min-stock"]}
-                    onchange={(val) => handleChange("min-stock", val)}
-                    min={0}
-                />
-            </div>
-            {errorsAppearing && product.error && (
-                <div style={{ color: "red", marginTop: "10px" }}>
-                    {product.error}
-                </div>
-            )}
-
+            <TextInput
+                type="number"
+                label="الحد الأدنى للمخزون"
+                id="min-stock"
+                value={product["min-stock"]}
+                onchange={(val) => {
+                    // Mark that user has started interacting
+                    if (!hasUserInteracted) {
+                        setHasUserInteracted(true);
+                    }
+                    handleChange("min-stock", val);
+                }}
+                min={0}
+                width={inModal ? "80%" : "50%"}
+                error={fieldErrors["min-stock"] || ""}
+            />
             <div style={{ padding: "auto", marginTop: "15px" }}>
                 <Button
                     content={mode === "add" ? "حفظ" : "تعديل"}
@@ -462,9 +552,13 @@ export default function ProductForm({
                                 if (onSuccess) {
                                     onSuccess(res.data.product);
                                 }
-                                setErrorsAppearing(false);
+
+                                // Clear success message after 5 seconds
                                 setTimeout(() => {
-                                    setErrorsAppearing(true);
+                                    setSubmitMessage({
+                                        text: "",
+                                        isError: false,
+                                    });
                                 }, 5000);
 
                                 // Reset form to initial state if not in edit mode
@@ -481,8 +575,10 @@ export default function ProductForm({
                                             },
                                         ],
                                         values: [],
-                                        error: "ادخل الوحدة الاساسية",
                                     });
+                                    setFieldErrors({});
+                                    setFormError("");
+                                    setHasUserInteracted(false);
                                 }
                             })
                             .catch((err) => {
@@ -494,20 +590,33 @@ export default function ProductForm({
                                             : "حدث خطأ أثناء تعديل المنتج"),
                                     isError: true,
                                 });
+
+                                // Clear error after 10 seconds
+                                setTimeout(() => {
+                                    setSubmitMessage({
+                                        text: "",
+                                        isError: false,
+                                    });
+                                }, 10000);
                             });
-                        setTimeout(() => {
-                            setSubmitMessage({
-                                text: "",
-                                isError: false,
-                            });
-                        }, 5000);
                     }}
                 />
-                {errorsAppearing && !isSubmittable && (
-                    <div style={{ color: "red", marginTop: "10px" }}>
-                        ⚠️ {submitError}
+
+                {/* Form-level error below submit button */}
+                {formError && (
+                    <div
+                        style={{
+                            color: "var(--accent-red)",
+                            marginTop: "10px",
+                            fontSize: "14px",
+                            textAlign: "right",
+                        }}
+                    >
+                        ⚠️ {formError}
                     </div>
                 )}
+
+                {/* Submit success/error message */}
                 <FormMessage
                     text={submitMessage.text}
                     isError={submitMessage.isError}

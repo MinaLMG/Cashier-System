@@ -1,5 +1,6 @@
 .body {
-    height: calc(100vh - 113px);
+    height: calc(100vh - 80px);
     display: grid;
     grid-template-columns: 300px auto;
+    background: var(--background-color);
 }

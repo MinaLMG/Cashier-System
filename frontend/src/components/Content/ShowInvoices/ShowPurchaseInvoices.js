@@ -83,13 +83,13 @@ export default function ShowPurchaseInvoices(props) {
     };
 
     return (
-        <div style={{ width: "70%", margin: "100px auto " }}>
+        <div>
             <SortableTable
                 columns={columns}
                 data={invoices}
                 initialSortField="date"
                 initialSortDirection="desc"
-                tableClassName={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
+                tableClassName={`table table-bordered ${classes.table}`}
                 renderRow={renderRow}
                 emptyMessage="لا توجد فواتير مشتريات حتى الآن"
             />

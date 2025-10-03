@@ -1,0 +1,81 @@
+.formControl {
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 14px 20px;
+    font-size: var(--font-size-md);
+    color: var(--text-color);
+    background-color: var(--background-color);
+    transition: all 0.3s ease;
+    width: 100%;
+    box-shadow: var(--shadow-sm);
+}
+
+.formControl:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 0.3rem rgba(102, 126, 234, 0.15), var(--shadow-md);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.formControl:hover {
+    border-color: var(--primary-light);
+    box-shadow: var(--shadow-md);
+}
+
+.formControl:disabled {
+    background-color: #f8f9fa;
+    color: var(--text-light);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.formLabel {
+    color: var(--text-color);
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: var(--font-size-sm);
+}
+
+/* Login form specific styling */
+.loginInput .formControl {
+    padding: 16px 50px 16px 20px;
+    font-size: 16px;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.loginInput .formControl:focus {
+    border-color: var(--secondary-color);
+    background: #ffffff;
+    box-shadow: 0 0 0 0.3rem rgba(102, 126, 234, 0.1),
+        0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+}
+
+.loginInput .formControl:hover {
+    border-color: var(--primary-light);
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loginInput .formLabel {
+    color: var(--text-color);
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+/* Error styling */
+.errorInput {
+    border-color: var(--accent-red) !important;
+    box-shadow: 0 0 0 0.2rem rgba(229, 62, 62, 0.25) !important;
+}
+
+.errorText {
+    color: var(--accent-red);
+    font-size: 12px;
+    margin-top: 4px;
+    text-align: right;
+    font-weight: 500;
+}

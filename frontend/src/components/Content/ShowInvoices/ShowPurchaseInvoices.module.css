@@ -1,5 +1,21 @@
 .table {
     width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+}
+
+/* Responsive table behavior */
+@media (max-width: 768px) {
+    .table {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .table {
+        font-size: 12px;
+    }
 }
 .item {
     align-content: center;

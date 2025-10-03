@@ -4,6 +4,7 @@ import Button from "../../Basic/Button";
 import TextInput from "../../Basic/TextInput";
 import DateTimeInput from "../../Basic/DateTimeInput";
 import Select from "../../Basic/Select";
+import InputTable from "../../Basic/InputTable";
 import SalesInvoiceRow from "./SalesInvoiceRow";
 import useInvoiceRows from "../../../hooks/useInvoiceRows";
 import classes from "./SalesInvoice.module.css";
@@ -17,7 +18,9 @@ export default function SalesInvoice(props) {
         text: "",
         isError: false,
     });
-    const [submitError, setSubmitError] = useState("");
+    const [formError, setFormError] = useState(""); // Form-level error below submit button
+    const [fieldErrors, setFieldErrors] = useState({}); // Individual field errors
+    const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track if user has started interacting
     const [finalTotal, setFinalTotal] = useState(0);
     const [baseCost, setBaseCost] = useState(0);
     const [profit, setProfit] = useState(0);
@@ -126,6 +129,52 @@ export default function SalesInvoice(props) {
         setRowErrors, // Add this to destructure setRowErrors from the hook
     } = useInvoiceRows(emptyRow, validateRow, [products, invoice.type]);
 
+    // Form validation function
+    const validateForm = useCallback(() => {
+        // Only validate if user has interacted or we're in edit mode
+        if (!hasUserInteracted && props.mode !== "edit") {
+            setFormError("");
+            setFieldErrors({});
+            return false;
+        }
+
+        const newFieldErrors = {};
+        let hasErrors = false;
+
+        // Validate invoice fields
+        if (!invoice.date) {
+            newFieldErrors.date = "التاريخ مطلوب";
+            hasErrors = true;
+        }
+
+        if (!invoice.customer) {
+            newFieldErrors.customer = "العميل مطلوب";
+            hasErrors = true;
+        }
+
+        // Validate invoice rows
+        if (
+            invoiceRows.length === 0 ||
+            (invoiceRows.length === 1 && !invoiceRows[0].product)
+        ) {
+            newFieldErrors.rows = "يجب إضافة منتج واحد على الأقل";
+            hasErrors = true;
+        }
+
+        // Validate each row
+        invoiceRows.forEach((row, index) => {
+            const rowErrors = validateRow(row, index, invoiceRows);
+            Object.keys(rowErrors).forEach((field) => {
+                newFieldErrors[`row_${index}_${field}`] = rowErrors[field];
+                hasErrors = true;
+            });
+        });
+
+        setFieldErrors(newFieldErrors);
+        setFormError(hasErrors ? "يرجى إصلاح الأخطاء أعلاه" : "");
+        return !hasErrors;
+    }, [invoice, invoiceRows, hasUserInteracted, props.mode, validateRow]);
+
     // Fetch data on component mount
     useEffect(() => {
         const fetchData = async () => {
@@ -155,6 +204,11 @@ export default function SalesInvoice(props) {
             });
             setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
             setBaseCost(base || 0);
+
+            // Trigger validation after loading data
+            setTimeout(() => {
+                validateRows();
+            }, 100);
         }
     }, []);
 
@@ -207,6 +261,13 @@ export default function SalesInvoice(props) {
         props.invoice?.total_purchase_cost,
     ]);
 
+    // Initialize form for edit mode
+    useEffect(() => {
+        if (props.mode === "edit" && props.invoice) {
+            setHasUserInteracted(true); // Enable validation for edit mode
+        }
+    }, [props.mode, props.invoice]);
+
     // Handle invoice field changes
     const handleInvoiceChange = (field, value) => {
         if (field === "customer" && value) {
@@ -247,13 +308,13 @@ export default function SalesInvoice(props) {
         if (props.mode === "edit") {
             // Validate required fields
             if (!invoice.date || !invoice.type) {
-                setSubmitError("⚠️ يجب إدخال النوع والتاريخ");
+                setFormError("⚠️ يجب إدخال النوع والتاريخ");
                 return;
             }
 
             // Validate offer is a non-negative number
             if (isNaN(Number(invoice.offer)) || Number(invoice.offer) < 0) {
-                setSubmitError("⚠️ يجب أن يكون الخصم رقمًا غير سالب");
+                setFormError("⚠️ يجب أن يكون الخصم رقمًا غير سالب");
                 return;
             }
 
@@ -278,6 +339,14 @@ export default function SalesInvoice(props) {
                     isError: false,
                 });
 
+                // Clear success message after 5 seconds
+                setTimeout(() => {
+                    setSubmitMessage({
+                        text: "",
+                        isError: false,
+                    });
+                }, 5000);
+
                 if (props.onSuccess) {
                     props.onSuccess(response.data);
                 }
@@ -289,6 +358,14 @@ export default function SalesInvoice(props) {
                     }`,
                     isError: true,
                 });
+
+                // Clear error after 10 seconds
+                setTimeout(() => {
+                    setSubmitMessage({
+                        text: "",
+                        isError: false,
+                    });
+                }, 10000);
             } finally {
                 setIsSubmitting(false);
             }
@@ -305,7 +382,7 @@ export default function SalesInvoice(props) {
         );
 
         if (!invoice.date || !invoice.type || validRows.length === 0) {
-            setSubmitError("⚠️ يجب إدخال النوع وتاريخ وصف واحد صحيح على الأقل");
+            setFormError("⚠️ يجب إدخال النوع وتاريخ وصف واحد صحيح على الأقل");
             return;
         }
 
@@ -367,6 +444,14 @@ export default function SalesInvoice(props) {
                 isError: false,
             });
 
+            // Clear success message after 5 seconds
+            setTimeout(() => {
+                setSubmitMessage({
+                    text: "",
+                    isError: false,
+                });
+            }, 5000);
+
             // Reset form to initial state if not in edit mode
             if (props.mode !== "edit") {
                 setInvoice({
@@ -377,6 +462,9 @@ export default function SalesInvoice(props) {
                 });
                 setInvoiceRows([{ ...emptyRow }]);
                 setFinalTotal(0);
+                setFieldErrors({});
+                setFormError("");
+                setHasUserInteracted(false);
             }
 
             if (props.onSuccess) {
@@ -390,6 +478,14 @@ export default function SalesInvoice(props) {
                 }`,
                 isError: true,
             });
+
+            // Clear error after 10 seconds
+            setTimeout(() => {
+                setSubmitMessage({
+                    text: "",
+                    isError: false,
+                });
+            }, 10000);
         } finally {
             setIsSubmitting(false);
         }
@@ -685,32 +781,6 @@ export default function SalesInvoice(props) {
         [invoiceRows, rowErrors, setRowErrors, isUpdatingFields, setInvoiceRows]
     );
 
-    // Add this useEffect to ensure errors persist
-    useEffect(() => {
-        // This effect ensures that barcode errors persist
-        // by preventing them from being cleared during re-renders
-        const validateAllRows = () => {
-            invoiceRows.forEach((row, index) => {
-                if (row.barcode && (!row.product || !row.volume)) {
-                    // If we have a barcode but no product/volume, this might be an invalid barcode
-                    // Make sure the error persists
-                    const newErrors = [...rowErrors];
-                    if (!newErrors[index]) newErrors[index] = {};
-                    if (!newErrors[index].barcode) {
-                        newErrors[
-                            index
-                        ].barcode = `الباركود ${row.barcode} غير موجود`;
-                        setRowErrors(newErrors);
-                    }
-                }
-            });
-        };
-
-        if (!isUpdatingFields) {
-            validateAllRows();
-        }
-    }, [invoiceRows, rowErrors, setRowErrors, isUpdatingFields]);
-
     // Determine if we're in view mode
     const isViewMode = props.mode === "view";
 
@@ -747,63 +817,68 @@ export default function SalesInvoice(props) {
                     ? "عرض فاتورة مبيعات"
                     : "إضافة فاتورة مبيعات"}
             </h2>
-            <div className="row mb-3">
-                <div className="col-md-5">
-                    <DateTimeInput
-                        label="التاريخ والوقت"
-                        id="invoice-date"
-                        value={invoice.date}
-                        onchange={(value) => handleInvoiceChange("date", value)}
-                        includeTime={true}
-                        disabled={getDisabledState()}
-                    />
-                </div>
-            </div>
-            <div className="row mb-3">
-                <div className="col-md-3">
-                    <Select
-                        label="العميل"
-                        value={invoice.customer}
-                        options={[
-                            ...customers.map((c) => ({
-                                value: c._id,
-                                label: c.name,
-                            })),
-                        ]}
-                        onchange={(val) => handleInvoiceChange("customer", val)}
-                        disabled={getDisabledState()}
-                    />
-                </div>
-                <div className="col-md-3">
-                    <Select
-                        label="نوع العميل"
-                        value={invoice.type}
-                        options={[
-                            { value: "walkin", label: "زبون" },
-                            { value: "pharmacy", label: "صيدلية" },
-                        ]}
-                        onchange={(val) => handleInvoiceChange("type", val)}
-                        disabled={getDisabledState()}
-                    />
-                </div>
-            </div>
+            <DateTimeInput
+                label="التاريخ والوقت"
+                id="invoice-date"
+                value={invoice.date}
+                onchange={(value) => {
+                    if (!hasUserInteracted) setHasUserInteracted(true);
+                    handleInvoiceChange("date", value);
+                }}
+                includeTime={true}
+                disabled={getDisabledState()}
+                width="300px"
+                error={fieldErrors.date || ""}
+            />
+
+            <Select
+                label="العميل"
+                value={invoice.customer}
+                options={[
+                    ...customers.map((c) => ({
+                        value: c._id,
+                        label: c.name,
+                    })),
+                ]}
+                onchange={(val) => {
+                    if (!hasUserInteracted) setHasUserInteracted(true);
+                    handleInvoiceChange("customer", val);
+                }}
+                disabled={getDisabledState()}
+                error={fieldErrors.customer || ""}
+            />
+
+            <Select
+                label="نوع العميل"
+                value={invoice.type}
+                options={[
+                    { value: "walkin", label: "زبون" },
+                    { value: "pharmacy", label: "صيدلية" },
+                ]}
+                onchange={(val) => {
+                    if (!hasUserInteracted) setHasUserInteracted(true);
+                    handleInvoiceChange("type", val);
+                }}
+                disabled={getDisabledState()}
+                error={fieldErrors.type || ""}
+            />
 
             {/* Only show the items table in add mode or view mode */}
             {props.mode !== "edit" && (
                 <>
-                    <table
-                        className={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
-                    >
+                    <InputTable error={fieldErrors.rows || ""}>
                         <thead>
                             <tr>
-                                <th>#</th>
+                                <th style={{ width: "50px" }}>#</th>
                                 <th>الباركود</th>
                                 <th>المنتج</th>
                                 <th>الكمية</th>
                                 <th>العبوة</th>
                                 <th>السعر</th>
                                 <th>الإجمالي</th>
-                                {!isViewMode && <th></th>}
+                                {!isViewMode && (
+                                    <th style={{ width: "100px" }}></th>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
@@ -882,7 +957,7 @@ export default function SalesInvoice(props) {
                                 </td>
                             </tr>
                         </tbody>
-                    </table>
+                    </InputTable>
                 </>
             )}
 
@@ -921,6 +996,47 @@ export default function SalesInvoice(props) {
                             </div>
                         </div>
 
+                        {/* Profit display for edit mode */}
+                        {props.mode === "edit" && (
+                            <div className="row mt-3">
+                                <div className="col-md-12">
+                                    <div className="alert alert-light border">
+                                        <div className="row">
+                                            <div className="col-md-6">
+                                                <p className="mb-1">
+                                                    <strong>
+                                                        تكلفة الشراء:
+                                                    </strong>{" "}
+                                                    {props.invoice?.total_purchase_cost?.toFixed(
+                                                        2
+                                                    ) || 0}{" "}
+                                                    ج.م
+                                                </p>
+                                            </div>
+                                            <div className="col-md-6">
+                                                <p className="mb-1">
+                                                    <strong>
+                                                        الربح/الخسارة:
+                                                    </strong>{" "}
+                                                    <span
+                                                        style={{
+                                                            color:
+                                                                profit >= 0
+                                                                    ? "var(--success-color)"
+                                                                    : "var(--accent-red)",
+                                                            fontWeight: "bold",
+                                                        }}
+                                                    >
+                                                        {profit.toFixed(2)} ج.م
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {props.mode === "edit" && (
                             <div className="alert alert-info">
                                 <i className="fas fa-info-circle me-2"></i>
@@ -956,11 +1072,21 @@ export default function SalesInvoice(props) {
                 />
             )}
 
-            {submitError && !isViewMode && (
-                <div style={{ color: "red", marginTop: "10px" }}>
-                    {submitError}
+            {/* Form-level error below submit button */}
+            {formError && !isViewMode && (
+                <div
+                    style={{
+                        color: "var(--accent-red)",
+                        marginTop: "10px",
+                        fontSize: "14px",
+                        textAlign: "right",
+                    }}
+                >
+                    ⚠️ {formError}
                 </div>
             )}
+
+            {/* Submit success/error message */}
             {!isViewMode && (
                 <FormMessage
                     text={submitMessage.text}

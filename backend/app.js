@@ -7,6 +7,7 @@ require("dotenv").config();
 const connectDB = require("./src/db/connect");
 
 const routes = require("./src/routes");
+const authRoutes = require("./src/routes/authRoutes");
 
 const app = express();
 app.use(express.json());
@@ -29,6 +30,7 @@ connectDB();
 app.get("/", (req, res) => res.send("Intermedical API is running."));
 
 // Register API routes
+app.use("/api/auth", authRoutes);
 app.use("/api", routes);
 
 // Start server

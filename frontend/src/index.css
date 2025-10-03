@@ -29,7 +29,8 @@ code {
 }
 
 .form-floating select.form-select {
-    padding-top: 3px;
+    padding-top: 2px;
+    padding-right: 35px;
 }
 
 /* Common utility classes */

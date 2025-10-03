@@ -6,6 +6,7 @@ import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import VolumeForm from "./VolumeForm";
 import Modal from "../../general/Modal";
+import SortableTable from "../../Basic/SortableTable";
 
 export default function ShowVolumes() {
     const [volumes, setVolumes] = useState([]);
@@ -61,7 +62,14 @@ export default function ShowVolumes() {
     };
 
     return (
-        <div style={{ width: "70%", margin: "100px auto" }}>
+        <div
+            style={{
+                width: "100%",
+                maxWidth: "90%",
+                margin: "100px auto",
+                padding: "0 20px",
+            }}
+        >
             {showModal && (
                 <Modal
                     onHide={() => setShowModal(false)}
@@ -88,9 +96,30 @@ export default function ShowVolumes() {
             ) : (
                 <>
                     <div className="d-flex justify-content-between mb-3">
-                        <h2 className={classes.title}>العبوات</h2>
+                        <h2
+                            className={classes.title}
+                            style={{
+                                color: "var(--text-color)",
+                                fontWeight: "bold",
+                                fontSize: "var(--font-size-xl)",
+                                margin: 0,
+                            }}
+                        >
+                            العبوات
+                        </h2>
                         <button
-                            className={`btn btn-primary ${classes.addButton}`}
+                            className={`btn ${classes.addButton}`}
+                            style={{
+                                background:
+                                    "linear-gradient(135deg, var(--secondary-color), var(--secondary-light))",
+                                border: "none",
+                                color: "white",
+                                padding: "12px 24px",
+                                borderRadius: "var(--border-radius-md)",
+                                fontWeight: "bold",
+                                boxShadow: "var(--shadow-md)",
+                                transition: "all 0.3s ease",
+                            }}
                             onClick={() => {
                                 setIsEditing(false);
                                 setCurrentVolume(null);
@@ -100,51 +129,42 @@ export default function ShowVolumes() {
                             إضافة عبوة جديدة
                         </button>
                     </div>
-                    <table
-                        className={`table table-light table-hover table-bordered border-secondary ${classes.table}`}
-                    >
-                        <thead>
-                            <tr>
-                                <th className={classes.head}>#</th>
-                                <th className={classes.head}>الاسم</th>
-                                <th className={classes.head}>الإجراءات</th>
+                    <SortableTable
+                        columns={[
+                            { key: "index", title: "#", sortable: false },
+                            { field: "name", title: "الاسم" },
+                            {
+                                key: "actions",
+                                title: "الإجراءات",
+                                sortable: false,
+                            },
+                        ]}
+                        data={volumes}
+                        initialSortField="name"
+                        initialSortDirection="asc"
+                        tableClassName={`table table-bordered ${classes.table}`}
+                        renderRow={(volume, index) => (
+                            <tr key={volume._id}>
+                                <td className={classes.item}>{index + 1}</td>
+                                <td className={classes.item}>{volume.name}</td>
+                                <td className={classes.item}>
+                                    <div className="d-flex justify-content-around">
+                                        <FaEdit
+                                            onClick={() => handleEdit(volume)}
+                                            className={classes.edit}
+                                        />
+                                        <MdDelete
+                                            onClick={() =>
+                                                confirmDelete(volume)
+                                            }
+                                            className={classes.remove}
+                                        />
+                                    </div>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {volumes.length === 0 ? (
-                                <tr>
-                                    <td colSpan="3" className={classes.item}>
-                                        لا توجد عبوات حتى الآن
-                                    </td>
-                                </tr>
-                            ) : (
-                                volumes.map((volume, index) => (
-                                    <tr key={volume._id}>
-                                        <td className={classes.item}>
-                                            {index + 1}
-                                        </td>
-                                        <td className={classes.item}>
-                                            {volume.name}
-                                        </td>
-                                        <td className={classes.item}>
-                                            <FaEdit
-                                                onClick={() =>
-                                                    handleEdit(volume)
-                                                }
-                                                className={classes.edit}
-                                            />
-                                            <MdDelete
-                                                onClick={() =>
-                                                    confirmDelete(volume)
-                                                }
-                                                className={classes.remove}
-                                            />
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                        )}
+                        emptyMessage="لا توجد عبوات حتى الآن"
+                    />
                 </>
             )}
         </div>

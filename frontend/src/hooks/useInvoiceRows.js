@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 /**
  * Custom hook for managing invoice rows with consistent validation
@@ -16,9 +16,13 @@ export default function useInvoiceRows(
     const [rows, setRows] = useState([{ ...initialRow }]);
     const [rowErrors, setRowErrors] = useState([{}]); // Initialize with an empty object for the first row
     const [isFormValid, setIsFormValid] = useState(false);
+    const isValidatingRef = useRef(false);
 
     // Validate all rows and update errors
     const validateRows = useCallback(() => {
+        if (isValidatingRef.current) return;
+        isValidatingRef.current = true;
+
         const totalRows = rows.length;
 
         // Validate all rows, but check if the last row is empty before validating it
@@ -63,74 +67,63 @@ export default function useInvoiceRows(
 
         setIsFormValid(isEachFilledRowValid && atLeastOneValidRow);
 
+        isValidatingRef.current = false;
         return updatedErrors;
     }, [rows, validateRowFn]);
 
-    // Update row validation whenever dependencies change
-    useEffect(() => {
-        // Run validation immediately on mount and when dependencies change
-        const timer = setTimeout(() => {
-            validateRows();
-        }, 0);
-        return () => clearTimeout(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [validateRows, ...(dependencies || [])]);
+    // Manual validation only - no automatic validation to prevent infinite loops
+    // Validation will be triggered manually when needed
 
     // Handle row change
     const handleRowChange = useCallback(
         (index, key, value) => {
-            const updatedRows = [...rows];
-            updatedRows[index][key] = value;
+            setRows((prevRows) => {
+                const updatedRows = [...prevRows];
+                updatedRows[index][key] = value;
 
-            // Immediately validate the current row
-            const newError = validateRowFn(
-                updatedRows[index],
-                index,
-                updatedRows
-            );
-            const updatedErrors = [...rowErrors];
-            updatedErrors[index] = newError;
+                // Trigger validation after state update
+                setTimeout(() => {
+                    validateRows();
+                }, 0);
 
-            setRows(updatedRows);
-            setRowErrors(updatedErrors);
-
-            // Re-validate all rows to update form validity
-            setTimeout(() => validateRows(), 0);
+                return updatedRows;
+            });
         },
-        [rows, rowErrors, validateRowFn, validateRows]
+        [validateRowFn, validateRows]
     );
 
     // Add a new row
     const addRow = useCallback(() => {
-        // Check if all existing rows are valid before adding a new one
-        const errors = validateRows();
-        const allValid = errors.every((err, i) => {
-            // Skip validation for the last row if there are multiple rows
-            if (i === rows.length - 1 && rows.length > 1) return true;
-            return Object.keys(err).length === 0;
+        setRows((prev) => {
+            const newRows = [...prev, { ...initialRow }];
+            // Trigger validation after adding row
+            setTimeout(() => {
+                validateRows();
+            }, 0);
+            return newRows;
         });
-
-        if (!allValid) return;
-
-        setRows((prev) => [...prev, { ...initialRow }]);
         setRowErrors((prev) => [...prev, {}]);
-    }, [rows, initialRow, validateRows]);
+    }, [initialRow, validateRows]);
 
     // Remove a row
     const removeRow = useCallback(
         (index) => {
-            if (rows.length <= 1) return; // Don't remove the last row
+            setRows((prev) => {
+                if (prev.length <= 1) return prev; // Don't remove the last row
+                const newRows = prev.filter((_, i) => i !== index);
+                // Trigger validation after removing row
+                setTimeout(() => {
+                    validateRows();
+                }, 0);
+                return newRows;
+            });
 
-            const updatedRows = rows.filter((_, i) => i !== index);
-            const updatedErrors = rowErrors.filter((_, i) => i !== index);
-
-            setRows(updatedRows);
-            setRowErrors(updatedErrors);
-
-            // Re-validate after removing a row
-            setTimeout(validateRows, 0);
+            setRowErrors((prev) => {
+                if (prev.length <= 1) return prev; // Don't remove the last row
+                return prev.filter((_, i) => i !== index);
+            });
         },
-        [rows, rowErrors, validateRows]
+        [validateRows]
     );
 
     return {
