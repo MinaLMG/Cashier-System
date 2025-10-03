@@ -1,11 +1,9 @@
 // File: app.js
-
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
 const connectDB = require("./src/db/connect");
-
 const routes = require("./src/routes");
 const authRoutes = require("./src/routes/authRoutes");
 
@@ -33,5 +31,10 @@ app.get("/", (req, res) => res.send("Intermedical API is running."));
 app.use("/api/auth", authRoutes);
 app.use("/api", routes);
 
-// Start server
-app.listen(5000, () => console.log("Server started on port 5000"));
+if (require.main === module) {
+    // Running directly with node app.js (local development)
+    app.listen(5000, () => console.log("Server started on port 5000"));
+} else {
+    // Required as a module (Vercel production)
+    module.exports = app;
+}
