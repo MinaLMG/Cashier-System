@@ -3,11 +3,10 @@ const HasVolume = require("../models/HasVolume");
 
 exports.getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find().populate(
-            "category default_volume"
-        );
+        const products = await Product.find();
         res.status(200).json(products);
     } catch (err) {
+        console.error("getAllProducts error:", err);
         res.status(500).json({ error: "Failed to fetch products." });
     }
 };

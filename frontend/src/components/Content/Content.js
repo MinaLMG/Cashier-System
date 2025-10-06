@@ -9,6 +9,7 @@ import ShowSuppliers from "./Suppliers/ShowSuppliers";
 import ShowCustomers from "./Customers/ShowCustomers";
 import ShowVolumes from "./Volumes/ShowVolumes";
 import Revenue from "./Revenue/Revenue";
+import ProductMovement from "./ProductMovement/ProductMovement";
 
 export default function Content(props) {
     return (
@@ -92,6 +93,7 @@ export default function Content(props) {
             {props.selected === "إدارة الموردين" && <ShowSuppliers />}
             {props.selected === "إدارة العملاء" && <ShowCustomers />}
             {props.selected === "إدارة العبوات" && <ShowVolumes />}
+            {props.selected === "حركة المنتج" && <ProductMovement />}
         </div>
     );
 }

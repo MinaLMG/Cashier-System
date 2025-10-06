@@ -1,0 +1,79 @@
+.container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.header h2 {
+    color: #333;
+    font-size: 28px;
+    margin: 0;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 12px;
+    border-radius: 4px;
+    margin: 20px 0;
+    text-align: center;
+    border: 1px solid #f5c6cb;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.tableContainer {
+    margin-top: 20px;
+}
+
+/* Row styling for different movement types */
+.purchaseRow {
+    background-color: #d4edda;
+}
+
+.saleRow {
+    background-color: #fff3cd;
+}
+
+.returnRow {
+    background-color: #f8d7da;
+}
+
+/* Row number styling */
+.rowNumber {
+    font-weight: bold;
+    text-align: center;
+    color: #666;
+    background-color: #f8f9fa;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .header h2 {
+        font-size: 24px;
+    }
+
+    .controls {
+        flex-direction: column;
+        align-items: center;
+    }
+}

@@ -21,7 +21,7 @@ export default function Layout() {
         },
         {
             title: "التقارير",
-            tasks: ["تقرير الإيرادات"],
+            tasks: ["تقرير الإيرادات", "حركة المنتج"],
         },
         {
             title: "إدارة البيانات",

@@ -11,6 +11,7 @@ import {
     FaBoxes,
     FaUserCog,
     FaShoppingCart,
+    FaHistory,
 } from "react-icons/fa";
 
 // Icon mapping for navigation items
@@ -27,6 +28,7 @@ const getIconForTask = (task) => {
         "إدارة العملاء": FaUserFriends,
         "إدارة العبوات": FaBoxes,
         "إدارة المستخدمين": FaUserCog,
+        "حركة المنتج": FaHistory,
     };
 
     return iconMap[task] || FaFileAlt;
