@@ -10,15 +10,12 @@ const ReturnInvoice = require("../models/ReturnInvoice");
 // Get product movement history
 const getProductMovement = async (req, res) => {
     try {
-        console.log("getProductMovement");
         const { productId } = req.params;
-        console.log("productId", productId);
         // Validate product exists
         const product = await Product.findById(productId);
         if (!product) {
             return res.status(404).json({ message: "Product not found" });
         }
-        console.log("product", product);
         const movements = [];
 
         // Get all purchase items for this product
@@ -30,7 +27,6 @@ const getProductMovement = async (req, res) => {
         const salesItems = await SalesItem.find({ product: productId })
             .populate("sales_invoice", "date")
             .sort({ createdAt: 1 });
-        console.log("salesItems", salesItems);
         // Get all return items for this product
         const returnItems = await ReturnItem.find({ product: productId })
             .populate("return_invoice", "date")
@@ -58,7 +54,6 @@ const getProductMovement = async (req, res) => {
                 priority: 1, // Purchase has highest priority
             });
         });
-        console.log("purchaseItems", purchaseItems);
 
         // Process sales items
         salesItems.forEach((item) => {
@@ -74,7 +69,6 @@ const getProductMovement = async (req, res) => {
                 priority: 2, // Sales have lower priority than purchases
             });
         });
-        console.log("returnItems", returnItems);
 
         // Process return items
         returnItems.forEach((item) => {
@@ -109,7 +103,6 @@ const getProductMovement = async (req, res) => {
             // If same date and same type, sort by createdAt
             return new Date(a.createdAt) - new Date(b.createdAt);
         });
-        console.log("movements", movements);
         // Calculate remaining quantities chronologically
         let currentRemaining = 0;
         movements.forEach((movement) => {
@@ -133,7 +126,6 @@ const getProductMovement = async (req, res) => {
             quantity: movement.quantity,
             remaining: movement.remaining,
         }));
-        console.log("formattedMovements", formattedMovements);
         res.json(formattedMovements);
     } catch (error) {
         console.error("Error getting product movement:", error);
