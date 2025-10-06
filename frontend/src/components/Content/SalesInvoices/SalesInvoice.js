@@ -9,6 +9,8 @@ import SalesInvoiceRow from "./SalesInvoiceRow";
 import useInvoiceRows from "../../../hooks/useInvoiceRows";
 import classes from "./SalesInvoice.module.css";
 import FormMessage from "../../Basic/FormMessage";
+import ReturnModal from "../../general/ReturnModal";
+import { FaUndo } from "react-icons/fa";
 
 export default function SalesInvoice(props) {
     const [customers, setCustomers] = useState([]);
@@ -24,6 +26,10 @@ export default function SalesInvoice(props) {
     const [finalTotal, setFinalTotal] = useState(0);
     const [baseCost, setBaseCost] = useState(0);
     const [profit, setProfit] = useState(0);
+
+    // Return modal state
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+    const [selectedRowForReturn, setSelectedRowForReturn] = useState(null);
 
     // Add this state to track when we're updating fields to prevent infinite loops
     const [isUpdatingFields, setIsUpdatingFields] = useState(false);
@@ -198,12 +204,23 @@ export default function SalesInvoice(props) {
     // Load invoice data if in edit or view mode
     useEffect(() => {
         if ((props.mode === "edit" || props.mode === "view") && props.invoice) {
-            const { date, customer, type, offer, rows, base } = props.invoice;
+            const {
+                date,
+                customer,
+                type,
+                offer,
+                rows,
+                base,
+                final_amount,
+                total_selling_price,
+            } = props.invoice;
             setInvoice({
                 date: new Date(date).toISOString(), // Convert to ISO string with time
                 customer,
                 type,
                 offer,
+                final_amount,
+                total_selling_price,
             });
             setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
             setBaseCost(base || 0);
@@ -247,7 +264,10 @@ export default function SalesInvoice(props) {
         };
 
         const total_selling_price = calculateTotal();
-        const final_amount = total_selling_price - Number(invoice.offer || 0);
+        const final_amount =
+            props.mode === "add"
+                ? total_selling_price - Number(invoice.offer || 0)
+                : invoice.final_amount || 0;
 
         setFinalTotal(final_amount);
 
@@ -262,6 +282,8 @@ export default function SalesInvoice(props) {
         products,
         props.mode,
         props.invoice?.total_purchase_cost,
+        props.invoice?.final_amount,
+        props.invoice?.total_selling_price,
     ]);
 
     // Initialize form for edit mode
@@ -419,9 +441,6 @@ export default function SalesInvoice(props) {
             );
         }, 0);
 
-        // Calculate final amount
-        const final_amount = total_selling_price - Number(invoice.offer || 0);
-
         const requestBody = {
             customer: invoice.customer,
             type: invoice.type,
@@ -432,8 +451,6 @@ export default function SalesInvoice(props) {
                 volume: row.volume,
                 quantity: Number(row.quantity),
             })),
-            total_selling_price: finalTotal,
-            finalTotal: finalTotal,
         };
 
         try {
@@ -759,6 +776,105 @@ export default function SalesInvoice(props) {
         [lookupProductFromBarcode, isUpdatingFields]
     );
 
+    // Return functionality
+    const handleReturnClick = async (rowData, index) => {
+        if (props.mode === "edit") {
+            try {
+                // Fetch the actual sales item from backend
+                const response = await axios.get(
+                    `${process.env.REACT_APP_BACKEND}sales-items/`,
+                    {
+                        params: {
+                            invoice: props.invoice._id,
+                            product: rowData.product._id || rowData.product,
+                            volume: rowData.volume._id || rowData.volume,
+                        },
+                    }
+                );
+
+                if (!response.data || response.data.length === 0) {
+                    console.error("No sales items found for return");
+                    alert("لا توجد عناصر بيع مطابقة لهذه الصف");
+                    return;
+                }
+
+                const salesItem = response.data[0]; // Get first matching sales item
+
+                const product = products.find(
+                    (p) => p._id === (rowData.product._id || rowData.product)
+                );
+
+                if (!product) {
+                    console.error("Could not find product for return");
+                    alert("خطأ في العثور على بيانات المنتج");
+                    return;
+                }
+
+                // Find the sold volume information
+                const soldVolume = product.values?.find(
+                    (v) => v.id === (rowData.volume._id || rowData.volume)
+                );
+
+                // Create sales item structure for the return modal
+                const salesItemForReturn = {
+                    _id: salesItem._id, // Real SalesItem ID (no underscores)
+                    product: product,
+                    volume: { _id: salesItem.volume._id },
+                    quantity: salesItem.quantity,
+                    v_price: salesItem.v_price,
+                    to_return: salesItem.to_return,
+                    soldVolumeValue: soldVolume?.val || soldVolume?.value || 1,
+                    // Add nested structure for compatibility
+                    salesItem: {
+                        _id: salesItem._id, // Real SalesItem ID
+                        product: product,
+                        volume: { _id: salesItem.volume._id },
+                        quantity: salesItem.quantity,
+                        v_price: salesItem.v_price,
+                        to_return: salesItem.to_return,
+                        soldVolumeValue:
+                            soldVolume?.val || soldVolume?.value || 1,
+                    },
+                };
+
+                const returnData = {
+                    row: rowData,
+                    salesItem: salesItemForReturn,
+                    index: index,
+                    product: product,
+                    invoice_id: props.invoice._id, // Add invoice ID for the return modal
+                };
+
+                setSelectedRowForReturn(returnData);
+                setIsReturnModalOpen(true);
+            } catch (error) {
+                console.error("Error preparing return data:", error);
+                alert("خطأ في إعداد بيانات الإرجاع");
+            }
+        }
+    };
+
+    const handleReturnSuccess = (returnData) => {
+        setIsReturnModalOpen(false);
+        setSelectedRowForReturn(null);
+
+        // Show success message
+        setSubmitMessage({
+            text: "✅ تم إرجاع المنتج بنجاح",
+            isError: false,
+        });
+
+        // Clear message after 3 seconds
+        setTimeout(() => {
+            setSubmitMessage({ text: "", isError: false });
+        }, 3000);
+    };
+
+    const handleReturnModalClose = () => {
+        setIsReturnModalOpen(false);
+        setSelectedRowForReturn(null);
+    };
+
     // Improved validateManualBarcode function to ensure errors persist
     const validateManualBarcode = useCallback(
         async (index, barcode) => {
@@ -893,8 +1009,460 @@ export default function SalesInvoice(props) {
                 error={fieldErrors.type || ""}
             />
 
-            {/* Only show the items table in add mode or view mode */}
-            {props.mode !== "edit" && (
+            {/* Show different tables based on mode */}
+            {props.mode === "edit" ? (
+                <>
+                    <div
+                        className={`table-responsive ${classes.tableContainer}`}
+                    >
+                        <table
+                            className={`table table-bordered ${classes.table}`}
+                        >
+                            <thead>
+                                <tr>
+                                    <th style={{ width: "50px" }}>#</th>
+                                    <th>المنتج</th>
+                                    <th>العبوة</th>
+                                    <th>الكمية</th>
+                                    <th>السعر</th>
+                                    <th>الإجمالي</th>
+                                    <th style={{ width: "80px" }}>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(() => {
+                                    // Check for different invoice structures
+                                    const hasItemsArray =
+                                        props.invoice?.items &&
+                                        Array.isArray(props.invoice.items) &&
+                                        props.invoice.items.length > 0;
+                                    const hasRowsArray =
+                                        props.invoice?.rows &&
+                                        Array.isArray(props.invoice.rows) &&
+                                        props.invoice.rows.length > 0;
+                                    const isOldStructure =
+                                        props.invoice?.product &&
+                                        props.invoice?.volume;
+
+                                    if (hasItemsArray) {
+                                        // New structure with items array
+                                        return props.invoice.items.map(
+                                            (item, i) => {
+                                                const product = products.find(
+                                                    (p) =>
+                                                        p._id ===
+                                                        item.product._id
+                                                );
+                                                const volumeValue =
+                                                    product?.values?.find(
+                                                        (v) =>
+                                                            v.id ===
+                                                            item.volume._id
+                                                    )?.val;
+                                                const total =
+                                                    item.quantity *
+                                                    item.v_price;
+
+                                                return (
+                                                    <tr key={i}>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            {i + 1}
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.viewText
+                                                                }
+                                                            >
+                                                                {product?.name ||
+                                                                    "غير معروف"}
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.viewText
+                                                                }
+                                                            >
+                                                                {
+                                                                    item.volume
+                                                                        .name
+                                                                }
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.viewText
+                                                                }
+                                                            >
+                                                                {item.quantity}
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.viewText
+                                                                }
+                                                            >
+                                                                {item.v_price.toFixed(
+                                                                    2
+                                                                )}{" "}
+                                                                ج.م
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.viewText
+                                                                }
+                                                            >
+                                                                {total > 0
+                                                                    ? `${total.toFixed(
+                                                                          2
+                                                                      )} ج.م`
+                                                                    : "—"}
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.controlsContainer
+                                                                }
+                                                            >
+                                                                <FaUndo
+                                                                    onClick={() =>
+                                                                        handleReturnClick(
+                                                                            item,
+                                                                            i
+                                                                        )
+                                                                    }
+                                                                    className={
+                                                                        classes.returnButton
+                                                                    }
+                                                                    title="إرجاع المنتج"
+                                                                />
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            }
+                                        );
+                                    } else if (hasRowsArray) {
+                                        // Rows structure (current format)
+                                        return props.invoice.rows.map(
+                                            (row, i) => {
+                                                const product = products.find(
+                                                    (p) => p._id === row.product
+                                                );
+                                                const total =
+                                                    row.quantity * row.v_price;
+
+                                                return (
+                                                    <tr key={i}>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            {i + 1}
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.viewText
+                                                                }
+                                                            >
+                                                                {product?.name ||
+                                                                    "غير معروف"}
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.viewText
+                                                                }
+                                                            >
+                                                                {/* Look for volume info in product values */}
+                                                                {product?.values?.find(
+                                                                    (v) =>
+                                                                        v.id ===
+                                                                        row.volume
+                                                                )?.name ||
+                                                                    "غير معروف"}
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.viewText
+                                                                }
+                                                            >
+                                                                {row.quantity}
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.viewText
+                                                                }
+                                                            >
+                                                                {row.v_price.toFixed(
+                                                                    2
+                                                                )}{" "}
+                                                                ج.م
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.viewText
+                                                                }
+                                                            >
+                                                                {total > 0
+                                                                    ? `${total.toFixed(
+                                                                          2
+                                                                      )} ج.م`
+                                                                    : "—"}
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                classes.item
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    classes.controlsContainer
+                                                                }
+                                                            >
+                                                                <FaUndo
+                                                                    onClick={() => {
+                                                                        // Create item-like object for rows structure
+                                                                        const itemLike =
+                                                                            {
+                                                                                _id: props
+                                                                                    .invoice
+                                                                                    ._id,
+                                                                                product:
+                                                                                    {
+                                                                                        _id: row.product,
+                                                                                    },
+                                                                                volume: {
+                                                                                    _id: row.volume,
+                                                                                },
+                                                                                quantity:
+                                                                                    row.quantity,
+                                                                                v_price:
+                                                                                    row.v_price,
+                                                                            };
+                                                                        handleReturnClick(
+                                                                            itemLike,
+                                                                            i
+                                                                        );
+                                                                    }}
+                                                                    className={
+                                                                        classes.returnButton
+                                                                    }
+                                                                    title="إرجاع المنتج"
+                                                                />
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            }
+                                        );
+                                    } else if (isOldStructure) {
+                                        // Old structure - treat invoice as single item
+                                        const invoice = props.invoice;
+                                        const product = products.find(
+                                            (p) => p._id === invoice.product
+                                        );
+                                        const total =
+                                            invoice.quantity * invoice.v_price;
+
+                                        // Debug volume info
+
+                                        return (
+                                            <tr key={0}>
+                                                <td className={classes.item}>
+                                                    1
+                                                </td>
+                                                <td className={classes.item}>
+                                                    <div
+                                                        className={
+                                                            classes.viewText
+                                                        }
+                                                    >
+                                                        {product?.name ||
+                                                            "غير معروف"}
+                                                    </div>
+                                                </td>
+                                                <td className={classes.item}>
+                                                    <div
+                                                        className={
+                                                            classes.viewText
+                                                        }
+                                                    >
+                                                        {/* Look for volume info in product values */}
+                                                        {product?.values?.find(
+                                                            (v) =>
+                                                                v.id ===
+                                                                invoice.volume
+                                                        )?.name || "غير معروف"}
+                                                    </div>
+                                                </td>
+                                                <td className={classes.item}>
+                                                    <div
+                                                        className={
+                                                            classes.viewText
+                                                        }
+                                                    >
+                                                        {invoice.quantity}
+                                                    </div>
+                                                </td>
+                                                <td className={classes.item}>
+                                                    <div
+                                                        className={
+                                                            classes.viewText
+                                                        }
+                                                    >
+                                                        {invoice.v_price.toFixed(
+                                                            2
+                                                        )}{" "}
+                                                        ج.م
+                                                    </div>
+                                                </td>
+                                                <td className={classes.item}>
+                                                    <div
+                                                        className={
+                                                            classes.viewText
+                                                        }
+                                                    >
+                                                        {total > 0
+                                                            ? `${total.toFixed(
+                                                                  2
+                                                              )} ج.م`
+                                                            : "—"}
+                                                    </div>
+                                                </td>
+                                                <td className={classes.item}>
+                                                    <div
+                                                        className={
+                                                            classes.controlsContainer
+                                                        }
+                                                    >
+                                                        <FaUndo
+                                                            onClick={() => {
+                                                                // Create item-like object for old structure
+                                                                const itemLike =
+                                                                    {
+                                                                        _id: invoice._id,
+                                                                        product:
+                                                                            {
+                                                                                _id: invoice.product,
+                                                                            },
+                                                                        volume: {
+                                                                            _id: invoice.volume,
+                                                                        },
+                                                                        quantity:
+                                                                            invoice.quantity,
+                                                                        v_price:
+                                                                            invoice.v_price,
+                                                                    };
+                                                                handleReturnClick(
+                                                                    itemLike,
+                                                                    0
+                                                                );
+                                                            }}
+                                                            className={
+                                                                classes.returnButton
+                                                            }
+                                                            title="إرجاع المنتج"
+                                                        />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    } else {
+                                        // No items found
+                                        return (
+                                            <tr>
+                                                <td
+                                                    colSpan="7"
+                                                    className={classes.item}
+                                                    style={{
+                                                        textAlign: "center",
+                                                        padding: "20px",
+                                                    }}
+                                                >
+                                                    <div
+                                                        className={
+                                                            classes.viewText
+                                                        }
+                                                    >
+                                                        لا توجد عناصر في هذه
+                                                        الفاتورة
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }
+                                })()}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            ) : (
+                /* Add/View mode: Show editable table */
                 <>
                     <InputTable error={fieldErrors.rows || ""}>
                         <thead>
@@ -907,7 +1475,7 @@ export default function SalesInvoice(props) {
                                 <th>السعر</th>
                                 <th>الإجمالي</th>
                                 {!isViewMode && (
-                                    <th style={{ width: "100px" }}></th>
+                                    <th style={{ width: "50px" }}></th>
                                 )}
                             </tr>
                         </thead>
@@ -1124,6 +1692,14 @@ export default function SalesInvoice(props) {
                     className="mt-3"
                 />
             )}
+
+            {/* Return Modal */}
+            <ReturnModal
+                isOpen={isReturnModalOpen}
+                onClose={handleReturnModalClose}
+                salesItem={selectedRowForReturn?.salesItem}
+                onReturnSuccess={handleReturnSuccess}
+            />
         </div>
     );
 }

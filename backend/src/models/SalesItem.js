@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { addTimestamps } = require("../utils/timestamps");
 
 const salesItemSchema = new mongoose.Schema({
     sales_invoice: {
@@ -30,5 +31,8 @@ const salesItemSchema = new mongoose.Schema({
     ],
     date: { type: Date, default: Date.now },
 });
+
+// Add timestamps to the schema
+addTimestamps(salesItemSchema);
 
 module.exports = mongoose.model("SalesItem", salesItemSchema);

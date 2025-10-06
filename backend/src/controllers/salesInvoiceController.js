@@ -7,6 +7,7 @@ const Volume = require("../models/Volume");
 const Customer = require("../models/Customer");
 const updateProductRemaining = require("../helpers/updateProductRemaining");
 const updateProductPrices = require("../helpers/productPricing");
+const ReturnItem = require("../models/ReturnItem");
 
 // Helper function to generate serial number
 const generateSalesInvoiceSerial = async (date) => {
@@ -491,7 +492,7 @@ exports.createFullSalesInvoice = async (req, res) => {
                 sales_invoice: newInvoice._id,
                 product: item.product,
                 volume: item.volume,
-                quantity: item.quantity,
+                quantity: item.quantity, // Initialize with total returnable quantity in base units
                 v_price: item.u_price * item.val,
                 sources: item.sources,
             });
@@ -530,6 +531,196 @@ exports.createFullSalesInvoice = async (req, res) => {
 
         return res.status(500).json({
             error: "فشل في حفظ الفاتورة. يرجى المحاولة مرة أخرى.",
+        });
+    }
+};
+
+// Get available volumes for return for a specific sales item
+// Modified to work with individual sales item ID
+exports.getAvailableReturnVolumesForInvoiceItem = async (req, res) => {
+    try {
+        const { salesItemId } = req.params;
+
+        // Get the sales item with all related data
+        const salesItem = await SalesItem.findById(salesItemId)
+            .populate("product")
+            .populate("volume")
+            .populate("sales_invoice");
+
+        if (!salesItem) {
+            return res.status(404).json({ error: "Sales item not found." });
+        }
+
+        // Get all existing return items for this sales item to calculate what's already been returned
+        const existingReturnItems = await ReturnItem.find({
+            sales_item: salesItemId,
+        }).populate("volume");
+
+        // Calculate total already returned in base units
+        let totalReturnedBaseUnits = 0;
+        for (const returnItem of existingReturnItems) {
+            const returnHasVolume = await HasVolume.findOne({
+                product: salesItem.product._id,
+                volume: returnItem.volume._id,
+            });
+            if (returnHasVolume) {
+                totalReturnedBaseUnits +=
+                    returnItem.quantity * returnHasVolume.value;
+            }
+        }
+
+        // Calculate available quantity to return (original quantity - already returned)
+        const originalBaseQuantity =
+            salesItem.quantity *
+            (
+                await HasVolume.findOne({
+                    product: salesItem.product._id,
+                    volume: salesItem.volume._id,
+                })
+            ).value;
+
+        const availableBaseQuantity =
+            originalBaseQuantity - totalReturnedBaseUnits;
+        if (availableBaseQuantity <= 0) {
+            return res.status(200).json({
+                salesItem: {
+                    _id: salesItem._id,
+                    product: salesItem.product,
+                    soldVolume: salesItem.volume,
+                    quantity: salesItem.quantity,
+                    v_price: salesItem.v_price,
+                    availableToReturn: 0,
+                },
+                availableVolumes: [],
+                message: "No quantity available for return",
+            });
+        }
+
+        // Get the product's sold volume
+        const soldHasVolume = await HasVolume.findOne({
+            product: salesItem.product._id,
+            volume: salesItem.volume._id,
+        });
+
+        if (!soldHasVolume) {
+            return res
+                .status(400)
+                .json({ error: "Could not find sold volume." });
+        }
+
+        // Get all volumes for this product that are smaller than or equal to the sold volume
+        const availableVolumes = await HasVolume.find({
+            product: salesItem.product._id,
+            value: { $lte: availableBaseQuantity },
+        })
+            .populate("volume")
+            .populate("product");
+        // Calculate available quantities for each volume
+        const volumesWithQuantity = availableVolumes
+            .map((hv) => {
+                const maxVolumeQuantity = Math.floor(
+                    availableBaseQuantity / hv.value
+                );
+
+                return {
+                    volume: hv.volume,
+                    value: hv.value,
+                    maxQuantity: maxVolumeQuantity,
+                    barcode: hv.barcode,
+                    sale_price: hv.sale_price,
+                };
+            })
+            .filter((vol) => vol.maxQuantity > 0); // Only return volumes that can actually be returned
+
+        res.status(200).json({
+            salesItem: {
+                _id: salesItem._id,
+                product: salesItem.product,
+                soldVolume: {
+                    _id: soldHasVolume.volume,
+                    value: soldHasVolume.value,
+                },
+                quantity: salesItem.quantity,
+                v_price: salesItem.v_price,
+                availableToReturn: availableBaseQuantity,
+                alreadyReturned: totalReturnedBaseUnits,
+            },
+            availableBaseQuantity: availableBaseQuantity,
+            availableVolumes: volumesWithQuantity,
+        });
+    } catch (err) {
+        console.error(
+            "Error getting available return volumes for invoice item:",
+            err
+        );
+        res.status(500).json({
+            error: "حدث خطأ أثناء جلب الأحجام المتاحة للإرجاع",
+        });
+    }
+};
+
+exports.getAvailableReturnVolumes = async (req, res) => {
+    try {
+        const { salesItemId } = req.params;
+
+        // Get the sales item with product populated
+        const salesItem = await SalesItem.findById(salesItemId).populate(
+            "product"
+        );
+
+        if (!salesItem) {
+            return res.status(404).json({ error: "Sales item not found." });
+        }
+
+        // Get the product's sold volume
+        const soldHasVolume = await HasVolume.findOne({
+            product: salesItem.product._id,
+            volume: salesItem.volume,
+        });
+
+        if (!soldHasVolume) {
+            return res
+                .status(400)
+                .json({ error: "Could not find sold volume." });
+        }
+
+        // Get all volumes for this product that are smaller than or equal to the sold volume
+        const availableVolumes = await HasVolume.find({
+            product: salesItem.product._id,
+            value: { $lte: soldHasVolume.value },
+        })
+            .populate("volume")
+            .populate("product");
+
+        // Calculate available quantities for each volume using to_return field
+        const volumesWithQuantity = availableVolumes.map((hv) => {
+            const maxBaseQuantity = salesItem.to_return || 0;
+            const maxVolumeQuantity = Math.floor(maxBaseQuantity / hv.value);
+
+            return {
+                volume: hv.volume,
+                value: hv.value,
+                maxQuantity: maxVolumeQuantity,
+                barcode: hv.barcode,
+            };
+        });
+
+        res.status(200).json({
+            salesItem: {
+                _id: salesItem._id,
+                product: salesItem.product,
+                soldVolume: {
+                    _id: soldHasVolume.volume,
+                    value: soldHasVolume.value,
+                },
+                quantity: salesItem.quantity,
+            },
+            availableVolumes: volumesWithQuantity,
+        });
+    } catch (err) {
+        console.error("Error getting available return volumes:", err);
+        res.status(500).json({
+            error: "حدث خطأ أثناء جلب الأحجام المتاحة للإرجاع",
         });
     }
 };

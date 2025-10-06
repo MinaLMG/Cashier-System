@@ -2,8 +2,23 @@ const SalesItem = require("../models/SalesItem");
 
 exports.getAllSalesItems = async (req, res) => {
     try {
-        const items = await SalesItem.find().populate(
-            "product invoice customer"
+        // Support filtering by query parameters
+        let query = {};
+
+        if (req.query.invoice) {
+            query.sales_invoice = req.query.invoice;
+        }
+
+        if (req.query.product) {
+            query.product = req.query.product;
+        }
+
+        if (req.query.volume) {
+            query.volume = req.query.volume;
+        }
+
+        const items = await SalesItem.find(query).populate(
+            "product volume sales_invoice"
         );
         res.status(200).json(items);
     } catch (err) {

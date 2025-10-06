@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { addTimestamps } = require("../utils/timestamps");
 
 const productSchema = new mongoose.Schema({
     name: {
@@ -34,5 +35,8 @@ const productSchema = new mongoose.Schema({
         default: 0,
     },
 });
+
+// Add timestamps to the schema
+addTimestamps(productSchema);
 
 module.exports = mongoose.model("Product", productSchema);

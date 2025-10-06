@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const { addTimestamps } = require("../utils/timestamps");
 const purchaseItemSchema = new mongoose.Schema({
     purchase_invoice: {
         type: mongoose.Schema.Types.ObjectId,
@@ -25,5 +25,8 @@ const purchaseItemSchema = new mongoose.Schema({
 });
 
 purchaseItemSchema.index({ product: 1 });
+
+// Add timestamps to the schema
+addTimestamps(purchaseItemSchema);
 
 module.exports = mongoose.model("PurchaseItem", purchaseItemSchema);

@@ -438,7 +438,11 @@ export default function PurchaseInvoice(props) {
                         <th className={classes.head} scope="col">
                             تاريخ انتهاء الصلاحية
                         </th>
-                        <th className={classes.head} scope="col">
+                        <th
+                            className={classes.head}
+                            scope="col"
+                            style={{ width: "100px" }}
+                        >
                             الباقى( لو فاتورة باثر رجعى)
                         </th>
                         {!isViewMode && (

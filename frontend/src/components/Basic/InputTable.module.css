@@ -1,11 +1,12 @@
 /* Input Table - For forms with data entry */
 .inputTableWrapper {
     width: 100%;
-    max-width: 90%;
+    max-width: 100%;
     margin: 0 auto;
     overflow-x: auto;
     border-radius: var(--border-radius-md);
     box-shadow: var(--shadow-sm);
+    margin-bottom: 20px;
 }
 
 .inputTable {

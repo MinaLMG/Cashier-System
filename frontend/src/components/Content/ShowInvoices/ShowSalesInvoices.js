@@ -119,7 +119,9 @@ export default function ShowSalesInvoices(props) {
                                 cursor: "pointer",
                                 color: "var(--text-color)",
                             }}
-                            onClick={() => handleView(invoice)}
+                            onClick={() => {
+                                handleView(invoice);
+                            }}
                         />
                         <FaPrint
                             className={`${classes.print} ${commonStyles.disabledIcon}`}
@@ -147,6 +149,7 @@ export default function ShowSalesInvoices(props) {
                 tableClassName={`table table-bordered ${classes.table}`}
                 renderRow={renderRow}
                 emptyMessage="لا توجد فواتير بيع حتى الآن"
+                width="100%"
             />
         </div>
     );

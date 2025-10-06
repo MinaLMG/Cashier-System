@@ -8,5 +8,13 @@ router.put("/:id", controller.updateSalesInvoice);
 router.delete("/:id", controller.deleteSalesInvoice);
 router.post("/full", controller.createFullSalesInvoice);
 router.get("/full", controller.getFullSalesInvoices);
+router.get(
+    "/available-return-volumes/:salesItemId",
+    controller.getAvailableReturnVolumes
+);
+router.get(
+    "/available-return-volumes-for-invoice-item/:salesItemId",
+    controller.getAvailableReturnVolumesForInvoiceItem
+);
 
 module.exports = router;

@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-
+const { addTimestamps } = require("../utils/timestamps");
 const hasVolumeSchema = new mongoose.Schema({
     product: {
         type: mongoose.Schema.Types.ObjectId,
@@ -29,5 +29,8 @@ hasVolumeSchema.index(
 
 // Add a compound index for product and volume to ensure uniqueness
 hasVolumeSchema.index({ product: 1, volume: 1 }, { unique: true });
+
+// Add timestamps to the schema
+addTimestamps(hasVolumeSchema);
 
 module.exports = mongoose.model("HasVolume", hasVolumeSchema);

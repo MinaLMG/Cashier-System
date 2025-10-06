@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { addTimestamps } = require("../utils/timestamps");
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -24,6 +25,9 @@ const userSchema = new mongoose.Schema({
         default: true,
     },
 });
+
+// Add timestamps to the schema
+addTimestamps(userSchema);
 
 // Hash password before saving
 userSchema.pre("save", async function (next) {

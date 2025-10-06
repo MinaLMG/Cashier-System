@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { addTimestamps } = require("../utils/timestamps");
 
 const notificationSchema = new mongoose.Schema({
     type: {
@@ -10,5 +11,8 @@ const notificationSchema = new mongoose.Schema({
     seen: { type: Boolean, default: false },
     message: { type: String },
 });
+
+// Add timestamps to the schema
+addTimestamps(notificationSchema);
 
 module.exports = mongoose.model("Notification", notificationSchema);

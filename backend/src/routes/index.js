@@ -13,6 +13,7 @@ router.use("/purchase-invoices", require("./purchaseInvoiceRoutes"));
 router.use("/sales-invoices", require("./salesInvoiceRoutes"));
 router.use("/sales-items", require("./salesItemRoutes"));
 router.use("/purchase-items", require("./purchaseItemRoutes"));
+router.use("/return-invoices", require("./returnInvoiceRoutes"));
 router.use("/has-volumes", require("./hasVolumeRoutes"));
 router.use("/expires", require("./expiresRoutes"));
 router.use("/got-minimums", require("./gotMinimumRoutes"));

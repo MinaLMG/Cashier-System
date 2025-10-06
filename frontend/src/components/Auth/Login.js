@@ -59,10 +59,6 @@ export default function Login({ onLoginSuccess = null }) {
                     onLoginSuccess(response.data.user);
                 } else {
                     // Fallback: Default behavior after successful login
-                    console.log(
-                        "Login successful for user:",
-                        response.data.user.name
-                    );
 
                     // Optional: Show success message or redirect
                     // You can customize this fallback behavior as needed
@@ -125,10 +121,6 @@ export default function Login({ onLoginSuccess = null }) {
                 if (onLoginSuccess && typeof onLoginSuccess === "function") {
                     onLoginSuccess(response.data.user);
                 } else {
-                    console.log(
-                        "Signup and login successful for user:",
-                        response.data.user.name
-                    );
                     setTimeout(() => {
                         // The AuthContext will automatically update the UI
                     }, 100);

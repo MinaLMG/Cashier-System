@@ -1,6 +1,7 @@
 // SalesInvoiceRow.js
 import { IoMdAddCircle } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
+import { FaUndo } from "react-icons/fa";
 import TextInput from "../../Basic/TextInput";
 import Select from "../../Basic/Select";
 import classes from "./SalesInvoiceRow.module.css";
@@ -19,6 +20,8 @@ export default function SalesInvoiceRow({
     onBarcodeChange,
     disabled,
     viewMode,
+    onReturn,
+    isEditMode = false,
 }) {
     const selectedProduct = products.find((p) => p._id === row.product);
 
@@ -210,20 +213,30 @@ export default function SalesInvoiceRow({
             {/* Controls */}
             {!viewMode && (
                 <td>
-                    {isLastRow && (
-                        <IoMdAddCircle
-                            onClick={onAdd}
-                            className={classes.add}
-                            disabled={disabled}
-                        />
-                    )}
-                    {canRemove && (
-                        <MdDelete
-                            onClick={() => onRemove(index)}
-                            className={classes.remove}
-                            disabled={disabled}
-                        />
-                    )}
+                    <div className={classes.controlsContainer}>
+                        {isEditMode && row.product && row.volume && (
+                            <FaUndo
+                                onClick={() => onReturn && onReturn(row, index)}
+                                className={classes.returnButton}
+                                title="إرجاع المنتج"
+                                disabled={disabled}
+                            />
+                        )}
+                        {isLastRow && (
+                            <IoMdAddCircle
+                                onClick={onAdd}
+                                className={classes.add}
+                                disabled={disabled}
+                            />
+                        )}
+                        {canRemove && (
+                            <MdDelete
+                                onClick={() => onRemove(index)}
+                                className={classes.remove}
+                                disabled={disabled}
+                            />
+                        )}
+                    </div>
                 </td>
             )}
         </tr>

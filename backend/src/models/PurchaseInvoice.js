@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { addTimestamps } = require("../utils/timestamps");
 
 const purchaseInvoiceSchema = new mongoose.Schema({
     date: { type: Date, required: true },
@@ -9,7 +10,9 @@ const purchaseInvoiceSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     total_cost: { type: Number, required: true },
     serial: { type: String, unique: true },
-    createdAt: { type: Date, default: Date.now },
 });
+
+// Add timestamps to the schema
+addTimestamps(purchaseInvoiceSchema);
 
 module.exports = mongoose.model("PurchaseInvoice", purchaseInvoiceSchema);

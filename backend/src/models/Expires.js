@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { addTimestamps } = require("../utils/timestamps");
 
 const expiresSchema = new mongoose.Schema({
     notification: {
@@ -12,5 +13,8 @@ const expiresSchema = new mongoose.Schema({
         required: true,
     },
 });
+
+// Add timestamps to the schema
+addTimestamps(expiresSchema);
 
 module.exports = mongoose.model("Expires", expiresSchema);

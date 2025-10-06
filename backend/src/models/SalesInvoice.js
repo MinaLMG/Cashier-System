@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { addTimestamps } = require("../utils/timestamps");
 
 const salesInvoiceSchema = new mongoose.Schema({
     date: { type: Date, required: true }, // This will store both date and time
@@ -13,7 +14,9 @@ const salesInvoiceSchema = new mongoose.Schema({
     type: { type: String, enum: ["walkin", "pharmacy"], required: true },
     offer: { type: Number, required: true, default: 0 }, // Discount amount
     serial: { type: String, unique: true },
-    createdAt: { type: Date, default: Date.now },
 });
+
+// Add timestamps to the schema
+addTimestamps(salesInvoiceSchema);
 
 module.exports = mongoose.model("SalesInvoice", salesInvoiceSchema);

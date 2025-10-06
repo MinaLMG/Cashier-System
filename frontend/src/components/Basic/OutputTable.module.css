@@ -6,6 +6,7 @@
     overflow-x: auto;
     border-radius: var(--border-radius-md);
     box-shadow: var(--shadow-md);
+    margin-bottom: 20px;
 }
 
 .outputTable {
