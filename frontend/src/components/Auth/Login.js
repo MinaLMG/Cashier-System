@@ -3,8 +3,8 @@ import axios from "axios";
 import classes from "./Login.module.css";
 import Button from "../Basic/Button";
 import TextInput from "../Basic/TextInput";
-import Select from "../Basic/Select";
-import { FaUser, FaLock, FaHeart, FaUserPlus } from "react-icons/fa";
+
+import { FaUser, FaLock, FaUserPlus } from "react-icons/fa";
 import { useAuth } from "../../contexts/AuthContext";
 
 export default function Login({ onLoginSuccess = null }) {
@@ -138,6 +138,7 @@ export default function Login({ onLoginSuccess = null }) {
         }
     };
 
+    // eslint-disable-next-line no-unused-vars
     const roleOptions = [
         { value: "seller", label: "بائع" },
         { value: "manager", label: "مدير" },

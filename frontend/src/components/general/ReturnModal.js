@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import Modal from "../UI/Modal";
 import Select from "../Basic/Select";
@@ -23,29 +23,7 @@ export default function ReturnModal({
     const [availableVolumes, setAvailableVolumes] = useState([]);
     const [availableBaseQuantity, setAvailableBaseQuantity] = useState(0);
 
-    // Fetch available volumes when modal opens
-    useEffect(() => {
-        if (isOpen && salesItem) {
-            fetchAvailableVolumes();
-        }
-    }, [isOpen, salesItem]);
-
-    // Update max quantity when volume changes
-    useEffect(() => {
-        if (selectedVolume && availableVolumes.length > 0) {
-            const volume = availableVolumes.find(
-                (v) => v.volume._id === selectedVolume
-            );
-            if (volume) {
-                setMaxQuantity(volume.maxQuantity);
-                if (selectedQuantity > volume.maxQuantity) {
-                    setSelectedQuantity(volume.maxQuantity);
-                }
-            }
-        }
-    }, [selectedVolume, availableVolumes, selectedQuantity]);
-
-    const fetchAvailableVolumes = async () => {
+    const fetchAvailableVolumes = useCallback(async () => {
         try {
             setError("");
 
@@ -61,7 +39,29 @@ export default function ReturnModal({
             console.error("Error fetching available volumes:", err);
             setError("حدث خطأ أثناء جلب الأحجام المتاحة للإرجاع");
         }
-    };
+    }, [salesItem]);
+
+    // Fetch available volumes when modal opens
+    useEffect(() => {
+        if (isOpen && salesItem) {
+            fetchAvailableVolumes();
+        }
+    }, [isOpen, salesItem, fetchAvailableVolumes]);
+
+    // Update max quantity when volume changes
+    useEffect(() => {
+        if (selectedVolume && availableVolumes.length > 0) {
+            const volume = availableVolumes.find(
+                (v) => v.volume._id === selectedVolume
+            );
+            if (volume) {
+                setMaxQuantity(volume.maxQuantity);
+                if (selectedQuantity > volume.maxQuantity) {
+                    setSelectedQuantity(volume.maxQuantity);
+                }
+            }
+        }
+    }, [selectedVolume, availableVolumes, selectedQuantity]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

@@ -1,9 +1,7 @@
-// eslint-disable-next-line no-unused-vars
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 import classes from "./Side.module.css";
 import {
     FaBox,
-    FaEdit,
     FaEye,
     FaFileInvoice,
     FaFileAlt,
@@ -13,7 +11,6 @@ import {
     FaBoxes,
     FaUserCog,
     FaShoppingCart,
-    FaReceipt,
 } from "react-icons/fa";
 
 // Icon mapping for navigation items

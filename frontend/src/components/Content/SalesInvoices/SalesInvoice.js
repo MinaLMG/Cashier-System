@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import axios from "axios";
 import Button from "../../Basic/Button";
-import TextInput from "../../Basic/TextInput";
 import DateTimeInput from "../../Basic/DateTimeInput";
 import Select from "../../Basic/Select";
 import InputTable from "../../Basic/InputTable";
@@ -24,6 +23,7 @@ export default function SalesInvoice(props) {
     const [fieldErrors, setFieldErrors] = useState({}); // Individual field errors
     const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track if user has started interacting
     const [finalTotal, setFinalTotal] = useState(0);
+    // eslint-disable-next-line no-unused-vars
     const [baseCost, setBaseCost] = useState(0);
     const [profit, setProfit] = useState(0);
 
@@ -40,13 +40,16 @@ export default function SalesInvoice(props) {
     // Add state to track field update sources to prevent loops
     const [fieldUpdateSource, setFieldUpdateSource] = useState({});
 
-    // Define the initial empty row
-    const emptyRow = {
-        barcode: "",
-        product: "",
-        volume: "",
-        quantity: "",
-    };
+    // Define the initial empty row using useMemo to prevent dependency changes
+    const emptyRow = useMemo(
+        () => ({
+            barcode: "",
+            product: "",
+            volume: "",
+            quantity: "",
+        }),
+        []
+    );
 
     // Define invoice state with ISO datetime string
     const [invoice, setInvoice] = useState({
@@ -138,7 +141,7 @@ export default function SalesInvoice(props) {
         setRowErrors, // Add this to destructure setRowErrors from the hook
     } = useInvoiceRows(emptyRow, validateRow, [products, invoice.type]);
 
-    // Form validation function
+    // eslint-disable-next-line no-unused-vars
     const validateForm = useCallback(() => {
         // Only validate if user has interacted or we're in edit mode
         if (!hasUserInteracted && props.mode !== "edit") {
@@ -230,7 +233,7 @@ export default function SalesInvoice(props) {
                 validateRows();
             }, 100);
         }
-    }, []);
+    }, [emptyRow, props.invoice, props.mode, setInvoiceRows, validateRows]);
 
     // Calculate total whenever rows or invoice type changes
     useEffect(() => {
@@ -262,7 +265,6 @@ export default function SalesInvoice(props) {
                 );
             }, 0);
         };
-
         const total_selling_price = calculateTotal();
         const final_amount =
             props.mode === "add"
@@ -284,6 +286,7 @@ export default function SalesInvoice(props) {
         props.invoice?.total_purchase_cost,
         props.invoice?.final_amount,
         props.invoice?.total_selling_price,
+        invoice.final_amount,
     ]);
 
     // Initialize form for edit mode
@@ -412,34 +415,6 @@ export default function SalesInvoice(props) {
         }
 
         setIsSubmitting(true);
-
-        // Calculate total selling price for add mode
-        const total_selling_price = validRows.reduce((total, row) => {
-            const product = products.find((p) => p._id === row.product);
-            if (!product) return total;
-
-            // Get unit price based on customer type
-            const u_price =
-                invoice.type === "walkin"
-                    ? product.u_walkin_price
-                    : product.u_pharmacy_price;
-
-            // Find the volume conversion value
-            const volumeEntry = product?.values?.find(
-                (v) => v.id === row.volume
-            );
-            const value = Number(volumeEntry?.val || 1);
-
-            // Calculate volume price
-            const v_price = u_price * value;
-
-            const quantity = Number(row.quantity);
-
-            return (
-                total +
-                (isNaN(quantity) || isNaN(v_price) ? 0 : quantity * v_price)
-            );
-        }, 0);
 
         const requestBody = {
             customer: invoice.customer,
@@ -583,7 +558,7 @@ export default function SalesInvoice(props) {
                 }, 100);
             }
         },
-        [invoiceRows, isUpdatingFields, rowErrors, setRowErrors]
+        [invoiceRows, isUpdatingFields, rowErrors, setRowErrors, setInvoiceRows]
     );
 
     // Add a function to validate barcode with the backend
@@ -732,6 +707,7 @@ export default function SalesInvoice(props) {
             rowErrors,
             setRowErrors,
             fieldUpdateSource,
+            setInvoiceRows,
         ]
     );
 
@@ -935,7 +911,7 @@ export default function SalesInvoice(props) {
         return isViewMode;
     };
 
-    // Rename the function to avoid confusion with the original handleRowChange
+    // eslint-disable-next-line no-unused-vars
     const handleBarcodeFieldChange = useCallback(
         async (index, field, value) => {
             // First update the field normally
@@ -1053,12 +1029,7 @@ export default function SalesInvoice(props) {
                                                         p._id ===
                                                         item.product._id
                                                 );
-                                                const volumeValue =
-                                                    product?.values?.find(
-                                                        (v) =>
-                                                            v.id ===
-                                                            item.volume._id
-                                                    )?.val;
+
                                                 const total =
                                                     item.quantity *
                                                     item.v_price;
