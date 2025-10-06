@@ -62,6 +62,21 @@
     background-color: #f8f9fa;
 }
 
+/* Reference styling */
+.reference {
+    font-size: 0.9em;
+    color: #555;
+    font-family: monospace;
+}
+
+/* Timestamp styling */
+.timestamp {
+    font-size: 0.85em;
+    color: #666;
+    font-family: monospace;
+    white-space: nowrap;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .container {

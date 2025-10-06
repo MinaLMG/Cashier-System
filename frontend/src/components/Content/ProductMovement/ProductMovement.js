@@ -91,7 +91,7 @@ const ProductMovement = () => {
         },
         {
             field: "date",
-            title: "التاريخ",
+            title: "تاريخ العملية",
             sortable: true,
         },
         {
@@ -109,6 +109,16 @@ const ProductMovement = () => {
             title: "المتبقي (وحدة أساسية)",
             sortable: true,
         },
+        {
+            field: "createdAt",
+            title: "وقت الإنشاء",
+            sortable: true,
+        },
+        // {
+        //     field: "reference",
+        //     title: "المرجع",
+        //     sortable: false,
+        // },
     ];
 
     // Render table row
@@ -139,6 +149,20 @@ const ProductMovement = () => {
             }
         };
 
+        const getReferenceLabel = (reference) => {
+            if (!reference) return "-";
+
+            const typeLabels = {
+                purchase_item: "مشتريات",
+                sales_item: "مبيعات",
+                return_item: "إرجاع",
+            };
+
+            return `${typeLabels[reference.type] || reference.type} - ${
+                reference.invoiceSerial || reference.id
+            }`;
+        };
+
         return (
             <tr key={index} className={getTypeClass(movement.type)}>
                 <td className={classes.rowNumber}>{movement.rowNumber}</td>
@@ -146,6 +170,10 @@ const ProductMovement = () => {
                 <td>{getTypeLabel(movement.type)}</td>
                 <td>{movement.quantity}</td>
                 <td>{movement.remaining}</td>
+                <td className={classes.timestamp}>{movement.createdAt}</td>
+                {/* <td className={classes.reference}>
+                    {getReferenceLabel(movement.reference)}
+                </td> */}
             </tr>
         );
     };

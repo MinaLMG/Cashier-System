@@ -52,6 +52,12 @@ const getProductMovement = async (req, res) => {
                 remaining: remainingInBaseUnits,
                 createdAt: item.createdAt,
                 priority: 1, // Purchase has highest priority
+                reference: {
+                    type: "purchase_item",
+                    id: item._id,
+                    invoiceId: item.purchase_invoice._id,
+                    invoiceSerial: item.purchase_invoice.serial,
+                },
             });
         });
 
@@ -67,6 +73,12 @@ const getProductMovement = async (req, res) => {
                 remaining: null, // Sales don't have remaining field
                 createdAt: item.createdAt,
                 priority: 2, // Sales have lower priority than purchases
+                reference: {
+                    type: "sales_item",
+                    id: item._id,
+                    invoiceId: item.sales_invoice._id,
+                    invoiceSerial: item.sales_invoice.serial,
+                },
             });
         });
 
@@ -82,6 +94,12 @@ const getProductMovement = async (req, res) => {
                 remaining: null, // Returns don't have remaining field
                 createdAt: item.createdAt,
                 priority: 3, // Returns have lowest priority
+                reference: {
+                    type: "return_item",
+                    id: item._id,
+                    invoiceId: item.return_invoice._id,
+                    invoiceSerial: item.return_invoice.serial,
+                },
             });
         });
 
@@ -122,9 +140,14 @@ const getProductMovement = async (req, res) => {
         const formattedMovements = movements.map((movement, index) => ({
             rowNumber: index + 1,
             date: movement.date.toISOString().split("T")[0], // Format as YYYY-MM-DD
+            createdAt: (movement.createdAt || new Date())
+                .toISOString()
+                .replace("T", " ")
+                .substring(0, 19), // Format as YYYY-MM-DD HH:MM:SS
             type: movement.type,
             quantity: movement.quantity,
             remaining: movement.remaining,
+            reference: movement.reference,
         }));
         res.json(formattedMovements);
     } catch (error) {
