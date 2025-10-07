@@ -25,6 +25,7 @@ const returnInvoiceSchema = new mongoose.Schema({
         default: "customer_request",
     },
     total_return_amount: { type: Number, required: true }, // Total amount being returned
+    total_loss: { type: Number, required: true, default: 0 }, // Total revenue loss from this return
     serial: { type: String, unique: true },
     notes: { type: String },
 });

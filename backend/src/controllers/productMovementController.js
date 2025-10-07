@@ -136,6 +136,9 @@ const getProductMovement = async (req, res) => {
             }
         });
 
+        // Reverse the movements array to show most recent first
+        movements.reverse();
+
         // Format dates and remove internal fields, add row numbers
         const formattedMovements = movements.map((movement, index) => ({
             rowNumber: index + 1,

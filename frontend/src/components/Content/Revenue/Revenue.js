@@ -25,6 +25,7 @@ export default function Revenue(props) {
     const [customers, setCustomers] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
+    const [includeReturns, setIncludeReturns] = useState(true);
 
     // State for totals
     const [totals, setTotals] = useState({
@@ -128,12 +129,23 @@ export default function Revenue(props) {
         setError("");
 
         try {
-            const response = await axios.get(
-                `${process.env.REACT_APP_BACKEND}sales-invoices/full`
-            );
+            // Fetch both sales and return invoices
+            const [salesResponse, returnResponse] = await Promise.all([
+                axios.get(
+                    `${process.env.REACT_APP_BACKEND}sales-invoices/full`
+                ),
+                includeReturns
+                    ? axios.get(
+                          `${process.env.REACT_APP_BACKEND}return-invoices/reports`
+                      )
+                    : Promise.resolve({ data: [] }),
+            ]);
+
+            // Combine both types of invoices
+            const allInvoices = [...salesResponse.data, ...returnResponse.data];
 
             // Filter invoices by date range
-            const filteredInvoices = response.data.filter((invoice) => {
+            const filteredInvoices = allInvoices.filter((invoice) => {
                 const invoiceDate = new Date(invoice.date);
                 const start = new Date(startDate);
                 const end = new Date(endDate);
@@ -156,7 +168,10 @@ export default function Revenue(props) {
             const newTotals = sortedInvoices.reduce(
                 (acc, invoice) => {
                     acc.total_selling_price += invoice.total_selling_price || 0;
-                    acc.offer += invoice.offer || 0;
+                    // Only add offer for sales invoices, not returns
+                    if (invoice.type !== "return") {
+                        acc.offer += invoice.offer || 0;
+                    }
                     acc.final_amount += invoice.final_amount || 0;
                     acc.total_purchase_cost += invoice.total_purchase_cost || 0;
                     acc.profit += invoice.profit || 0;
@@ -173,7 +188,7 @@ export default function Revenue(props) {
 
             setTotals(newTotals);
         } catch (err) {
-            console.error("Failed to fetch sales invoices:", err);
+            console.error("Failed to fetch invoices:", err);
             setError("فشل في تحميل بيانات الفواتير");
         } finally {
             setIsLoading(false);
@@ -205,7 +220,6 @@ export default function Revenue(props) {
             className={classes.container}
             style={{
                 width: "100%",
-                maxWidth: "90%",
                 margin: "100px auto",
                 padding: "0 20px",
             }}
@@ -305,6 +319,19 @@ export default function Revenue(props) {
                     )}
                 </div>
 
+                <div className={classes.options}>
+                    <label className={classes.checkboxLabel}>
+                        <input
+                            type="checkbox"
+                            checked={includeReturns}
+                            onChange={(e) =>
+                                setIncludeReturns(e.target.checked)
+                            }
+                        />
+                        <span>تضمين فواتير الإرجاع</span>
+                    </label>
+                </div>
+
                 <Button
                     content="عرض النتائج"
                     onClick={fetchInvoices}
@@ -340,8 +367,17 @@ export default function Revenue(props) {
 
                     <SortableTable
                         columns={[
-                            { key: "index", title: "#", sortable: false },
-                            { field: "date", title: "التاريخ" },
+                            {
+                                key: "index",
+                                title: "#",
+                                sortable: false,
+                                width: "50px",
+                            },
+                            {
+                                field: "date",
+                                title: "التاريخ",
+                                width: "200px",
+                            },
                             { field: "customer", title: "العميل" },
                             { field: "type", title: "النوع" },
                             { field: "total_selling_price", title: "الإجمالي" },
@@ -375,7 +411,9 @@ export default function Revenue(props) {
                                         : "بدون عميل"}
                                 </td>
                                 <td className={tableclasses.item}>
-                                    {invoice.type === "walkin"
+                                    {invoice.type === "return"
+                                        ? "مرتجع"
+                                        : invoice.type === "walkin"
                                         ? "زبون"
                                         : "صيدلية"}
                                 </td>
@@ -383,7 +421,9 @@ export default function Revenue(props) {
                                     {invoice.total_selling_price.toFixed(2)} ج.م
                                 </td>
                                 <td className={tableclasses.item}>
-                                    {invoice.offer.toFixed(2)} ج.م
+                                    {invoice.type === "return"
+                                        ? "--"
+                                        : `${invoice.offer.toFixed(2)} ج.م`}
                                 </td>
                                 <td className={tableclasses.item}>
                                     {invoice.final_amount.toFixed(2)} ج.م
@@ -423,7 +463,7 @@ export default function Revenue(props) {
                                     }}
                                 >
                                     <td
-                                        colSpan="4"
+                                        colSpan="5"
                                         className={tableclasses.item}
                                     >
                                         <strong>الإجمالي</strong>

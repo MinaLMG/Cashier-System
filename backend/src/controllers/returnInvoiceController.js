@@ -54,6 +54,57 @@ exports.getAllReturnInvoices = async (req, res) => {
     }
 };
 
+// Get all return invoices with financial data for reports
+exports.getAllReturnInvoicesForReports = async (req, res) => {
+    try {
+        const invoices = await ReturnInvoice.find()
+            .populate("sales_invoice")
+            .populate("customer")
+            .populate("user")
+            .sort({ createdAt: -1 });
+
+        // Calculate financial data for each return invoice
+        const invoicesWithFinancialData = await Promise.all(
+            invoices.map(async (invoice) => {
+                // Calculate financial data using unified formula: الربح = الصافي - التكلفة
+                // For returns:
+                // الربح (profit) = total_loss = -4
+                // الصافي (final_amount) = total_return_amount + total_loss = 7 + (-4) = 3
+                // التكلفة (total_purchase_cost) = total_return_amount = 7
+                const finalAmount =
+                    invoice.total_return_amount + invoice.total_loss;
+                const purchaseCost = invoice.total_return_amount;
+
+                return {
+                    _id: invoice._id,
+                    date: invoice.date,
+                    customer: invoice.customer,
+                    user: invoice.user,
+                    serial: invoice.serial,
+                    reason: invoice.reason,
+                    notes: invoice.notes,
+                    total_return_amount: invoice.total_return_amount,
+                    total_revenue_loss: invoice.total_loss,
+                    // Add fields to match sales invoice structure for reports
+                    type: "return",
+                    total_selling_price: -invoice.total_return_amount, // Negative selling price
+                    offer: 0, // Returns don't have offers
+                    final_amount: finalAmount, // الصافي = return + loss
+                    total_purchase_cost: purchaseCost, // التكلفة = return_amount
+                    profit: invoice.total_loss, // الربح = total_loss
+                };
+            })
+        );
+
+        res.status(200).json(invoicesWithFinancialData);
+    } catch (err) {
+        console.error("Error fetching return invoices for reports:", err);
+        res.status(500).json({
+            error: "Failed to fetch return invoices for reports.",
+        });
+    }
+};
+
 // Get return invoice by ID
 exports.getReturnInvoiceById = async (req, res) => {
     try {
@@ -185,20 +236,8 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
             });
         }
 
-        // Create return invoice
-        const returnInvoice = new ReturnInvoice({
-            date: new Date(),
-            sales_invoice: invoice._id,
-            customer: invoice.customer,
-            user: req.user?._id || null,
-            reason,
-            notes,
-            total_return_amount:
-                (quantity * salesItem.v_price) / returnHasVolume.value,
-            serial: await generateReturnInvoiceSerial(new Date()),
-        });
-
-        await returnInvoice.save();
+        // Calculate total loss before creating return invoice
+        let totalLoss = 0;
         await Promise.all(
             returnSources.map(async (source) => {
                 source.purchase_item = await PurchaseItem.findById(
@@ -208,8 +247,35 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
                     product: salesItem.product._id,
                     volume: source.purchase_item.volume,
                 });
+
+                // Calculate revenue loss for this source
+                const purchasePrice =
+                    (source.quantity * source.purchase_item.v_buy_price) /
+                    source.volume.value;
+                const sellingPrice =
+                    (source.quantity * salesItem.v_price) /
+                    returnHasVolume.value;
+                const revenueLoss = purchasePrice - sellingPrice;
+                totalLoss += revenueLoss;
             })
         );
+
+        // Create return invoice with total_loss
+        const returnInvoice = new ReturnInvoice({
+            date: new Date(),
+            sales_invoice: invoice._id,
+            customer: invoice.customer,
+            user: req.user?._id || null,
+            reason,
+            notes,
+            total_return_amount:
+                (quantity * salesItem.v_price) / returnHasVolume.value,
+            total_loss: totalLoss,
+            serial: await generateReturnInvoiceSerial(new Date()),
+        });
+
+        await returnInvoice.save();
+
         // Create return item with sources and revenue loss
         const returnItem = new ReturnItem({
             return_invoice: returnInvoice._id,
@@ -388,7 +454,30 @@ exports.createReturnInvoice = async (req, res) => {
             });
         }
 
-        // Create return invoice
+        // Calculate total loss for this return
+        let totalLoss = 0;
+        for (const update of purchaseItemUpdates) {
+            const purchaseItem = await PurchaseItem.findById(
+                update.purchase_item
+            );
+            const hasVolume = await HasVolume.findOne({
+                product: salesItem.product._id,
+                volume: purchaseItem.volume,
+            });
+
+            if (hasVolume) {
+                const purchasePrice =
+                    (update.quantity_to_add * purchaseItem.v_buy_price) /
+                    hasVolume.value;
+                const sellingPrice =
+                    (update.quantity_to_add * salesItem.v_price) /
+                    hasVolume.value;
+                const revenueLoss = purchasePrice - sellingPrice;
+                totalLoss += revenueLoss;
+            }
+        }
+
+        // Create return invoice with total_loss
         const returnInvoice = new ReturnInvoice({
             date: new Date(),
             sales_invoice: salesItem.sales_invoice,
@@ -397,6 +486,7 @@ exports.createReturnInvoice = async (req, res) => {
             reason,
             notes,
             total_return_amount: quantity * salesItem.v_price,
+            total_loss: totalLoss,
             serial: await generateReturnInvoiceSerial(new Date()),
         });
 

@@ -5,6 +5,9 @@ const returnInvoiceController = require("../controllers/returnInvoiceController"
 // Get all return invoices
 router.get("/", returnInvoiceController.getAllReturnInvoices);
 
+// Get all return invoices for reports
+router.get("/reports", returnInvoiceController.getAllReturnInvoicesForReports);
+
 // Get return invoice by ID
 router.get("/:id", returnInvoiceController.getReturnInvoiceById);
 

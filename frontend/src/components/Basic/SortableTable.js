@@ -99,7 +99,10 @@ const SortableTable = ({
                                     ? classes.sortableHeader
                                     : ""
                             }
-                            style={{ width: `${100 / columns.length}%` }}
+                            style={{
+                                width:
+                                    column.width || `${100 / columns.length}%`,
+                            }}
                         >
                             <div className={classes.headerContent}>
                                 <span>{column.title}</span>
