@@ -133,10 +133,7 @@ export default function ReturnModal({
             <div className={classes.modalContent}>
                 <div className={classes.productInfo}>
                     <h4>{salesItem.product?.name || "منتج غير معروف"}</h4>
-                    <p>
-                        الكمية المباعة: {salesItem.salesItem?.quantity || 0}{" "}
-                        وحدة
-                    </p>
+
                     {salesItem.salesItem?.to_return && (
                         <p>
                             الكمية المتاحة للإرجاع: {availableBaseQuantity} وحدة
