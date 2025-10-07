@@ -385,11 +385,11 @@ export default function Revenue(props) {
                             { field: "final_amount", title: "الصافي" },
                             { field: "total_purchase_cost", title: "التكلفة" },
                             { field: "profit", title: "الربح" },
-                            {
-                                key: "actions",
-                                title: "العمليات",
-                                sortable: false,
-                            },
+                            // {
+                            //     key: "actions",
+                            //     title: "العمليات",
+                            //     sortable: false,
+                            // },
                         ]}
                         data={invoices}
                         initialSortField="date"
@@ -443,14 +443,14 @@ export default function Revenue(props) {
                                 >
                                     {invoice.profit.toFixed(2)} ج.م
                                 </td>
-                                <td className={tableclasses.item}>
+                                {/* <td className={tableclasses.item}>
                                     <div className="d-flex justify-content-around">
                                         <FaEdit
                                             onClick={() => handleEdit(invoice)}
                                             className={tableclasses.edit}
                                         />
                                     </div>
-                                </td>
+                                </td> */}
                             </tr>
                         )}
                         emptyMessage="لا توجد فواتير في هذه الفترة"
@@ -508,7 +508,7 @@ export default function Revenue(props) {
                                             {totals.profit.toFixed(2)} ج.م
                                         </strong>
                                     </td>
-                                    <td className={tableclasses.item}></td>
+                                    {/* <td className={tableclasses.item}></td> */}
                                 </tr>
                             )
                         }
