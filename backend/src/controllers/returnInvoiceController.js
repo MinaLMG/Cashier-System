@@ -169,6 +169,10 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
             product: salesItem.product._id,
             volume: return_volume_id,
         });
+        const originalVolume = await HasVolume.findOne({
+            product: salesItem.product._id,
+            volume: salesItem.volume,
+        });
         if (!returnHasVolume) {
             return res.status(400).json({
                 error: "Return volume not found for this product.",
@@ -247,14 +251,13 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
                     product: salesItem.product._id,
                     volume: source.purchase_item.volume,
                 });
-
                 // Calculate revenue loss for this source
                 const purchasePrice =
                     (source.quantity * source.purchase_item.v_buy_price) /
                     source.volume.value;
                 const sellingPrice =
                     (source.quantity * salesItem.v_price) /
-                    returnHasVolume.value;
+                    originalVolume.value;
                 const revenueLoss = purchasePrice - sellingPrice;
                 totalLoss += revenueLoss;
             })
@@ -268,8 +271,11 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
             user: req.user?._id || null,
             reason,
             notes,
+
             total_return_amount:
-                (quantity * salesItem.v_price) / returnHasVolume.value,
+                quantity *
+                returnHasVolume.value *
+                (salesItem.v_price / originalVolume.value),
             total_loss: totalLoss,
             serial: await generateReturnInvoiceSerial(new Date()),
         });
@@ -283,7 +289,9 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
             product: salesItem.product._id,
             volume: return_volume_id,
             quantity,
-            v_price: salesItem.v_price,
+            v_price:
+                (salesItem.v_price / originalVolume.value) *
+                returnHasVolume.value,
             returned_to_sources: returnSources.map((source) => ({
                 purchase_item: source.purchase_item._id,
                 quantity: source.quantity,
@@ -292,12 +300,12 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
                     source.volume.value,
                 selling_price:
                     (source.quantity * salesItem.v_price) /
-                    returnHasVolume.value,
+                    originalVolume.value,
                 revenue_loss:
                     (source.quantity * source.purchase_item.v_buy_price) /
                         source.volume.value -
                     (source.quantity * salesItem.v_price) /
-                        returnHasVolume.value,
+                        originalVolume.value,
             })),
         });
         returnItem.total_revenue_loss = returnItem.returned_to_sources.reduce(
