@@ -151,11 +151,14 @@ export default function Layout() {
     const [salesInvoiceToView, setSalesInvoiceToView] = useState(null);
     const [purchaseInvoiceToView, setPurchaseInvoiceToView] = useState(null);
 
-    // Function to handle back from view
+    // Function to handle back from view or edit
     const handleBackFromView = () => {
-        if (selected === "عرض فاتورة بيع") {
+        if (selected === "عرض فاتورة بيع" || selected === "عدل فاتورة بيع") {
             setSelected("اعرض كل فواتير البيع");
-        } else if (selected === "عرض فاتورة مشتريات") {
+        } else if (
+            selected === "عرض فاتورة مشتريات" ||
+            selected === "عدل فاتورة مشتريات"
+        ) {
             setSelected("اعرض كل فواتير المشتريات");
         }
     };

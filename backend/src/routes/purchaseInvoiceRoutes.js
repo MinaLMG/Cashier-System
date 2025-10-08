@@ -10,5 +10,9 @@ router.post("/full", controller.createFullPurchaseInvoice);
 router.put("/full/:id", controller.updateFullPurchaseInvoice);
 router.get("/full", controller.getAllFullPurchaseInvoices);
 router.get("/full/:id", controller.getFullPurchaseInvoiceById);
+router.get(
+    "/price-suggestions/:productId/:volumeId",
+    controller.getPriceSuggestions
+);
 
 module.exports = router;

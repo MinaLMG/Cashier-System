@@ -1,5 +1,7 @@
 .item {
     align-content: center;
+    overflow: visible !important;
+    position: relative;
 }
 
 .no-margin {
@@ -60,4 +62,124 @@
     padding: 8px 0;
     font-weight: normal;
     text-align: center;
+}
+
+/* Del/Insert buttons */
+.insertButton,
+.deleteButton {
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 45px;
+}
+
+.insertButton {
+    background-color: #198754;
+    color: white;
+    border-color: #198754;
+}
+
+.insertButton:hover:not(:disabled) {
+    background-color: #157347;
+    transform: translateY(-1px);
+}
+
+.deleteButton {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.deleteButton:hover:not(:disabled) {
+    background-color: #bb2d3b;
+    transform: translateY(-1px);
+}
+
+.insertButton:disabled,
+.deleteButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Price suggestion styling */
+.priceSuggestion {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 193, 7, 0.1),
+        rgba(255, 152, 0, 0.1)
+    );
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 8px;
+    font-size: 12px;
+    animation: suggestionSlideIn 0.3s ease-out;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.priceSuggestion::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 70%
+    );
+    transform: translateX(-100%);
+    animation: shimmer 2s infinite;
+}
+
+.suggestionIcon {
+    font-size: 14px;
+    animation: iconPulse 2s infinite;
+}
+
+.suggestionText {
+    color: #f57c00;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes suggestionSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes iconPulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
 }

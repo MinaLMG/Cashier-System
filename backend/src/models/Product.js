@@ -30,6 +30,12 @@ const productSchema = new mongoose.Schema({
     // Unit-based prices (per base unit)
     u_walkin_price: { type: Number, required: true, default: 0 },
     u_pharmacy_price: { type: Number, required: true, default: 0 },
+    // Suggested unit prices based on moving average
+    u_suggested_buy_price: { type: Number, default: null },
+    u_suggested_pharmacy_price: { type: Number, default: null },
+    u_suggested_walkin_price: { type: Number, default: null },
+    // Track when suggestions were last updated
+    suggestions_updated_at: { type: Date, default: null },
     total_remaining: {
         type: Number,
         default: 0,

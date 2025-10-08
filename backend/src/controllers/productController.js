@@ -1,5 +1,54 @@
-const Product = require("../models/Product");
+ const Product = require("../models/Product");
 const HasVolume = require("../models/HasVolume");
+
+// Helper function to check if conversions have non-barcode changes
+const hasNonBarcodeConversionChanges = (currentConversions, newConversions) => {
+    if (!currentConversions || !newConversions) return false;
+    
+    // Create maps for easier comparison
+    const currentMap = new Map();
+    const newMap = new Map();
+    
+    currentConversions.forEach(conv => {
+        currentMap.set(`${conv.from}-${conv.to}`, {
+            from: conv.from,
+            to: conv.to,
+            value: conv.value,
+            barcode: conv.barcode || null
+        });
+    });
+    
+    newConversions.forEach(conv => {
+        newMap.set(`${conv.from}-${conv.to}`, {
+            from: conv.from,
+            to: conv.to,
+            value: conv.value,
+            barcode: conv.barcode || null
+        });
+    });
+    
+    // Check if any conversion has changed in non-barcode fields
+    for (const [key, currentConv] of currentMap) {
+        const newConv = newMap.get(key);
+        
+        // If conversion was removed, that's a non-barcode change
+        if (!newConv) return true;
+        
+        // Check if from, to, or value changed
+        if (currentConv.from !== newConv.from || 
+            currentConv.to !== newConv.to || 
+            currentConv.value !== newConv.value) {
+            return true;
+        }
+    }
+    
+    // Check if any new conversions were added
+    for (const [key, newConv] of newMap) {
+        if (!currentMap.has(key)) return true;
+    }
+    
+    return false;
+};
 
 exports.getAllProducts = async (req, res) => {
     try {
@@ -51,14 +100,40 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
     try {
-        const product = await Product.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            {
-                new: true,
-                runValidators: true,
+        const productId = req.params.id;
+
+        // Check if product has been used in purchases before allowing conversion modifications
+        if (req.body.conversions) {
+            try {
+                const PurchaseItem = require("../models/PurchaseItem");
+                const purchaseItemsCount = await PurchaseItem.countDocuments({
+                    product: productId,
+                });
+
+                if (purchaseItemsCount > 0) {
+                    // Get current product to compare conversions
+                    const currentProduct = await Product.findById(productId);
+                    if (currentProduct) {
+                        // Check if conversions have non-barcode changes
+                        if (hasNonBarcodeConversionChanges(currentProduct.conversions, req.body.conversions)) {
+                            return res.status(400).json({
+                                error: "لا يمكن تعديل تحويلات المنتج (من، إلى، القيمة) - تم استخدامه في فواتير المشتريات. يمكن تعديل الباركود فقط.",
+                                canModifyConversions: false,
+                                purchaseItemsCount,
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Error checking product usage:", err);
+                // Continue with update if check fails (don't block the update)
             }
-        );
+        }
+
+        const product = await Product.findByIdAndUpdate(productId, req.body, {
+            new: true,
+            runValidators: true,
+        });
         if (!product)
             return res.status(404).json({ error: "Product not found." });
 
@@ -240,6 +315,32 @@ exports.updateFullProduct = async (req, res) => {
 
     if (!name || !conversions?.length || !values?.length) {
         return res.status(400).json({ error: "بيانات المنتج غير مكتملة" });
+    }
+
+    // Check if product has been used in purchases before allowing conversion modifications
+    try {
+        const PurchaseItem = require("../models/PurchaseItem");
+        const purchaseItemsCount = await PurchaseItem.countDocuments({
+            product: productId,
+        });
+
+        if (purchaseItemsCount > 0) {
+            // Get current product to compare conversions
+            const currentProduct = await Product.findById(productId);
+            if (currentProduct) {
+                // Check if conversions have non-barcode changes
+                if (hasNonBarcodeConversionChanges(currentProduct.conversions, conversions)) {
+                    return res.status(400).json({
+                        error: "لا يمكن تعديل تحويلات المنتج (من، إلى، القيمة) - تم استخدامه في فواتير المشتريات. يمكن تعديل الباركود فقط.",
+                        canModifyConversions: false,
+                        purchaseItemsCount,
+                    });
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Error checking product usage:", err);
+        // Continue with update if check fails (don't block the update)
     }
 
     // Validate conversions
@@ -523,5 +624,57 @@ exports.getAllFullProducts = async (req, res) => {
     } catch (err) {
         console.error("getFullProducts error:", err);
         res.status(500).json({ error: "فشل في تحميل المنتجات الكاملة" });
+    }
+};
+
+// Check if product has been used in any purchase invoices
+exports.checkProductUsageInPurchases = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const PurchaseItem = require("../models/PurchaseItem");
+
+        // Check if there are any purchase items with this product
+        const purchaseItemsCount = await PurchaseItem.countDocuments({
+            product: id,
+        });
+
+        res.status(200).json({
+            isUsedInPurchases: purchaseItemsCount > 0,
+            purchaseItemsCount,
+        });
+    } catch (err) {
+        console.error("checkProductUsageInPurchases error:", err);
+        res.status(500).json({ error: "فشل في التحقق من استخدام المنتج" });
+    }
+};
+
+// Check if product conversions can be modified (not used in any purchase invoices)
+exports.checkProductConversionsModifiable = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const PurchaseItem = require("../models/PurchaseItem");
+
+        // Check if there are any purchase items with this product
+        const purchaseItemsCount = await PurchaseItem.countDocuments({
+            product: id,
+        });
+
+        const canModifyConversions = purchaseItemsCount === 0;
+
+        res.status(200).json({
+            canModifyConversions,
+            purchaseItemsCount,
+            canModifyBarcode: true, // Always allow barcode modification
+            message: canModifyConversions
+                ? "يمكن تعديل جميع تحويلات المنتج"
+                : "يمكن تعديل الباركود فقط - تم استخدام المنتج في فواتير المشتريات",
+        });
+    } catch (err) {
+        console.error("checkProductConversionsModifiable error:", err);
+        res.status(500).json({
+            error: "فشل في التحقق من إمكانية تعديل تحويلات المنتج",
+        });
     }
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import Button from "../../Basic/Button";
 import TextInput from "../../Basic/TextInput";
@@ -9,6 +9,7 @@ import useInvoiceRows from "../../../hooks/useInvoiceRows";
 import classes from "./PurchaseInvoice.module.css";
 import DateTimeInput from "../../Basic/DateTimeInput";
 import ProductForm from "../AddProduct/ProductForm";
+import SupplierForm from "../Suppliers/SupplierForm";
 import Modal from "../../UI/Modal";
 import FormMessage from "../../Basic/FormMessage";
 
@@ -24,6 +25,11 @@ export default function PurchaseInvoice(props) {
     const [fieldErrors, setFieldErrors] = useState({}); // Individual field errors
     const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track if user has started interacting
     const [showAddProductModal, setShowAddProductModal] = useState(false);
+    const [showAddSupplierModal, setShowAddSupplierModal] = useState(false);
+    const [priceSuggestions, setPriceSuggestions] = useState({}); // Store price suggestions for each row
+
+    // Add ref to track if suspended invoice has been loaded
+    const suspendedInvoiceLoaded = useRef(false);
 
     // Determine if we're in view mode
     const isViewMode = props.mode === "view";
@@ -40,6 +46,11 @@ export default function PurchaseInvoice(props) {
         //     return true;
         // }
 
+        // For add/remove buttons, only disable in view mode
+        if (field === "add" || field === "remove") {
+            return isViewMode;
+        }
+
         return false;
     };
 
@@ -49,6 +60,7 @@ export default function PurchaseInvoice(props) {
         product: null,
         quantity: "",
         volume: null,
+        barcode: "",
         v_buy_price: "",
         v_pharmacy_price: "",
         v_walkin_price: "",
@@ -97,12 +109,140 @@ export default function PurchaseInvoice(props) {
         rows: invoiceRows,
         rowErrors,
         isFormValid,
-        handleRowChange,
+        handleRowChange: originalHandleRowChange,
         addRow,
         removeRow,
         setRows: setInvoiceRows,
         validateRows,
     } = useInvoiceRows(emptyRow, validateRow, [products]);
+
+    // Fetch price suggestions when product and volume are both set
+    const fetchPriceSuggestions = useCallback(
+        async (index, productId, volumeId) => {
+            if (!productId || !volumeId) {
+                return;
+            }
+
+            try {
+                const response = await axios.get(
+                    `${process.env.REACT_APP_BACKEND}purchase-invoices/price-suggestions/${productId}/${volumeId}`
+                );
+
+                if (response.data.hasSuggestions) {
+                    setPriceSuggestions((prev) => ({
+                        ...prev,
+                        [index]: response.data.suggestedPrices,
+                    }));
+                } else {
+                    // Clear suggestions if no historical data
+                    setPriceSuggestions((prev) => {
+                        const newSuggestions = { ...prev };
+                        delete newSuggestions[index];
+                        return newSuggestions;
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching price suggestions:", error);
+                // Clear suggestions on error
+                setPriceSuggestions((prev) => {
+                    const newSuggestions = { ...prev };
+                    delete newSuggestions[index];
+                    return newSuggestions;
+                });
+            }
+        },
+        []
+    );
+
+    // Function to find product and volume by barcode
+    const findProductByBarcode = useCallback(
+        (barcode) => {
+            if (!barcode || !products.length) return null;
+
+            for (const product of products) {
+                if (product.values && product.values.length > 0) {
+                    for (const volume of product.values) {
+                        if (volume.barcode === barcode) {
+                            return {
+                                productId: product._id,
+                                volumeId: volume.id,
+                                productName: product.name,
+                                volumeName: volume.name,
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        },
+        [products]
+    );
+
+    // Wrap handleRowChange to fetch suggestions when product or volume changes
+    const handleRowChange = useCallback(
+        (index, field, value) => {
+            originalHandleRowChange(index, field, value);
+
+            const currentRow = invoiceRows[index];
+
+            // Handle barcode scanning
+            if (field === "barcode" && value) {
+                const barcodeResult = findProductByBarcode(value);
+                if (barcodeResult) {
+                    // Auto-select product and volume based on barcode
+                    originalHandleRowChange(
+                        index,
+                        "product",
+                        barcodeResult.productId
+                    );
+                    originalHandleRowChange(
+                        index,
+                        "volume",
+                        barcodeResult.volumeId
+                    );
+
+                    // Fetch price suggestions for the found product and volume
+                    fetchPriceSuggestions(
+                        index,
+                        barcodeResult.productId,
+                        barcodeResult.volumeId
+                    );
+
+                    // Show success message
+                    setSubmitMessage({
+                        text: `✅ تم العثور على المنتج: ${barcodeResult.productName} - ${barcodeResult.volumeName}`,
+                        isError: false,
+                    });
+                    setTimeout(() => {
+                        setSubmitMessage({ text: "", isError: false });
+                    }, 3000);
+                } else {
+                    // Show error message for unknown barcode
+                    setSubmitMessage({
+                        text: `❌ لم يتم العثور على منتج بالباركود: ${value}`,
+                        isError: true,
+                    });
+                    setTimeout(() => {
+                        setSubmitMessage({ text: "", isError: false });
+                    }, 3000);
+                }
+            }
+            // Fetch suggestions when product changes (and volume is already set)
+            else if (field === "product" && value && currentRow?.volume) {
+                fetchPriceSuggestions(index, value, currentRow.volume);
+            }
+            // Fetch suggestions when volume changes (and product is already set)
+            else if (field === "volume" && value && currentRow?.product) {
+                fetchPriceSuggestions(index, currentRow.product, value);
+            }
+        },
+        [
+            originalHandleRowChange,
+            invoiceRows,
+            fetchPriceSuggestions,
+            findProductByBarcode,
+        ]
+    );
 
     // Initialize invoice state with ISO date string
     const [invoice, setInvoice] = useState({
@@ -127,6 +267,18 @@ export default function PurchaseInvoice(props) {
         if (!invoice.date) {
             newFieldErrors.date = "التاريخ مطلوب";
             hasErrors = true;
+        } else {
+            // Check if date is in the future
+            const selectedDate = new Date(invoice.date);
+            const now = new Date();
+            // Set time to start of day for comparison
+            selectedDate.setHours(0, 0, 0, 0);
+            now.setHours(0, 0, 0, 0);
+
+            if (selectedDate > now) {
+                newFieldErrors.date = "لا يمكن اختيار تاريخ في المستقبل";
+                hasErrors = true;
+            }
         }
 
         // Validate invoice rows
@@ -201,12 +353,85 @@ export default function PurchaseInvoice(props) {
                 total_cost,
             });
             setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
+        } else if (
+            props.mode !== "edit" &&
+            props.mode !== "view" &&
+            !suspendedInvoiceLoaded.current
+        ) {
+            // Load suspended invoice only in add mode and only once
+            const suspended = localStorage.getItem("suspendedPurchaseInvoice");
+            if (suspended) {
+                try {
+                    const data = JSON.parse(suspended);
+                    setInvoice(data.invoice);
+                    setInvoiceRows(data.rows);
+                    setSubmitMessage({
+                        text: "✅ تم استرجاع الفاتورة المعلقة",
+                        isError: false,
+                    });
+                    setTimeout(() => {
+                        setSubmitMessage({ text: "", isError: false });
+                    }, 3000);
+                    suspendedInvoiceLoaded.current = true; // Mark as loaded
+
+                    // Remove from localStorage after loading
+                    localStorage.removeItem("suspendedPurchaseInvoice");
+                } catch (err) {
+                    console.error("Error loading suspended invoice:", err);
+                }
+            }
         }
-    }, []);
+    }, [emptyRow, props.invoice, props.mode, setInvoiceRows]);
+
+    // Reset suspended invoice loaded flag when mode changes
+    useEffect(() => {
+        suspendedInvoiceLoaded.current = false;
+    }, [props.mode]);
 
     // Handle invoice field changes
     const handleInvoiceChange = (field, value) => {
         setInvoice((prev) => ({ ...prev, [field]: value }));
+    };
+
+    // Suspend invoice - save current state to localStorage
+    const handleSuspendInvoice = () => {
+        const dataToSave = {
+            invoice,
+            rows: invoiceRows,
+        };
+        localStorage.setItem(
+            "suspendedPurchaseInvoice",
+            JSON.stringify(dataToSave)
+        );
+        setSubmitMessage({
+            text: "✅ تم تعليق الفاتورة بنجاح. يمكنك العودة إليها لاحقاً",
+            isError: false,
+        });
+        setTimeout(() => {
+            setSubmitMessage({ text: "", isError: false });
+        }, 3000);
+    };
+
+    // Clear suspended invoice
+    const clearSuspendedInvoice = () => {
+        localStorage.removeItem("suspendedPurchaseInvoice");
+        suspendedInvoiceLoaded.current = false; // Reset the ref
+    };
+
+    // Reset form to initial state
+    const handleReset = () => {
+        setInvoice({
+            date: new Date().toISOString(),
+            supplier: null,
+            total_cost: "0",
+        });
+        setInvoiceRows([{ ...emptyRow }]);
+        setFieldErrors({});
+        setFormError("");
+        setSubmitMessage({ text: "", isError: false });
+        setPriceSuggestions({}); // Clear all price suggestions
+        clearSuspendedInvoice();
+        setHasUserInteracted(false);
     };
 
     // Use validateRows in a function to avoid the unused variable warning
@@ -271,6 +496,9 @@ export default function PurchaseInvoice(props) {
                     isError: false,
                 });
             }, 5000);
+
+            // Clear suspended invoice after successful submission
+            clearSuspendedInvoice();
 
             // Reset form to initial state if not in edit mode
             if (props.mode !== "edit") {
@@ -350,6 +578,30 @@ export default function PurchaseInvoice(props) {
         handleAddProductSuccess(newProduct._id);
     };
 
+    // Handle add supplier success
+    const handleAddSupplierSuccess = () => {
+        // Fetch the updated suppliers list
+        axios
+            .get(`${process.env.REACT_APP_BACKEND}suppliers`)
+            .then((response) => {
+                setSuppliers(response.data);
+                setShowAddSupplierModal(false);
+
+                // Optionally, select the new supplier (the last one in the list)
+                if (response.data.length > 0) {
+                    const newSupplier = response.data[response.data.length - 1];
+                    handleInvoiceChange("supplier", newSupplier._id);
+                }
+            })
+            .catch((error) => {
+                console.error("Error fetching suppliers:", error);
+                setSubmitMessage({
+                    text: `❌ حدث خطأ في جلب بيانات الموردين: ${error.message}`,
+                    isError: true,
+                });
+            });
+    };
+
     // Initialize form for edit mode
     useEffect(() => {
         if (props.mode === "edit" && props.invoice) {
@@ -368,10 +620,18 @@ export default function PurchaseInvoice(props) {
             </h2>
 
             {!isViewMode && (
-                <div className="d-flex justify-content-end mb-3">
+                <div
+                    className="d-flex justify-content-end mb-3"
+                    style={{ gap: "10px" }}
+                >
                     <Button
                         content="إضافة منتج جديد"
                         onClick={() => setShowAddProductModal(true)}
+                        type="primary"
+                    />
+                    <Button
+                        content="إضافة مورد جديد"
+                        onClick={() => setShowAddSupplierModal(true)}
                         type="primary"
                     />
                 </div>
@@ -418,21 +678,36 @@ export default function PurchaseInvoice(props) {
                             #
                         </th>
                         <th className={classes.head} scope="col">
-                            المنتج
+                            الباركود
                         </th>
                         <th className={classes.head} scope="col">
-                            الكمية
+                            المنتج
                         </th>
                         <th className={classes.head} scope="col">
                             العبوة
                         </th>
                         <th className={classes.head} scope="col">
+                            الكمية
+                        </th>
+                        <th
+                            className={classes.head}
+                            scope="col"
+                            style={{ width: "100px" }}
+                        >
                             سعر الشراء
                         </th>
-                        <th className={classes.head} scope="col">
+                        <th
+                            className={classes.head}
+                            scope="col"
+                            style={{ width: "100px" }}
+                        >
                             سعر البيع للصيدلية
                         </th>
-                        <th className={classes.head} scope="col">
+                        <th
+                            className={classes.head}
+                            scope="col"
+                            style={{ width: "100px" }}
+                        >
                             سعر البيع للزبون
                         </th>
                         <th className={classes.head} scope="col">
@@ -458,7 +733,9 @@ export default function PurchaseInvoice(props) {
                     {invoiceRows.map((row, i) => {
                         return (
                             <InvoiceRow
-                                key={i}
+                                key={`row-${i}-${row.product || "empty"}-${
+                                    row.volume || "empty"
+                                }`}
                                 row={row}
                                 index={i}
                                 products={products}
@@ -473,13 +750,15 @@ export default function PurchaseInvoice(props) {
                                 }
                                 disabled={getDisabledState}
                                 viewMode={isViewMode}
+                                priceSuggestions={priceSuggestions[i] || null}
+                                totalRows={invoiceRows.length}
                             />
                         );
                     })}
 
                     {/* Total row */}
                     <tr>
-                        <td colSpan="4" className={classes.item}>
+                        <td colSpan="5" className={classes.item}>
                             <strong>إجمالي الفاتورة:</strong>
                         </td>
                         <td
@@ -504,15 +783,42 @@ export default function PurchaseInvoice(props) {
                     type="secondary"
                 />
             ) : (
-                <Button
-                    content={
-                        props.mode === "edit"
-                            ? "تحديث الفاتورة"
-                            : "حفظ الفاتورة"
-                    }
-                    onClick={handleSubmit}
-                    disabled={!isFormValid || isSubmitting}
-                />
+                <div style={{ display: "flex", gap: "10px" }}>
+                    <Button
+                        content={
+                            props.mode === "edit"
+                                ? "تحديث الفاتورة"
+                                : "حفظ الفاتورة"
+                        }
+                        onClick={handleSubmit}
+                        disabled={!isFormValid || isSubmitting}
+                    />
+                    {props.mode !== "edit" && (
+                        <>
+                            <Button
+                                content="تعليق الفاتورة"
+                                onClick={handleSuspendInvoice}
+                                type="secondary"
+                                disabled={isSubmitting}
+                            />
+                            <Button
+                                content="إعادة تعيين"
+                                onClick={handleReset}
+                                type="secondary"
+                                disabled={isSubmitting}
+                            />
+                        </>
+                    )}
+                    {props.mode === "edit" && (
+                        <Button
+                            content="العودة"
+                            onClick={
+                                props.onBack || (() => window.history.back())
+                            }
+                            type="secondary"
+                        />
+                    )}
+                </div>
             )}
 
             {/* Form-level error below submit button */}
@@ -546,6 +852,17 @@ export default function PurchaseInvoice(props) {
                         onSuccess={handleProductAdded}
                         onCancel={() => setShowAddProductModal(false)}
                         inModal={true}
+                    />
+                </Modal>
+            )}
+
+            {/* Modal for adding new supplier */}
+            {showAddSupplierModal && (
+                <Modal onClose={() => setShowAddSupplierModal(false)}>
+                    <SupplierForm
+                        isEditing={false}
+                        onSubmit={handleAddSupplierSuccess}
+                        onCancel={() => setShowAddSupplierModal(false)}
                     />
                 </Modal>
             )}

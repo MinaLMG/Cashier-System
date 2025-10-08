@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Select from "../../Basic/Select";
+import SearchableSelect from "../../Basic/SearchableSelect";
 import SortableTable from "../../Basic/SortableTable";
 import classes from "./ProductMovement.module.css";
 
@@ -185,12 +185,13 @@ const ProductMovement = () => {
             </div>
 
             <div className={classes.controls}>
-                <Select
-                    title="اختر المنتج"
+                <SearchableSelect
+                    label="اختر المنتج"
                     options={products}
                     value={selectedProduct}
                     onchange={handleProductChange}
-                    width="300px"
+                    placeholder="ابحث عن منتج..."
+                    className={classes.productSelect}
                 />
             </div>
 

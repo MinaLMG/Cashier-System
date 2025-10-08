@@ -10,5 +10,10 @@ router.post("/full", productController.createFullProduct);
 router.put("/full/:id", productController.updateFullProduct);
 router.get("/full", productController.getAllFullProducts);
 router.get("/full/:id", productController.getFullProductById);
+router.get("/:id/check-usage", productController.checkProductUsageInPurchases);
+router.get(
+    "/:id/check-conversions-modifiable",
+    productController.checkProductConversionsModifiable
+);
 
 module.exports = router;

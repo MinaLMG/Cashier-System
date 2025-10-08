@@ -175,8 +175,9 @@ export default function ReturnModal({
                             max={maxQuantity}
                         />
                         {maxQuantity > 0 && (
-                            <small className={classes.helpText}>
-                                الحد الأقصى للإرجاع: {maxQuantity} وحدة
+                            <small className={classes.maxQuantityHighlight}>
+                                الحد الأقصى للإرجاع:{" "}
+                                <strong>{maxQuantity}</strong> وحدة
                             </small>
                         )}
                     </div>

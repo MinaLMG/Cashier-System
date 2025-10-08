@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
 import Button from "../../Basic/Button";
 import DateTimeInput from "../../Basic/DateTimeInput";
@@ -9,6 +9,8 @@ import useInvoiceRows from "../../../hooks/useInvoiceRows";
 import classes from "./SalesInvoice.module.css";
 import FormMessage from "../../Basic/FormMessage";
 import ReturnModal from "../../general/ReturnModal";
+import CustomerForm from "../Customers/CustomerForm";
+import Modal from "../../UI/Modal";
 import { FaUndo } from "react-icons/fa";
 
 export default function SalesInvoice(props) {
@@ -31,6 +33,9 @@ export default function SalesInvoice(props) {
     const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
     const [selectedRowForReturn, setSelectedRowForReturn] = useState(null);
 
+    // Add customer modal state
+    const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+
     // Add this state to track when we're updating fields to prevent infinite loops
     const [isUpdatingFields, setIsUpdatingFields] = useState(false);
 
@@ -39,6 +44,9 @@ export default function SalesInvoice(props) {
 
     // Add state to track field update sources to prevent loops
     const [fieldUpdateSource, setFieldUpdateSource] = useState({});
+
+    // Add ref to track if suspended invoice has been loaded
+    const suspendedInvoiceLoaded = useRef(false);
 
     // Define the initial empty row using useMemo to prevent dependency changes
     const emptyRow = useMemo(
@@ -157,6 +165,18 @@ export default function SalesInvoice(props) {
         if (!invoice.date) {
             newFieldErrors.date = "التاريخ مطلوب";
             hasErrors = true;
+        } else {
+            // Check if date is in the future
+            const selectedDate = new Date(invoice.date);
+            const now = new Date();
+            // Set time to start of day for comparison
+            selectedDate.setHours(0, 0, 0, 0);
+            now.setHours(0, 0, 0, 0);
+
+            if (selectedDate > now) {
+                newFieldErrors.date = "لا يمكن اختيار تاريخ في المستقبل";
+                hasErrors = true;
+            }
         }
 
         if (!invoice.customer) {
@@ -232,8 +252,40 @@ export default function SalesInvoice(props) {
             setTimeout(() => {
                 validateRows();
             }, 100);
+        } else if (
+            props.mode !== "edit" &&
+            props.mode !== "view" &&
+            !suspendedInvoiceLoaded.current
+        ) {
+            // Load suspended invoice only in add mode and only once
+            const suspended = localStorage.getItem("suspendedSalesInvoice");
+            if (suspended) {
+                try {
+                    const data = JSON.parse(suspended);
+                    setInvoice(data.invoice);
+                    setInvoiceRows(data.rows);
+                    setSubmitMessage({
+                        text: "✅ تم استرجاع الفاتورة المعلقة",
+                        isError: false,
+                    });
+                    setTimeout(() => {
+                        setSubmitMessage({ text: "", isError: false });
+                    }, 3000);
+                    suspendedInvoiceLoaded.current = true; // Mark as loaded
+
+                    // Remove from localStorage after loading
+                    localStorage.removeItem("suspendedSalesInvoice");
+                } catch (err) {
+                    console.error("Error loading suspended invoice:", err);
+                }
+            }
         }
-    }, [emptyRow, props.invoice, props.mode, setInvoiceRows, validateRows]);
+    }, [emptyRow, props.invoice, props.mode, setInvoiceRows]);
+
+    // Reset suspended invoice loaded flag when mode changes
+    useEffect(() => {
+        suspendedInvoiceLoaded.current = false;
+    }, [props.mode]);
 
     // Calculate total whenever rows or invoice type changes
     useEffect(() => {
@@ -330,6 +382,50 @@ export default function SalesInvoice(props) {
         return errors;
     };
 
+    // Suspend invoice - save current state to localStorage
+    const handleSuspendInvoice = () => {
+        const dataToSave = {
+            invoice,
+            rows: invoiceRows,
+        };
+        localStorage.setItem(
+            "suspendedSalesInvoice",
+            JSON.stringify(dataToSave)
+        );
+        setSubmitMessage({
+            text: "✅ تم تعليق الفاتورة بنجاح. يمكنك العودة إليها لاحقاً",
+            isError: false,
+        });
+        setTimeout(() => {
+            setSubmitMessage({ text: "", isError: false });
+        }, 3000);
+    };
+
+    // Clear suspended invoice
+    const clearSuspendedInvoice = () => {
+        localStorage.removeItem("suspendedSalesInvoice");
+        suspendedInvoiceLoaded.current = false; // Reset the ref
+    };
+
+    // Reset form to initial state
+    const handleReset = () => {
+        setInvoice({
+            date: new Date().toISOString(),
+            customer: null,
+            type: "walkin",
+            offer: 0,
+        });
+        setInvoiceRows([{ ...emptyRow }]);
+        setFieldErrors({});
+        setFormError("");
+        setSubmitMessage({ text: "", isError: false });
+        clearSuspendedInvoice();
+        setHasUserInteracted(false);
+        setFinalTotal(0);
+        setBaseCost(0);
+        setProfit(0);
+    };
+
     // Handle form submission
     const handleSubmit = async () => {
         // For edit mode, we'll only validate and update the main invoice data
@@ -366,6 +462,9 @@ export default function SalesInvoice(props) {
                     text: "✅ تم تحديث بيانات الفاتورة بنجاح",
                     isError: false,
                 });
+
+                // Clear suspended invoice after successful submission
+                clearSuspendedInvoice();
 
                 // Clear success message after 5 seconds
                 setTimeout(() => {
@@ -438,6 +537,9 @@ export default function SalesInvoice(props) {
                 text: "✅ تم إضافة الفاتورة بنجاح",
                 isError: false,
             });
+
+            // Clear suspended invoice after successful submission
+            clearSuspendedInvoice();
 
             // Clear success message after 5 seconds
             setTimeout(() => {
@@ -851,6 +953,30 @@ export default function SalesInvoice(props) {
         setSelectedRowForReturn(null);
     };
 
+    // Handle add customer success
+    const handleAddCustomerSuccess = () => {
+        // Fetch the updated customers list
+        axios
+            .get(`${process.env.REACT_APP_BACKEND}customers`)
+            .then((response) => {
+                setCustomers(response.data);
+                setShowAddCustomerModal(false);
+
+                // Optionally, select the new customer (the last one in the list)
+                if (response.data.length > 0) {
+                    const newCustomer = response.data[response.data.length - 1];
+                    handleInvoiceChange("customer", newCustomer._id);
+                }
+            })
+            .catch((error) => {
+                console.error("Error fetching customers:", error);
+                setSubmitMessage({
+                    text: `❌ حدث خطأ في جلب بيانات العملاء: ${error.message}`,
+                    isError: true,
+                });
+            });
+    };
+
     // Improved validateManualBarcode function to ensure errors persist
     const validateManualBarcode = useCallback(
         async (index, barcode) => {
@@ -907,8 +1033,15 @@ export default function SalesInvoice(props) {
     const isViewMode = props.mode === "view";
 
     // Use this function to disable inputs in view mode
-    const getDisabledState = () => {
-        return isViewMode;
+    const getDisabledState = (field) => {
+        if (isViewMode) return true;
+
+        // For add/remove buttons, only disable in view mode
+        if (field === "add" || field === "remove") {
+            return isViewMode;
+        }
+
+        return false;
     };
 
     // eslint-disable-next-line no-unused-vars
@@ -939,6 +1072,17 @@ export default function SalesInvoice(props) {
                     ? "عرض فاتورة مبيعات"
                     : "إضافة فاتورة مبيعات"}
             </h2>
+
+            {!isViewMode && (
+                <div className="d-flex justify-content-end mb-3">
+                    <Button
+                        content="إضافة عميل جديد"
+                        onClick={() => setShowAddCustomerModal(true)}
+                        type="primary"
+                    />
+                </div>
+            )}
+
             <DateTimeInput
                 label="التاريخ والوقت"
                 id="invoice-date"
@@ -998,8 +1142,8 @@ export default function SalesInvoice(props) {
                                 <tr>
                                     <th style={{ width: "50px" }}>#</th>
                                     <th>المنتج</th>
-                                    <th>العبوة</th>
                                     <th>الكمية</th>
+                                    <th>العبوة</th>
                                     <th>السعر</th>
                                     <th>الإجمالي</th>
                                     <th style={{ width: "80px" }}>الإجراءات</th>
@@ -1441,8 +1585,8 @@ export default function SalesInvoice(props) {
                                 <th style={{ width: "50px" }}>#</th>
                                 <th>الباركود</th>
                                 <th>المنتج</th>
-                                <th>الكمية</th>
                                 <th>العبوة</th>
+                                <th>الكمية</th>
                                 <th>السعر</th>
                                 <th>الإجمالي</th>
                                 {!isViewMode && (
@@ -1509,6 +1653,7 @@ export default function SalesInvoice(props) {
                                         onBarcodeChange={handleBarcodeChange}
                                         disabled={getDisabledState()}
                                         viewMode={isViewMode}
+                                        totalRows={invoiceRows.length}
                                     />
                                 );
                             })}
@@ -1626,19 +1771,46 @@ export default function SalesInvoice(props) {
                     type="secondary"
                 />
             ) : (
-                <Button
-                    content={
-                        props.mode === "edit"
-                            ? "تحديث بيانات الفاتورة"
-                            : "حفظ الفاتورة"
-                    }
-                    onClick={handleSubmit}
-                    disabled={
-                        props.mode === "edit"
-                            ? isSubmitting
-                            : !isFormValid || isSubmitting
-                    }
-                />
+                <div style={{ display: "flex", gap: "10px" }}>
+                    <Button
+                        content={
+                            props.mode === "edit"
+                                ? "تحديث بيانات الفاتورة"
+                                : "حفظ الفاتورة"
+                        }
+                        onClick={handleSubmit}
+                        disabled={
+                            props.mode === "edit"
+                                ? isSubmitting
+                                : !isFormValid || isSubmitting
+                        }
+                    />
+                    {props.mode !== "edit" && (
+                        <>
+                            <Button
+                                content="تعليق الفاتورة"
+                                onClick={handleSuspendInvoice}
+                                type="secondary"
+                                disabled={isSubmitting}
+                            />
+                            <Button
+                                content="إعادة تعيين"
+                                onClick={handleReset}
+                                type="secondary"
+                                disabled={isSubmitting}
+                            />
+                        </>
+                    )}
+                    {props.mode === "edit" && (
+                        <Button
+                            content="العودة"
+                            onClick={
+                                props.onBack || (() => window.history.back())
+                            }
+                            type="secondary"
+                        />
+                    )}
+                </div>
             )}
 
             {/* Form-level error below submit button */}
@@ -1671,6 +1843,17 @@ export default function SalesInvoice(props) {
                 salesItem={selectedRowForReturn?.salesItem}
                 onReturnSuccess={handleReturnSuccess}
             />
+
+            {/* Modal for adding new customer */}
+            {showAddCustomerModal && (
+                <Modal onClose={() => setShowAddCustomerModal(false)}>
+                    <CustomerForm
+                        isEditing={false}
+                        onSubmit={handleAddCustomerSuccess}
+                        onCancel={() => setShowAddCustomerModal(false)}
+                    />
+                </Modal>
+            )}
         </div>
     );
 }

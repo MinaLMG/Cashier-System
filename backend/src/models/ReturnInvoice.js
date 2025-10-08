@@ -2,7 +2,20 @@ const mongoose = require("mongoose");
 const { addTimestamps } = require("../utils/timestamps");
 
 const returnInvoiceSchema = new mongoose.Schema({
-    date: { type: Date, required: true },
+    date: {
+        type: Date,
+        required: true,
+        validate: {
+            validator: function (date) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const invoiceDate = new Date(date);
+                invoiceDate.setHours(0, 0, 0, 0);
+                return invoiceDate <= today;
+            },
+            message: "تاريخ الفاتورة لا يمكن أن يكون في المستقبل",
+        },
+    },
     sales_invoice: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "SalesInvoice",

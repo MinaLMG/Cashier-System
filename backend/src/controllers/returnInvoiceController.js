@@ -138,7 +138,21 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
             return_volume_id,
             reason = "customer_request",
             notes,
+            date, // Allow date to be provided
         } = req.body;
+
+        // Validate date if provided
+        const invoiceDate = date ? new Date(date) : new Date();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        invoiceDate.setHours(0, 0, 0, 0);
+
+        if (invoiceDate > today) {
+            return res.status(400).json({
+                error: "تاريخ الفاتورة لا يمكن أن يكون في المستقبل",
+            });
+        }
+
         const invoice_id = (await SalesItem.findById(sales_item_id))
             .sales_invoice;
         if (!invoice_id || !return_volume_id || !quantity || !sales_item_id) {
@@ -265,7 +279,7 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
 
         // Create return invoice with total_loss
         const returnInvoice = new ReturnInvoice({
-            date: new Date(),
+            date: invoiceDate,
             sales_invoice: invoice._id,
             customer: invoice.customer,
             user: req.user?._id || null,
@@ -324,6 +338,11 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
             item: returnItem,
         });
     } catch (err) {
+        if (err.name === "ValidationError") {
+            return res.status(400).json({
+                error: err.message || "خطأ في التحقق من صحة البيانات",
+            });
+        }
         console.error("Error creating invoice-based return:", err);
         res.status(500).json({
             error: "حدث خطأ أثناء إنشاء فاتورة الإرجاع",
@@ -339,7 +358,20 @@ exports.createReturnInvoice = async (req, res) => {
             quantity,
             reason = "customer_request",
             notes,
+            date, // Allow date to be provided
         } = req.body;
+
+        // Validate date if provided
+        const invoiceDate = date ? new Date(date) : new Date();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        invoiceDate.setHours(0, 0, 0, 0);
+
+        if (invoiceDate > today) {
+            return res.status(400).json({
+                error: "تاريخ الفاتورة لا يمكن أن يكون في المستقبل",
+            });
+        }
 
         if (!sales_item_id || !volume_id || !quantity) {
             return res.status(400).json({
@@ -487,7 +519,7 @@ exports.createReturnInvoice = async (req, res) => {
 
         // Create return invoice with total_loss
         const returnInvoice = new ReturnInvoice({
-            date: new Date(),
+            date: invoiceDate,
             sales_invoice: salesItem.sales_invoice,
             customer: salesItem.sales_invoice.customer,
             user: req.user?._id || null,
@@ -546,6 +578,11 @@ exports.createReturnInvoice = async (req, res) => {
             item: populatedItem,
         });
     } catch (err) {
+        if (err.name === "ValidationError") {
+            return res.status(400).json({
+                error: err.message || "خطأ في التحقق من صحة البيانات",
+            });
+        }
         console.error("Error creating return invoice:", err);
         res.status(500).json({
             error: "حدث خطأ أثناء إنشاء فاتورة الإرجاع",

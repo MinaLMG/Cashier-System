@@ -1,5 +1,5 @@
 .container {
-    padding: 20px;
+    /* padding: 20px; */
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -19,6 +19,11 @@
     display: flex;
     justify-content: center;
     margin-bottom: 30px;
+}
+
+.productSelect {
+    width: 300px;
+    max-width: 100%;
 }
 
 .error {

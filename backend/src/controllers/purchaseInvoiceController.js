@@ -7,6 +7,9 @@ const Supplier = require("../models/Supplier");
 
 const updateProductPrices = require("../helpers/productPricing");
 const updateProductRemaining = require("../helpers/updateProductRemaining");
+const {
+    updateSuggestedPricesForInvoice,
+} = require("../helpers/updateSuggestedPrices");
 
 // Helper function to generate serial number
 const generatePurchaseInvoiceSerial = async (date) => {
@@ -52,16 +55,47 @@ exports.createPurchaseInvoice = async (req, res) => {
     const { date } = req.body;
     if (!date) return res.status(400).json({ error: "Date is required." });
 
+    // Validate that date is not in the future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const invoiceDate = new Date(date);
+    invoiceDate.setHours(0, 0, 0, 0);
+
+    if (invoiceDate > today) {
+        return res.status(400).json({
+            error: "تاريخ الفاتورة لا يمكن أن يكون في المستقبل",
+        });
+    }
+
     try {
         const invoice = new PurchaseInvoice({ date });
         await invoice.save();
         res.status(201).json(invoice);
     } catch (err) {
+        if (err.name === "ValidationError") {
+            return res.status(400).json({
+                error: err.message || "خطأ في التحقق من صحة البيانات",
+            });
+        }
         res.status(500).json({ error: "Failed to create purchase invoice." });
     }
 };
 
 exports.updatePurchaseInvoice = async (req, res) => {
+    // Validate date if it's being updated
+    if (req.body.date) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const invoiceDate = new Date(req.body.date);
+        invoiceDate.setHours(0, 0, 0, 0);
+
+        if (invoiceDate > today) {
+            return res.status(400).json({
+                error: "تاريخ الفاتورة لا يمكن أن يكون في المستقبل",
+            });
+        }
+    }
+
     try {
         const invoice = await PurchaseInvoice.findByIdAndUpdate(
             req.params.id,
@@ -77,6 +111,11 @@ exports.updatePurchaseInvoice = async (req, res) => {
                 .json({ error: "Purchase invoice not found." });
         res.status(200).json(invoice);
     } catch (err) {
+        if (err.name === "ValidationError") {
+            return res.status(400).json({
+                error: err.message || "خطأ في التحقق من صحة البيانات",
+            });
+        }
         res.status(500).json({ error: "Failed to update purchase invoice." });
     }
 };
@@ -253,6 +292,14 @@ exports.createFullPurchaseInvoice = async (req, res) => {
         for (const item of createdItems) {
             await updateProductPrices(item.product);
             await updateProductRemaining(item.product);
+        }
+
+        // Update suggested prices for all product-volume combinations
+        try {
+            await updateSuggestedPricesForInvoice(createdItems);
+        } catch (suggestionsError) {
+            console.error("Error updating suggested prices:", suggestionsError);
+            // Don't fail the entire operation if suggestions update fails
         }
 
         return res.status(201).json({
@@ -478,6 +525,15 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
             await updateProductRemaining(productId);
         }
 
+        // Update suggested prices for all product-volume combinations in the updated invoice
+        try {
+            const allItems = [...insertedItems, ...oldItems];
+            await updateSuggestedPricesForInvoice(allItems);
+        } catch (suggestionsError) {
+            console.error("Error updating suggested prices:", suggestionsError);
+            // Don't fail the entire operation if suggestions update fails
+        }
+
         return res.status(200).json({
             message: "تم تعديل الفاتورة بنجاح",
             invoice: oldInvoice,
@@ -598,5 +654,93 @@ exports.getAllFullPurchaseInvoices = async (req, res) => {
     } catch (err) {
         console.error("getAllFullPurchaseInvoices error:", err);
         res.status(500).json({ error: "فشل في تحميل الفواتير" });
+    }
+};
+
+// Get price suggestions based on stored unit-based suggestions only
+exports.getPriceSuggestions = async (req, res) => {
+    try {
+        const { productId, volumeId } = req.params;
+
+        if (!productId || !volumeId) {
+            return res.status(400).json({
+                error: "Product ID and Volume ID are required",
+            });
+        }
+
+        // Get stored suggested unit prices from Product
+        const product = await Product.findById(productId).select(
+            "u_suggested_buy_price u_suggested_pharmacy_price u_suggested_walkin_price suggestions_updated_at"
+        );
+
+        if (!product) {
+            return res.status(404).json({
+                error: "Product not found",
+            });
+        }
+
+        // Get the volume conversion value
+        const volume = await Volume.findById(volumeId).select("value");
+        const volumeValue = volume?.value || 1;
+
+        // Check if we have any stored unit-based suggestions
+        const hasStoredSuggestions =
+            product.u_suggested_buy_price !== null ||
+            product.u_suggested_pharmacy_price !== null ||
+            product.u_suggested_walkin_price !== null;
+
+        if (!hasStoredSuggestions) {
+            return res.status(200).json({
+                hasSuggestions: false,
+                message:
+                    "No stored unit-based suggestions found for this product",
+                suggestedPrices: null,
+                storedSuggestions: null,
+            });
+        }
+
+        // Convert unit-based suggestions to volume-based prices
+        const suggestedPrices = {
+            v_buy_price: product.u_suggested_buy_price
+                ? Number(
+                      (product.u_suggested_buy_price * volumeValue).toFixed(2)
+                  )
+                : null,
+            v_pharmacy_price: product.u_suggested_pharmacy_price
+                ? Number(
+                      (
+                          product.u_suggested_pharmacy_price * volumeValue
+                      ).toFixed(2)
+                  )
+                : null,
+            v_walkin_price: product.u_suggested_walkin_price
+                ? Number(
+                      (product.u_suggested_walkin_price * volumeValue).toFixed(
+                          2
+                      )
+                  )
+                : null,
+        };
+
+        res.status(200).json({
+            hasSuggestions: true,
+            message: "Using stored unit-based suggestions",
+            suggestedPrices: suggestedPrices,
+            storedSuggestions: {
+                v_suggested_buy_price: product.u_suggested_buy_price
+                    ? product.u_suggested_buy_price * volumeValue
+                    : null,
+                v_suggested_pharmacy_price: product.u_suggested_pharmacy_price
+                    ? product.u_suggested_pharmacy_price * volumeValue
+                    : null,
+                v_suggested_walkin_price: product.u_suggested_walkin_price
+                    ? product.u_suggested_walkin_price * volumeValue
+                    : null,
+                suggestions_updated_at: product.suggestions_updated_at,
+            },
+        });
+    } catch (err) {
+        console.error("getPriceSuggestions error:", err);
+        res.status(500).json({ error: "فشل في حساب اقتراحات الأسعار" });
     }
 };

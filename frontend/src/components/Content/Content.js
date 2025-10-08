@@ -37,6 +37,7 @@ export default function Content(props) {
                     mode="edit"
                     invoice={props.purchaseInvoiceToEdit}
                     onSuccess={props.onEditPurchaseInvoiceSuccess}
+                    onBack={props.onBackFromView}
                 ></PurchaseInvoice>
             )}
             {props.selected === "عرض فاتورة مشتريات" && (
@@ -64,6 +65,7 @@ export default function Content(props) {
                     mode="edit"
                     invoice={props.salesInvoiceToEdit}
                     onSuccess={props.onEditSalesInvoiceSuccess}
+                    onBack={props.onBackFromView}
                 ></SalesInvoice>
             )}
             {props.selected === "عرض فاتورة بيع" && (

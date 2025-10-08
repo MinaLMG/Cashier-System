@@ -1,7 +1,9 @@
+import React, { useEffect } from "react";
 import { IoMdAddCircle } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { FaCircle } from "react-icons/fa";
 import Select from "../../Basic/Select";
+import SearchableSelect from "../../Basic/SearchableSelect";
 import TextInput from "../../Basic/TextInput";
 import DateTimeInput from "../../Basic/DateTimeInput";
 import classes from "./InvoiceRow.module.css";
@@ -21,6 +23,8 @@ export default function InvoiceRow(props) {
         canRemove,
         disabled,
         viewMode,
+        priceSuggestions,
+        totalRows,
     } = props;
 
     // Function to reset expiry date
@@ -43,11 +47,70 @@ export default function InvoiceRow(props) {
               "غير معروف"
             : "";
 
+    // Get barcode for the selected volume
+    const volumeBarcode =
+        row.product && row.volume
+            ? products
+                  .find((p) => p._id === row.product)
+                  ?.values?.find((v) => v.id === row.volume)?.barcode || ""
+            : "";
+
     // Format date for view mode
     const formattedExpiry =
         viewMode && row.expiry
             ? new Date(row.expiry).toLocaleDateString("ar-EG")
             : "";
+
+    // Handle keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            // Only handle shortcuts when not in view mode
+            if (viewMode) return;
+
+            // Check if the event target is an input, select, or textarea
+            const isInputElement =
+                event.target.tagName === "INPUT" ||
+                event.target.tagName === "SELECT" ||
+                event.target.tagName === "TEXTAREA";
+
+            // If user is typing in an input field, don't handle shortcuts
+            if (isInputElement) return;
+
+            // Handle Insert key (add new row)
+            if (event.key === "Insert" && isLastRow && !disabled) {
+                event.preventDefault();
+                onAdd();
+            }
+
+            // Handle Delete key (remove last row)
+            if (event.key === "Delete" && !disabled) {
+                event.preventDefault();
+                // Always remove the last row, regardless of current row
+                const lastRowIndex = totalRows - 1;
+                if (lastRowIndex > 0) {
+                    // Only remove if there's more than one row
+                    onRemove(lastRowIndex);
+                }
+            }
+        };
+
+        // Add event listener
+        document.addEventListener("keydown", handleKeyDown);
+
+        // Cleanup
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [
+        viewMode,
+        isLastRow,
+        canRemove,
+        disabled,
+        onAdd,
+        onRemove,
+        index,
+        totalRows,
+    ]);
 
     return (
         <tr>
@@ -55,15 +118,47 @@ export default function InvoiceRow(props) {
                 {index + 1}
             </th>
 
+            {/* Barcode */}
+            <td className={classes.item}>
+                {viewMode ? (
+                    <div className={classes.viewText}>
+                        {volumeBarcode || "--"}
+                    </div>
+                ) : (
+                    <>
+                        <TextInput
+                            className={classes["no-margin"]}
+                            type="text"
+                            placeholder="امسح الباركود"
+                            label="الباركود"
+                            id={`barcode` + index}
+                            value={row.barcode || ""}
+                            onchange={(val) => onChange(index, "barcode", val)}
+                            disabled={
+                                typeof disabled === "function"
+                                    ? disabled("barcode")
+                                    : disabled
+                            }
+                        />
+                        {errors.barcode && (
+                            <div className={classes.error}>
+                                {errors.barcode}
+                            </div>
+                        )}
+                    </>
+                )}
+            </td>
+
             {/* Product Name */}
             <td className={classes.item}>
                 {viewMode ? (
                     <div className={classes.viewText}>{productName}</div>
                 ) : (
                     <>
-                        <Select
-                            className={classes["no-margin"]}
-                            title="اسم المنتج"
+                        <SearchableSelect
+                            className={`${classes["no-margin"]} tableCellContainer`}
+                            label=""
+                            placeholder="اختر المنتج"
                             value={row.product}
                             onchange={(val) => onChange(index, "product", val)}
                             options={products.map((p) => ({
@@ -75,42 +170,8 @@ export default function InvoiceRow(props) {
                                     ? disabled("product")
                                     : disabled
                             }
+                            error={errors.product || ""}
                         />
-                        {errors.product && (
-                            <div className={classes.error}>
-                                {errors.product}
-                            </div>
-                        )}
-                    </>
-                )}
-            </td>
-
-            {/* Quantity */}
-            <td className={classes.item}>
-                {viewMode ? (
-                    <div className={classes.viewText}>{row.quantity}</div>
-                ) : (
-                    <>
-                        <TextInput
-                            className={classes["no-margin"]}
-                            type="number"
-                            placeholder="الكمية"
-                            label="الكمية"
-                            id={`quantity` + index}
-                            value={row.quantity}
-                            onchange={(val) => onChange(index, "quantity", val)}
-                            disabled={
-                                typeof disabled === "function"
-                                    ? disabled("quantity")
-                                    : disabled
-                            }
-                            min={0}
-                        />
-                        {errors.quantity && (
-                            <div className={classes.error}>
-                                {errors.quantity}
-                            </div>
-                        )}
                     </>
                 )}
             </td>
@@ -150,6 +211,36 @@ export default function InvoiceRow(props) {
                 )}
             </td>
 
+            {/* Quantity */}
+            <td className={classes.item}>
+                {viewMode ? (
+                    <div className={classes.viewText}>{row.quantity}</div>
+                ) : (
+                    <>
+                        <TextInput
+                            className={classes["no-margin"]}
+                            type="number"
+                            placeholder="الكمية"
+                            label="الكمية"
+                            id={`quantity` + index}
+                            value={row.quantity}
+                            onchange={(val) => onChange(index, "quantity", val)}
+                            disabled={
+                                typeof disabled === "function"
+                                    ? disabled("quantity")
+                                    : disabled
+                            }
+                            min={0}
+                        />
+                        {errors.quantity && (
+                            <div className={classes.error}>
+                                {errors.quantity}
+                            </div>
+                        )}
+                    </>
+                )}
+            </td>
+
             {/* سعر الشراء */}
             <td className={classes.item}>
                 {viewMode ? (
@@ -175,6 +266,16 @@ export default function InvoiceRow(props) {
                             }
                             min={0}
                         />
+                        {priceSuggestions?.v_buy_price && (
+                            <div className={classes.priceSuggestion}>
+                                <span className={classes.suggestionIcon}>
+                                    💡
+                                </span>
+                                <span className={classes.suggestionText}>
+                                    مقترح: {priceSuggestions.v_buy_price} ج.م
+                                </span>
+                            </div>
+                        )}
                         {errors.v_buy_price && (
                             <div className={classes.error}>
                                 {errors.v_buy_price}
@@ -209,6 +310,17 @@ export default function InvoiceRow(props) {
                             }
                             min={0}
                         />
+                        {priceSuggestions?.v_pharmacy_price && (
+                            <div className={classes.priceSuggestion}>
+                                <span className={classes.suggestionIcon}>
+                                    💡
+                                </span>
+                                <span className={classes.suggestionText}>
+                                    مقترح: {priceSuggestions.v_pharmacy_price}{" "}
+                                    ج.م
+                                </span>
+                            </div>
+                        )}
                         {errors.v_pharmacy_price && (
                             <div className={classes.error}>
                                 {errors.v_pharmacy_price}
@@ -243,6 +355,16 @@ export default function InvoiceRow(props) {
                             }
                             min={0}
                         />
+                        {priceSuggestions?.v_walkin_price && (
+                            <div className={classes.priceSuggestion}>
+                                <span className={classes.suggestionIcon}>
+                                    💡
+                                </span>
+                                <span className={classes.suggestionText}>
+                                    مقترح: {priceSuggestions.v_walkin_price} ج.م
+                                </span>
+                            </div>
+                        )}
                         {errors.v_walkin_price && (
                             <div className={classes.error}>
                                 {errors.v_walkin_price}
@@ -326,7 +448,45 @@ export default function InvoiceRow(props) {
             {/* Controls */}
             {!viewMode && (
                 <td className={classes.item}>
-                    {isLastRow && (
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: "5px",
+                            justifyContent: "center",
+                        }}
+                    >
+                        {isLastRow && (
+                            <button
+                                type="button"
+                                disabled={
+                                    typeof disabled === "function"
+                                        ? disabled("add")
+                                        : disabled
+                                }
+                                onClick={onAdd}
+                                className={classes.insertButton}
+                                title="إدراج صف جديد (Insert) - اضغط Insert لإضافة صف جديد"
+                            >
+                                Insert
+                            </button>
+                        )}
+                        {canRemove && (
+                            <button
+                                type="button"
+                                onClick={() => onRemove(index)}
+                                className={classes.deleteButton}
+                                disabled={
+                                    typeof disabled === "function"
+                                        ? disabled("remove")
+                                        : disabled
+                                }
+                                title="حذف الصف (Delete) - اضغط Delete لحذف هذا الصف"
+                            >
+                                Del
+                            </button>
+                        )}
+                    </div>
+                    {/* {isLastRow && (
                         <IoMdAddCircle
                             disabled={disabled}
                             onClick={onAdd}
@@ -339,7 +499,7 @@ export default function InvoiceRow(props) {
                             className={classes.remove}
                             disabled={disabled}
                         />
-                    )}
+                    )} */}
                 </td>
             )}
         </tr>

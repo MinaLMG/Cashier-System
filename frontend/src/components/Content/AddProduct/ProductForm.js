@@ -30,6 +30,34 @@ export default function ProductForm({
     });
     const [fieldErrors, setFieldErrors] = useState({}); // Individual field errors
     const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track if user has started interacting
+    const [canModifyConversions, setCanModifyConversions] = useState(true); // Track if conversions can be modified
+    const [canModifyBarcode, setCanModifyBarcode] = useState(true); // Track if barcode can be modified
+
+    // Check if product conversions can be modified
+    const checkProductModifiability = useCallback(
+        async (productId) => {
+            if (mode !== "edit" || !productId) {
+                setCanModifyConversions(true);
+                setCanModifyBarcode(true);
+                return;
+            }
+
+            try {
+                const response = await axios.get(
+                    `${process.env.REACT_APP_BACKEND}products/${productId}/check-conversions-modifiable`
+                );
+                setCanModifyConversions(response.data.canModifyConversions);
+                setCanModifyBarcode(response.data.canModifyBarcode);
+            } catch (err) {
+                console.error("Error checking product modifiability:", err);
+                // Default to allowing modifications if check fails
+                setCanModifyConversions(true);
+                setCanModifyBarcode(true);
+            }
+        },
+        [mode]
+    );
+
     const validateForSubmit = useCallback(
         (conversions) => {
             // Only validate if user has interacted or we're in edit mode
@@ -212,6 +240,15 @@ export default function ProductForm({
             setHasUserInteracted(true);
         }
 
+        // Prevent changes to non-barcode fields if product has been used
+        if (field !== "barcode" && !canModifyConversions) {
+            setSubmitMessage({
+                text: "لا يمكن تعديل تحويلات المنتج (من، إلى، القيمة) - تم استخدامه في فواتير المشتريات. يمكن تعديل الباركود فقط.",
+                isError: true,
+            });
+            return;
+        }
+
         const updated = [...product.conversions];
         const newFieldErrors = { ...fieldErrors };
 
@@ -254,6 +291,15 @@ export default function ProductForm({
     };
 
     const handleAddRow = () => {
+        // Prevent adding rows if conversions can't be modified
+        if (!canModifyConversions) {
+            setSubmitMessage({
+                text: "لا يمكن إضافة تحويلات جديدة - تم استخدام المنتج في فواتير المشتريات. يمكن تعديل الباركود فقط.",
+                isError: true,
+            });
+            return;
+        }
+
         // Mark that user has started interacting
         if (!hasUserInteracted) {
             setHasUserInteracted(true);
@@ -290,6 +336,15 @@ export default function ProductForm({
     };
 
     const removeRow = (index) => {
+        // Prevent removing rows if conversions can't be modified
+        if (!canModifyConversions) {
+            setSubmitMessage({
+                text: "لا يمكن حذف التحويلات - تم استخدام المنتج في فواتير المشتريات. يمكن تعديل الباركود فقط.",
+                isError: true,
+            });
+            return;
+        }
+
         if (product.conversions.length === 1) {
             setProduct((prev) => ({
                 ...prev,
@@ -352,8 +407,11 @@ export default function ProductForm({
             setFieldErrors({});
             setFormError("");
             setHasUserInteracted(true); // Enable validation for edit mode
+
+            // Check if conversions can be modified
+            checkProductModifiability(initialProductData._id);
         }
-    }, [mode, initialProductData]);
+    }, [mode, initialProductData, checkProductModifiability]);
     // 2. Separate effect: call updateValues when both conversions and volumes are ready
     useEffect(() => {
         if (product.conversions?.length > 0 && volumes.length > 0) {
@@ -420,7 +478,7 @@ export default function ProductForm({
                                         value: v._id,
                                         label: v.name,
                                     }))}
-                                    disabled={false}
+                                    disabled={!canModifyConversions}
                                     error={
                                         fieldErrors[
                                             `conversion_${index}_from`
@@ -442,7 +500,9 @@ export default function ProductForm({
                                             Number(e)
                                         )
                                     }
-                                    disabled={index === 0}
+                                    disabled={
+                                        index === 0 || !canModifyConversions
+                                    }
                                     error={
                                         fieldErrors[
                                             `conversion_${index}_value`
@@ -466,7 +526,9 @@ export default function ProductForm({
                                             value: v._id,
                                             label: v.name,
                                         }))}
-                                        disabled={index === 0}
+                                        disabled={
+                                            index === 0 || !canModifyConversions
+                                        }
                                         error={
                                             fieldErrors[
                                                 `conversion_${index}_to`
@@ -489,6 +551,7 @@ export default function ProductForm({
                                             e
                                         )
                                     }
+                                    disabled={!canModifyBarcode}
                                 />
                             </td>
                             <td className={classes.actionColumn}>

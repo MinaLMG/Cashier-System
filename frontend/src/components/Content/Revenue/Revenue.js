@@ -463,8 +463,9 @@ export default function Revenue(props) {
                                     }}
                                 >
                                     <td
-                                        colSpan="5"
+                                        colSpan="4"
                                         className={tableclasses.item}
+                                        style={{ textAlign: "center" }}
                                     >
                                         <strong>الإجمالي</strong>
                                     </td>
