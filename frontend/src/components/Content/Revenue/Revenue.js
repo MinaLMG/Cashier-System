@@ -5,7 +5,6 @@ import Button from "../../Basic/Button";
 import { FaEdit } from "react-icons/fa";
 import classes from "./Revenue.module.css";
 import tableclasses from "../ShowInvoices/ShowPurchaseInvoices.module.css";
-import SortableTable from "../../Basic/SortableTable";
 import { addMonths, startOfMonth, startOfYear } from "date-fns";
 
 export default function Revenue(props) {
@@ -365,155 +364,181 @@ export default function Revenue(props) {
                         <p>عدد الفواتير: {invoices.length}</p>
                     </div>
 
-                    <SortableTable
-                        columns={[
-                            {
-                                key: "index",
-                                title: "#",
-                                sortable: false,
-                                width: "50px",
-                            },
-                            {
-                                field: "date",
-                                title: "التاريخ",
-                                width: "200px",
-                            },
-                            { field: "customer", title: "العميل" },
-                            { field: "type", title: "النوع" },
-                            { field: "total_selling_price", title: "الإجمالي" },
-                            { field: "offer", title: "الخصم" },
-                            { field: "final_amount", title: "الصافي" },
-                            { field: "total_purchase_cost", title: "التكلفة" },
-                            { field: "profit", title: "الربح" },
-                            // {
-                            //     key: "actions",
-                            //     title: "العمليات",
-                            //     sortable: false,
-                            // },
-                        ]}
-                        data={invoices}
-                        initialSortField="date"
-                        initialSortDirection="desc"
-                        tableClassName={`table table-bordered ${tableclasses.table}`}
-                        renderRow={(invoice, index) => (
-                            <tr key={invoice._id}>
-                                <td className={tableclasses.item}>
-                                    {index + 1}
-                                </td>
-                                <td className={tableclasses.item}>
-                                    {invoice.date}
-                                </td>
-                                <td className={tableclasses.item}>
-                                    {invoice.customer
-                                        ? customers.find(
-                                              (c) => c._id === invoice.customer
-                                          )?.name || "--"
-                                        : "بدون عميل"}
-                                </td>
-                                <td className={tableclasses.item}>
-                                    {invoice.type === "return"
-                                        ? "مرتجع"
-                                        : invoice.type === "walkin"
-                                        ? "زبون"
-                                        : "صيدلية"}
-                                </td>
-                                <td className={tableclasses.item}>
-                                    {invoice.total_selling_price.toFixed(2)} ج.م
-                                </td>
-                                <td className={tableclasses.item}>
-                                    {invoice.type === "return"
-                                        ? "--"
-                                        : `${invoice.offer.toFixed(2)} ج.م`}
-                                </td>
-                                <td className={tableclasses.item}>
-                                    {invoice.final_amount.toFixed(2)} ج.م
-                                </td>
-                                <td className={tableclasses.item}>
-                                    {invoice.total_purchase_cost.toFixed(2)} ج.م
-                                </td>
-                                <td
-                                    className={tableclasses.item}
-                                    style={{
-                                        color:
-                                            invoice.profit >= 0
-                                                ? "var(--success-color)"
-                                                : "var(--accent-red)",
-                                        fontWeight: "bold",
-                                    }}
-                                >
-                                    {invoice.profit.toFixed(2)} ج.م
-                                </td>
-                                {/* <td className={tableclasses.item}>
-                                    <div className="d-flex justify-content-around">
-                                        <FaEdit
-                                            onClick={() => handleEdit(invoice)}
-                                            className={tableclasses.edit}
-                                        />
-                                    </div>
-                                </td> */}
-                            </tr>
-                        )}
-                        emptyMessage="لا توجد فواتير في هذه الفترة"
-                        renderFooter={() =>
-                            invoices.length > 0 && (
-                                <tr
-                                    style={{
-                                        backgroundColor:
-                                            "rgba(102, 126, 234, 0.1)",
-                                    }}
-                                >
-                                    <td
-                                        colSpan="4"
-                                        className={tableclasses.item}
-                                        style={{ textAlign: "center" }}
+                    <div
+                        className={`table-responsive ${tableclasses.tableWrapper}`}
+                    >
+                        <table
+                            className={`table table-bordered ${tableclasses.table}`}
+                        >
+                            <thead>
+                                <tr>
+                                    <th
+                                        className={tableclasses.head}
+                                        style={{ width: "50px" }}
                                     >
-                                        <strong>الإجمالي</strong>
-                                    </td>
-                                    <td className={tableclasses.item}>
-                                        <strong>
-                                            {totals.total_selling_price.toFixed(
-                                                2
-                                            )}{" "}
-                                            ج.م
-                                        </strong>
-                                    </td>
-                                    <td className={tableclasses.item}>
-                                        <strong>
-                                            {totals.offer.toFixed(2)} ج.م
-                                        </strong>
-                                    </td>
-                                    <td className={tableclasses.item}>
-                                        <strong>
-                                            {totals.final_amount.toFixed(2)} ج.م
-                                        </strong>
-                                    </td>
-                                    <td className={tableclasses.item}>
-                                        <strong>
-                                            {totals.total_purchase_cost.toFixed(
-                                                2
-                                            )}{" "}
-                                            ج.م
-                                        </strong>
-                                    </td>
-                                    <td
-                                        className={tableclasses.item}
+                                        #
+                                    </th>
+                                    <th
+                                        className={tableclasses.head}
+                                        style={{ width: "200px" }}
+                                    >
+                                        التاريخ
+                                    </th>
+                                    <th className={tableclasses.head}>
+                                        العميل
+                                    </th>
+                                    <th className={tableclasses.head}>النوع</th>
+                                    <th className={tableclasses.head}>
+                                        الإجمالي
+                                    </th>
+                                    <th className={tableclasses.head}>الخصم</th>
+                                    <th className={tableclasses.head}>
+                                        الصافي
+                                    </th>
+                                    <th className={tableclasses.head}>
+                                        التكلفة
+                                    </th>
+                                    <th className={tableclasses.head}>الربح</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {invoices.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan="9"
+                                            className={tableclasses.item}
+                                            style={{ textAlign: "center" }}
+                                        >
+                                            لا توجد فواتير في هذه الفترة
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    invoices.map((invoice, index) => (
+                                        <tr key={invoice._id}>
+                                            <td className={tableclasses.item}>
+                                                {index + 1}
+                                            </td>
+                                            <td className={tableclasses.item}>
+                                                {invoice.date}
+                                            </td>
+                                            <td className={tableclasses.item}>
+                                                {invoice.customer
+                                                    ? customers.find(
+                                                          (c) =>
+                                                              c._id ===
+                                                              invoice.customer
+                                                      )?.name || "--"
+                                                    : "بدون عميل"}
+                                            </td>
+                                            <td className={tableclasses.item}>
+                                                {invoice.type === "return"
+                                                    ? "مرتجع"
+                                                    : invoice.type === "walkin"
+                                                    ? "زبون"
+                                                    : "صيدلية"}
+                                            </td>
+                                            <td className={tableclasses.item}>
+                                                {invoice.total_selling_price.toFixed(
+                                                    2
+                                                )}{" "}
+                                                ج.م
+                                            </td>
+                                            <td className={tableclasses.item}>
+                                                {invoice.type === "return"
+                                                    ? "--"
+                                                    : `${invoice.offer.toFixed(
+                                                          2
+                                                      )} ج.م`}
+                                            </td>
+                                            <td className={tableclasses.item}>
+                                                {invoice.final_amount.toFixed(
+                                                    2
+                                                )}{" "}
+                                                ج.م
+                                            </td>
+                                            <td className={tableclasses.item}>
+                                                {invoice.total_purchase_cost.toFixed(
+                                                    2
+                                                )}{" "}
+                                                ج.م
+                                            </td>
+                                            <td
+                                                className={tableclasses.item}
+                                                style={{
+                                                    color:
+                                                        invoice.profit >= 0
+                                                            ? "var(--success-color)"
+                                                            : "var(--accent-red)",
+                                                    fontWeight: "bold",
+                                                }}
+                                            >
+                                                {invoice.profit.toFixed(2)} ج.م
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                            {invoices.length > 0 && (
+                                <tfoot>
+                                    <tr
                                         style={{
-                                            color:
-                                                totals.profit >= 0
-                                                    ? "var(--success-color)"
-                                                    : "var(--accent-red)",
-                                            fontWeight: "bold",
+                                            backgroundColor:
+                                                "rgba(102, 126, 234, 0.1)",
                                         }}
                                     >
-                                        <strong>
-                                            {totals.profit.toFixed(2)} ج.م
-                                        </strong>
-                                    </td>
-                                    {/* <td className={tableclasses.item}></td> */}
-                                </tr>
-                            )
-                        }
-                    />
+                                        <td
+                                            colSpan="4"
+                                            className={tableclasses.item}
+                                            style={{ textAlign: "center" }}
+                                        >
+                                            <strong>الإجمالي</strong>
+                                        </td>
+                                        <td className={tableclasses.item}>
+                                            <strong>
+                                                {totals.total_selling_price.toFixed(
+                                                    2
+                                                )}{" "}
+                                                ج.م
+                                            </strong>
+                                        </td>
+                                        <td className={tableclasses.item}>
+                                            <strong>
+                                                {totals.offer.toFixed(2)} ج.م
+                                            </strong>
+                                        </td>
+                                        <td className={tableclasses.item}>
+                                            <strong>
+                                                {totals.final_amount.toFixed(2)}{" "}
+                                                ج.م
+                                            </strong>
+                                        </td>
+                                        <td className={tableclasses.item}>
+                                            <strong>
+                                                {totals.total_purchase_cost.toFixed(
+                                                    2
+                                                )}{" "}
+                                                ج.م
+                                            </strong>
+                                        </td>
+                                        <td
+                                            className={tableclasses.item}
+                                            style={{
+                                                color:
+                                                    totals.profit >= 0
+                                                        ? "var(--success-color)"
+                                                        : "var(--accent-red)",
+                                                fontWeight: "bold",
+                                            }}
+                                        >
+                                            <strong>
+                                                {totals.profit.toFixed(2)} ج.م
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            )}
+                        </table>
+                    </div>
                 </>
             )}
         </div>

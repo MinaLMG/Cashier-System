@@ -69,7 +69,7 @@ router.post("/signup", async (req, res) => {
         const token = jwt.sign(
             payload,
             process.env.JWT_SECRET || "your-secret-key",
-            { expiresIn: "24h" }
+            { expiresIn: "365d" } // Token expires in 1 year instead of 24h
         );
 
         res.status(201).json({
@@ -136,7 +136,7 @@ router.post("/login", async (req, res) => {
         const token = jwt.sign(
             payload,
             process.env.JWT_SECRET || "your-secret-key",
-            { expiresIn: "24h" }
+            { expiresIn: "365d" } // Token expires in 1 year instead of 24h
         );
         console.log(token);
         // Return user data (without password) and token

@@ -119,7 +119,13 @@ export default function PurchaseInvoice(props) {
     // Fetch price suggestions when product and volume are both set
     const fetchPriceSuggestions = useCallback(
         async (index, productId, volumeId) => {
-            if (!productId || !volumeId) {
+            // Check for valid productId and volumeId
+            if (
+                !productId ||
+                !volumeId ||
+                productId === "" ||
+                volumeId === ""
+            ) {
                 return;
             }
 

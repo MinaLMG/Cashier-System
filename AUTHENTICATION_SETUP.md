@@ -120,7 +120,7 @@ router.get("/protected-route", authMiddleware, (req, res) => {
 
 1. **Password Hashing**: All passwords are hashed using bcrypt
 2. **JWT Tokens**: Secure token-based authentication
-3. **Token Expiration**: 24-hour token lifetime
+3. **Token Expiration**: 1-year token lifetime (effectively non-expiring)
 4. **Automatic Logout**: On token expiration
 5. **Protected Routes**: Backend middleware protection
 6. **Input Validation**: Server-side validation

@@ -680,8 +680,18 @@ exports.getPriceSuggestions = async (req, res) => {
         }
 
         // Get the volume conversion value
-        const volume = await Volume.findById(volumeId).select("value");
-        const volumeValue = volume?.value || 1;
+        const hasVolume = await HasVolume.findOne({
+            product: productId,
+            volume: volumeId,
+        });
+
+        if (!hasVolume) {
+            return res.status(400).json({
+                error: "Product and volume combination not found",
+            });
+        }
+
+        const volumeValue = hasVolume.value;
 
         // Check if we have any stored unit-based suggestions
         const hasStoredSuggestions =
