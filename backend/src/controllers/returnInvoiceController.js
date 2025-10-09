@@ -140,12 +140,11 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
             notes,
             date, // Allow date to be provided
         } = req.body;
-
+        console.log(req.body);
         // Validate date if provided
         const invoiceDate = date ? new Date(date) : new Date();
+        console.log(invoiceDate);
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        invoiceDate.setHours(0, 0, 0, 0);
 
         if (invoiceDate > today) {
             return res.status(400).json({
@@ -244,7 +243,7 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
                 } base units available for return.`,
             });
         }
-
+        // throw new Error("test");
         // Update purchase item quantities (restore stock and reduce sold quantities)
         for (const update of returnSources) {
             await PurchaseItem.findByIdAndUpdate(update.purchase_item, {
@@ -298,6 +297,7 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
 
         // Create return item with sources and revenue loss
         const returnItem = new ReturnItem({
+            date: invoiceDate,
             return_invoice: returnInvoice._id,
             sales_item: salesItem._id, // Link if single sales item
             product: salesItem.product._id,

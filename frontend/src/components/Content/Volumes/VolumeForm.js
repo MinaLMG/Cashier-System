@@ -5,7 +5,13 @@ import TextInput from "../../Basic/TextInput";
 import FormMessage from "../../Basic/FormMessage";
 import formStyles from "../../../styles/forms.module.css";
 
-export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
+export default function VolumeForm({
+    volume,
+    isEditing,
+    mode = "add",
+    onSubmit,
+    onCancel,
+}) {
     const [formData, setFormData] = useState({
         name: volume?.name || "",
     });
@@ -16,12 +22,14 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
         text: "",
         isError: false,
     });
+    const isViewMode = mode === "view";
+    const isEditMode = mode === "edit" || isEditing;
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Validate form on every change
     useEffect(() => {
-        // Only validate if user has interacted or we're in edit mode
-        if (!hasUserInteracted && !isEditing) {
+        // Only validate if user has interacted or we're in edit mode, but not in view mode
+        if (!hasUserInteracted && !isEditMode) {
             setFormError("");
             setFieldErrors({});
             return;
@@ -40,6 +48,9 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
     }, [formData, hasUserInteracted, isEditing]);
 
     const handleChange = (field, value) => {
+        // Don't allow changes in view mode
+        if (isViewMode) return;
+
         // Mark that user has started interacting
         if (!hasUserInteracted) {
             setHasUserInteracted(true);
@@ -58,13 +69,19 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
 
     // Initialize form for edit mode
     useEffect(() => {
-        if (isEditing && volume) {
+        if (isEditMode && volume) {
             setHasUserInteracted(true); // Enable validation for edit mode
         }
-    }, [isEditing, volume]);
+    }, [isEditMode, volume]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // In view mode, just call onCancel to close
+        if (isViewMode) {
+            onCancel();
+            return;
+        }
 
         // Check if form has errors
         const hasErrors = Object.keys(fieldErrors).some(
@@ -89,7 +106,7 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
         setIsSubmitting(true);
 
         try {
-            if (isEditing) {
+            if (isEditMode) {
                 await axios.put(
                     `${process.env.REACT_APP_BACKEND}volumes/${volume._id}`,
                     formData
@@ -161,7 +178,11 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
     return (
         <div className={formStyles.formContainer}>
             <h2 className={formStyles.formTitle}>
-                {isEditing ? "تعديل العبوة" : "إضافة عبوة جديدة"}
+                {isViewMode
+                    ? "عرض تفاصيل العبوة"
+                    : isEditMode
+                    ? "تعديل العبوة"
+                    : "إضافة عبوة جديدة"}
             </h2>
             <form className={formStyles.formGrid}>
                 <TextInput
@@ -173,26 +194,37 @@ export default function VolumeForm({ volume, isEditing, onSubmit, onCancel }) {
                     onchange={(value) => handleChange("name", value)}
                     width="300px"
                     error={fieldErrors.name || ""}
+                    disabled={isViewMode}
                 />
 
                 <div className={formStyles.formActions}>
                     <Button
-                        content={isEditing ? "تحديث" : "إضافة"}
+                        content={
+                            isViewMode
+                                ? "إغلاق"
+                                : isEditMode
+                                ? "تحديث"
+                                : "إضافة"
+                        }
                         onClick={handleSubmit}
                         disabled={
-                            Object.keys(fieldErrors).some(
-                                (key) => fieldErrors[key]
-                            ) ||
-                            formError ||
-                            isSubmitting
+                            isViewMode
+                                ? false
+                                : Object.keys(fieldErrors).some(
+                                      (key) => fieldErrors[key]
+                                  ) ||
+                                  formError ||
+                                  isSubmitting
                         }
                         className={formStyles.primaryButton}
                     />
-                    <Button
-                        content="إلغاء"
-                        onClick={onCancel}
-                        className={formStyles.secondaryButton}
-                    />
+                    {!isViewMode && (
+                        <Button
+                            content="إلغاء"
+                            onClick={onCancel}
+                            className={formStyles.secondaryButton}
+                        />
+                    )}
                 </div>
 
                 {/* Form-level error below submit button */}

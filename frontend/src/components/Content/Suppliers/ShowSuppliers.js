@@ -3,9 +3,11 @@ import commonStyles from "../../../styles/common.module.css";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaEdit, FaEye } from "react-icons/fa";
-import { MdDelete } from "react-icons/md";
+// Supplier deletion functionality disabled
+// import { MdDelete } from "react-icons/md";
 import SupplierForm from "./SupplierForm";
-import Modal from "../../general/Modal";
+// Supplier deletion modal disabled
+// import Modal from "../../general/Modal";
 import SortableTable from "../../Basic/SortableTable";
 
 export default function ShowSuppliers() {
@@ -13,8 +15,10 @@ export default function ShowSuppliers() {
     const [showForm, setShowForm] = useState(false);
     const [currentSupplier, setCurrentSupplier] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [showModal, setShowModal] = useState(false);
-    const [supplierToDelete, setSupplierToDelete] = useState(null);
+    const [isViewing, setIsViewing] = useState(false);
+    // Supplier deletion state disabled
+    // const [showModal, setShowModal] = useState(false);
+    // const [supplierToDelete, setSupplierToDelete] = useState(null);
 
     useEffect(() => {
         fetchSuppliers();
@@ -34,30 +38,40 @@ export default function ShowSuppliers() {
     const handleEdit = (supplier) => {
         setCurrentSupplier(supplier);
         setIsEditing(true);
+        setIsViewing(false);
         setShowForm(true);
     };
 
-    const confirmDelete = (supplier) => {
-        setSupplierToDelete(supplier);
-        setShowModal(true);
+    const handleView = (supplier) => {
+        setCurrentSupplier(supplier);
+        setIsEditing(false);
+        setIsViewing(true);
+        setShowForm(true);
     };
 
-    const handleDelete = async () => {
-        try {
-            await axios.delete(
-                `${process.env.REACT_APP_BACKEND}suppliers/${supplierToDelete._id}`
-            );
-            fetchSuppliers();
-            setShowModal(false);
-        } catch (error) {
-            console.error("Error deleting supplier:", error);
-        }
-    };
+    // Supplier deletion functions disabled
+    // const confirmDelete = (supplier) => {
+    //     setSupplierToDelete(supplier);
+    //     setShowModal(true);
+    // };
+
+    // const handleDelete = async () => {
+    //     try {
+    //         await axios.delete(
+    //             `${process.env.REACT_APP_BACKEND}suppliers/${supplierToDelete._id}`
+    //         );
+    //         fetchSuppliers();
+    //         setShowModal(false);
+    //     } catch (error) {
+    //         console.error("Error deleting supplier:", error);
+    //     }
+    // };
 
     const handleFormSubmit = () => {
         setShowForm(false);
         setCurrentSupplier(null);
         setIsEditing(false);
+        setIsViewing(false);
         fetchSuppliers();
     };
 
@@ -70,7 +84,8 @@ export default function ShowSuppliers() {
                 padding: "0 20px",
             }}
         >
-            {showModal && (
+            {/* Supplier deletion modal disabled */}
+            {/* {showModal && (
                 <Modal
                     onHide={() => setShowModal(false)}
                     data={{
@@ -80,17 +95,19 @@ export default function ShowSuppliers() {
                     }}
                     onOk={handleDelete}
                 />
-            )}
+            )} */}
 
             {showForm ? (
                 <SupplierForm
                     supplier={currentSupplier}
                     isEditing={isEditing}
+                    mode={isViewing ? "view" : isEditing ? "edit" : "add"}
                     onSubmit={handleFormSubmit}
                     onCancel={() => {
                         setShowForm(false);
                         setCurrentSupplier(null);
                         setIsEditing(false);
+                        setIsViewing(false);
                     }}
                 />
             ) : (
@@ -122,6 +139,7 @@ export default function ShowSuppliers() {
                             }}
                             onClick={() => {
                                 setIsEditing(false);
+                                setIsViewing(false);
                                 setCurrentSupplier(null);
                                 setShowForm(true);
                             }}
@@ -160,15 +178,17 @@ export default function ShowSuppliers() {
                                             className={classes.edit}
                                         />
                                         <FaEye
-                                            className={`${classes.view} ${commonStyles.disabledIcon}`}
-                                            title="عرض التفاصيل غير متاح حاليًا"
+                                            onClick={() => handleView(supplier)}
+                                            className={classes.view}
+                                            title="عرض تفاصيل المورد"
                                         />
-                                        <MdDelete
+                                        {/* Supplier deletion button disabled */}
+                                        {/* <MdDelete
                                             onClick={() =>
                                                 confirmDelete(supplier)
                                             }
                                             className={classes.remove}
-                                        />
+                                        /> */}
                                     </div>
                                 </td>
                             </tr>

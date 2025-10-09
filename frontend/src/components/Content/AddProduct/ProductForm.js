@@ -7,6 +7,8 @@ import { FaPlus, FaMinus } from "react-icons/fa6";
 import Button from "../../Basic/Button";
 import FormMessage from "../../Basic/FormMessage";
 import InputTable from "../../Basic/InputTable";
+import Modal from "../../UI/Modal";
+import VolumeForm from "../Volumes/VolumeForm";
 
 export default function ProductForm({
     mode = "add",
@@ -32,6 +34,7 @@ export default function ProductForm({
     const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track if user has started interacting
     const [canModifyConversions, setCanModifyConversions] = useState(true); // Track if conversions can be modified
     const [canModifyBarcode, setCanModifyBarcode] = useState(true); // Track if barcode can be modified
+    const [showAddVolumeModal, setShowAddVolumeModal] = useState(false); // Track if volume modal is shown
 
     // Check if product conversions can be modified
     const checkProductModifiability = useCallback(
@@ -240,10 +243,21 @@ export default function ProductForm({
             setHasUserInteracted(true);
         }
 
-        // Prevent changes to non-barcode fields if product has been used
-        if (field !== "barcode" && !canModifyConversions) {
+        // Check if this is an existing conversion that can't be modified
+        const isExistingConversion =
+            mode === "edit" &&
+            initialProductData &&
+            initialProductData.conversions &&
+            index < initialProductData.conversions.length;
+
+        // Prevent changes to non-barcode fields for existing conversions if product has been used
+        if (
+            field !== "barcode" &&
+            !canModifyConversions &&
+            isExistingConversion
+        ) {
             setSubmitMessage({
-                text: "لا يمكن تعديل تحويلات المنتج (من، إلى، القيمة) - تم استخدامه في فواتير المشتريات. يمكن تعديل الباركود فقط.",
+                text: "لا يمكن تعديل التحويلات الموجودة (من، إلى، القيمة) - تم استخدام المنتج في فواتير المشتريات. يمكن إضافة تحويلات جديدة وتعديل الباركود فقط.",
                 isError: true,
             });
             return;
@@ -291,14 +305,8 @@ export default function ProductForm({
     };
 
     const handleAddRow = () => {
-        // Prevent adding rows if conversions can't be modified
-        if (!canModifyConversions) {
-            setSubmitMessage({
-                text: "لا يمكن إضافة تحويلات جديدة - تم استخدام المنتج في فواتير المشتريات. يمكن تعديل الباركود فقط.",
-                isError: true,
-            });
-            return;
-        }
+        // Allow adding new rows even if existing conversions can't be modified
+        // The restriction only applies to modifying existing conversions, not adding new ones
 
         // Mark that user has started interacting
         if (!hasUserInteracted) {
@@ -336,10 +344,17 @@ export default function ProductForm({
     };
 
     const removeRow = (index) => {
-        // Prevent removing rows if conversions can't be modified
-        if (!canModifyConversions) {
+        // Check if this is an existing conversion that can't be removed
+        const isExistingConversion =
+            mode === "edit" &&
+            initialProductData &&
+            initialProductData.conversions &&
+            index < initialProductData.conversions.length;
+
+        // Prevent removing existing conversions if product has been used
+        if (!canModifyConversions && isExistingConversion) {
             setSubmitMessage({
-                text: "لا يمكن حذف التحويلات - تم استخدام المنتج في فواتير المشتريات. يمكن تعديل الباركود فقط.",
+                text: "لا يمكن حذف التحويلات الموجودة - تم استخدام المنتج في فواتير المشتريات. يمكن حذف التحويلات المضافة حديثاً فقط.",
                 isError: true,
             });
             return;
@@ -380,12 +395,29 @@ export default function ProductForm({
             setFieldErrors((prev) => ({ ...prev, [field]: "" }));
         }
     };
-    useEffect(() => {
-        axios
-            .get(process.env.REACT_APP_BACKEND + "volumes")
-            .then((res) => setVolumes(res.data))
-            .catch((err) => console.error("Failed to fetch volumes:", err));
+    // Function to fetch volumes
+    const fetchVolumes = useCallback(async () => {
+        try {
+            const res = await axios.get(
+                process.env.REACT_APP_BACKEND + "volumes"
+            );
+            setVolumes(res.data);
+        } catch (err) {
+            console.error("Failed to fetch volumes:", err);
+        }
     }, []);
+
+    useEffect(() => {
+        fetchVolumes();
+    }, [fetchVolumes]);
+
+    // Handle volume addition from modal
+    const handleVolumeAdded = useCallback(() => {
+        // Refresh volumes list
+        fetchVolumes();
+        // Close modal
+        setShowAddVolumeModal(false);
+    }, [fetchVolumes]);
 
     useEffect(() => {
         validateForSubmit(product.conversions);
@@ -421,6 +453,16 @@ export default function ProductForm({
 
     return (
         <div className={classes.add}>
+            <div
+                className="d-flex justify-content-end mb-3"
+                style={{ gap: "10px" }}
+            >
+                <Button
+                    content="إضافة عبوة جديدة"
+                    onClick={() => setShowAddVolumeModal(true)}
+                    type="primary"
+                />
+            </div>
             <TextInput
                 type="text"
                 placeholder="اسم المنتج"
@@ -442,6 +484,8 @@ export default function ProductForm({
                 width={inModal ? "80%" : "50%"}
                 error={fieldErrors.name || ""}
             />
+
+            {/* Volume Management Section */}
 
             <InputTable error={fieldErrors.conversions || ""}>
                 <thead>
@@ -478,7 +522,15 @@ export default function ProductForm({
                                         value: v._id,
                                         label: v.name,
                                     }))}
-                                    disabled={!canModifyConversions}
+                                    disabled={
+                                        !canModifyConversions &&
+                                        mode === "edit" &&
+                                        initialProductData &&
+                                        initialProductData.conversions &&
+                                        index <
+                                            initialProductData.conversions
+                                                .length
+                                    }
                                     error={
                                         fieldErrors[
                                             `conversion_${index}_from`
@@ -501,7 +553,14 @@ export default function ProductForm({
                                         )
                                     }
                                     disabled={
-                                        index === 0 || !canModifyConversions
+                                        index === 0 ||
+                                        (!canModifyConversions &&
+                                            mode === "edit" &&
+                                            initialProductData &&
+                                            initialProductData.conversions &&
+                                            index <
+                                                initialProductData.conversions
+                                                    .length)
                                     }
                                     error={
                                         fieldErrors[
@@ -527,7 +586,14 @@ export default function ProductForm({
                                             label: v.name,
                                         }))}
                                         disabled={
-                                            index === 0 || !canModifyConversions
+                                            index === 0 ||
+                                            (!canModifyConversions &&
+                                                mode === "edit" &&
+                                                initialProductData &&
+                                                initialProductData.conversions &&
+                                                index <
+                                                    initialProductData
+                                                        .conversions.length)
                                         }
                                         error={
                                             fieldErrors[
@@ -567,6 +633,28 @@ export default function ProductForm({
                                         className={classes["minus-icon"]}
                                         size="1.5em"
                                         onClick={() => removeRow(index)}
+                                        style={{
+                                            opacity:
+                                                !canModifyConversions &&
+                                                mode === "edit" &&
+                                                initialProductData &&
+                                                initialProductData.conversions &&
+                                                index <
+                                                    initialProductData
+                                                        .conversions.length
+                                                    ? 0.3
+                                                    : 1,
+                                            cursor:
+                                                !canModifyConversions &&
+                                                mode === "edit" &&
+                                                initialProductData &&
+                                                initialProductData.conversions &&
+                                                index <
+                                                    initialProductData
+                                                        .conversions.length
+                                                    ? "not-allowed"
+                                                    : "pointer",
+                                        }}
                                     />
                                 )}
                             </td>
@@ -685,6 +773,17 @@ export default function ProductForm({
                     isError={submitMessage.isError}
                 />
             </div>
+
+            {/* Volume Modal */}
+            {showAddVolumeModal && (
+                <Modal onClose={() => setShowAddVolumeModal(false)}>
+                    <VolumeForm
+                        mode="add"
+                        onSubmit={handleVolumeAdded}
+                        onCancel={() => setShowAddVolumeModal(false)}
+                    />
+                </Modal>
+            )}
         </div>
     );
 }

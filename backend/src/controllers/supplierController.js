@@ -38,16 +38,17 @@ exports.createSupplier = async (req, res) => {
     }
 };
 
-exports.deleteSupplier = async (req, res) => {
-    try {
-        const supplier = await Supplier.findByIdAndDelete(req.params.id);
-        if (!supplier)
-            return res.status(404).json({ error: "Supplier not found." });
-        res.status(200).json({ message: "Supplier deleted." });
-    } catch (err) {
-        res.status(500).json({ error: "Failed to delete supplier." });
-    }
-};
+// Supplier deletion functionality disabled
+// exports.deleteSupplier = async (req, res) => {
+//     try {
+//         const supplier = await Supplier.findByIdAndDelete(req.params.id);
+//         if (!supplier)
+//             return res.status(404).json({ error: "Supplier not found." });
+//         res.status(200).json({ message: "Supplier deleted." });
+//     } catch (err) {
+//         res.status(500).json({ error: "Failed to delete supplier." });
+//     }
+// };
 
 exports.updateSupplier = async (req, res) => {
     const { name, phone } = req.body;

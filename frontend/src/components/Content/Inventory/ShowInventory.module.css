@@ -11,7 +11,7 @@
 .edit,
 .remove {
     font-size: 30px;
-    margin: 0 25px;
+    margin: 0 10px;
     cursor: pointer;
 }
 

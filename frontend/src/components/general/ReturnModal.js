@@ -23,6 +23,60 @@ export default function ReturnModal({
     const [availableVolumes, setAvailableVolumes] = useState([]);
     const [availableBaseQuantity, setAvailableBaseQuantity] = useState(0);
 
+    // Calculate return value considering volume conversion
+    const calculateReturnValue = () => {
+        console.log("calculateReturnValue called with:", {
+            selectedQuantity,
+            selectedVolume,
+            availableVolumes: availableVolumes.length,
+        });
+
+        if (!selectedQuantity || !selectedVolume) {
+            console.log("Missing selectedQuantity or selectedVolume");
+            return 0;
+        }
+
+        // Find the selected volume data
+        const selectedVolumeData = availableVolumes.find(
+            (vol) => vol.volume._id === selectedVolume
+        );
+
+        console.log("selectedVolumeData:", selectedVolumeData);
+
+        if (!selectedVolumeData) {
+            console.log("No selectedVolumeData found");
+            return 0;
+        }
+
+        // Calculate unit price based on volume conversion
+        // The original v_price is for the original volume, we need to adjust for the new volume
+        const originalVolumeValue = salesItem?.salesItem?.volume?.value || 1;
+        const selectedVolumeValue = selectedVolumeData.value || 1;
+
+        // Calculate the unit price (price per base unit)
+        const unitPrice =
+            (salesItem?.salesItem?.v_price || 0) / originalVolumeValue;
+
+        // Calculate the price for the selected volume
+        const volumePrice = unitPrice * selectedVolumeValue;
+
+        const result = selectedQuantity * volumePrice;
+
+        console.log("Calculation:", {
+            originalVPrice: salesItem?.salesItem?.v_price,
+            originalVolumeValue,
+            selectedVolumeValue,
+            unitPrice,
+            volumePrice,
+            selectedQuantity,
+            result,
+        });
+
+        return result;
+    };
+
+    const returnValue = calculateReturnValue();
+
     const fetchAvailableVolumes = useCallback(async () => {
         try {
             setError("");
@@ -31,6 +85,9 @@ export default function ReturnModal({
             const response = await axios.get(
                 `${process.env.REACT_APP_BACKEND}sales-invoices/available-return-volumes-for-invoice-item/${salesItem.salesItem._id}`
             );
+
+            console.log("API Response:", response.data);
+            console.log("Available Volumes:", response.data.availableVolumes);
 
             setAvailableVolumes(response.data.availableVolumes);
             setSelectedVolume(response.data.availableVolumes[0].volume._id);
@@ -179,6 +236,20 @@ export default function ReturnModal({
                                 الحد الأقصى للإرجاع:{" "}
                                 <strong>{maxQuantity}</strong> وحدة
                             </small>
+                        )}
+
+                        {/* Return Value Display */}
+                        {selectedQuantity > 0 && (
+                            <div className={classes.returnValueHighlight}>
+                                <span className={classes.returnValueLabel}>
+                                    قيمة المرتجع:
+                                </span>
+                                <span className={classes.returnValueAmount}>
+                                    {returnValue > 0
+                                        ? `${returnValue.toFixed(2)} ج.م`
+                                        : "غير محدد"}
+                                </span>
+                            </div>
                         )}
                     </div>
 

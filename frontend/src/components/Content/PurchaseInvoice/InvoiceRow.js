@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { IoMdAddCircle } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { FaCircle } from "react-icons/fa";
@@ -25,12 +25,43 @@ export default function InvoiceRow(props) {
         viewMode,
         priceSuggestions,
         totalRows,
+        onBarcodeChange,
     } = props;
+
+    const barcodeTimeoutRef = useRef(null);
 
     // Function to reset expiry date
     const resetExpiryDate = () => {
         onChange(index, "expiry", null);
     };
+
+    // Debounced barcode change handler (same as SalesInvoice)
+    const handleBarcodeChange = (val) => {
+        // First update the value immediately
+        onChange(index, "barcode", val);
+
+        // Clear existing timeout
+        if (barcodeTimeoutRef.current) {
+            clearTimeout(barcodeTimeoutRef.current);
+        }
+
+        // Set new timeout for barcode lookup
+        barcodeTimeoutRef.current = setTimeout(() => {
+            if (val && val.trim() !== "" && val.length >= 3) {
+                // Only lookup if barcode is at least 3 characters
+                onBarcodeChange(index, val);
+            }
+        }, 500); // 500ms debounce
+    };
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (barcodeTimeoutRef.current) {
+                clearTimeout(barcodeTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Get product name for view mode
     const productName =
@@ -133,7 +164,7 @@ export default function InvoiceRow(props) {
                             label="الباركود"
                             id={`barcode` + index}
                             value={row.barcode || ""}
-                            onchange={(val) => onChange(index, "barcode", val)}
+                            onchange={handleBarcodeChange}
                             disabled={
                                 typeof disabled === "function"
                                     ? disabled("barcode")

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaEdit } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
-import OutputTable from "../../Basic/OutputTable";
+import SortableTable from "../../Basic/SortableTable";
 export default function ShowInventory(props) {
     const [inventory, setInventory] = useState([]);
     useEffect(() => {
@@ -17,83 +17,59 @@ export default function ShowInventory(props) {
     }, []);
     return (
         <div style={{ width: "90%", maxWidth: "1200px", margin: "100px auto" }}>
-            <OutputTable>
-                <thead>
-                    <tr>
-                        <th className={classes.head} scope="col"></th>
-                        <th className={classes.head} scope="col">
-                            اسم المنتج
-                        </th>
-                        <th className={classes.head} scope="col">
-                            العبوات
-                        </th>
-                        <th scope="col" className={classes.head}>
-                            الباقى حاليا
-                        </th>
-
-                        <th
-                            scope="col"
-                            style={{ width: "220px" }}
-                            className={classes.head}
-                        >
-                            مش عاوزينها تقل عن
-                        </th>
-                        <th
-                            scope="col"
-                            style={{ width: "220px" }}
-                            className={classes.head}
-                        ></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {inventory.length === 0 ? (
-                        <tr>
-                            <td colSpan="6" className={classes.item}>
-                                لا توجد بضاعة شراء حتى الآن
+            <SortableTable
+                columns={[
+                    { key: "index", title: "#", sortable: false },
+                    { field: "name", title: "اسم المنتج" },
+                    { key: "volumes", title: "العبوات", sortable: false },
+                    { field: "total_remaining", title: "الباقى حاليا" },
+                    {
+                        field: "min_stock",
+                        title: "مش عاوزينها تقل عن",
+                        sortable: false,
+                    },
+                    { key: "actions", title: "الإجراءات", sortable: false },
+                ]}
+                data={inventory}
+                initialSortField="name"
+                initialSortDirection="asc"
+                tableClassName={`table table-bordered ${classes.table}`}
+                renderRow={(inv, index) => {
+                    inv.values.sort((a, b) => a.val - b.val);
+                    return (
+                        <tr key={inv._id || index}>
+                            <td className={classes.item}>{index + 1}</td>
+                            <td className={classes.item}>{inv.name}</td>
+                            <td className={classes.item}>
+                                {inv.values.map((v, di) => (
+                                    <div key={di}>
+                                        {v.name} : {v.val}
+                                    </div>
+                                ))}
+                            </td>
+                            <td className={classes.item}>
+                                {inv.total_remaining}
+                            </td>
+                            <td className={classes.item}>
+                                {inv["min-stock"] ? inv["min-stock"] : ""}
+                            </td>
+                            <td className={classes.item}>
+                                <FaEdit
+                                    onClick={() => {
+                                        props.onEdit(inv);
+                                    }}
+                                    className={classes.edit}
+                                />
+                                <MdDelete
+                                    className={`${classes.remove} ${commonStyles.disabledIcon}`}
+                                    title="حذف المنتج غير متاح حاليًا"
+                                />
                             </td>
                         </tr>
-                    ) : (
-                        inventory.map((inv, i) => {
-                            inv.values.sort((a, b) => a.val - b.val);
-                            return (
-                                <tr key={i}>
-                                    <th className={classes.item} scope="row">
-                                        {i + 1}
-                                    </th>
-                                    <td className={classes.item}>{inv.name}</td>
-                                    <td className={classes.item}>
-                                        {inv.values.map((v, di) => (
-                                            <div key={di}>
-                                                {v.name} : {v.val}
-                                            </div>
-                                        ))}
-                                    </td>
-                                    <td className={classes.item}>
-                                        {inv.total_remaining}
-                                    </td>
-                                    <td className={classes.item}>
-                                        {inv["min-stock"]
-                                            ? inv["min-stock"]
-                                            : ""}
-                                    </td>
-                                    <td className={classes.item}>
-                                        <FaEdit
-                                            onClick={() => {
-                                                props.onEdit(inv);
-                                            }}
-                                            className={classes.edit}
-                                        />
-                                        <MdDelete
-                                            className={`${classes.remove} ${commonStyles.disabledIcon}`}
-                                            title="حذف المنتج غير متاح حاليًا"
-                                        />
-                                    </td>
-                                </tr>
-                            );
-                        })
-                    )}
-                </tbody>
-            </OutputTable>
+                    );
+                }}
+                emptyMessage="لا توجد بضاعة شراء حتى الآن"
+            />
         </div>
     );
 }

@@ -1,9 +1,9 @@
 /* ProductForm specific styles */
 .add {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
+    /* display: flex; */
+    /* flex-direction: column; */
+    /* align-items: center; */
+    /* gap: 20px; */
     width: 100%;
 }
 
@@ -28,4 +28,36 @@
 .minus-icon:hover {
     color: #c53030;
     transform: scale(1.1);
+}
+
+/* Volume Management Section */
+.volumeSection {
+    width: 100%;
+    max-width: 600px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 10px 0;
+}
+
+.volumeHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.volumeHeader h4 {
+    margin: 0;
+    color: #495057;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.volumeDescription {
+    margin: 0;
+    color: #6c757d;
+    font-size: 14px;
+    line-height: 1.4;
 }

@@ -160,28 +160,79 @@ export default function PurchaseInvoice(props) {
         []
     );
 
-    // Function to find product and volume by barcode
-    const findProductByBarcode = useCallback(
-        (barcode) => {
-            if (!barcode || !products.length) return null;
+    // Function to lookup product and volume from barcode using API (same as SalesInvoice)
+    const lookupProductFromBarcode = useCallback(
+        async (index, barcode) => {
+            if (!barcode || barcode.trim() === "") return;
 
-            for (const product of products) {
-                if (product.values && product.values.length > 0) {
-                    for (const volume of product.values) {
-                        if (volume.barcode === barcode) {
-                            return {
-                                productId: product._id,
-                                volumeId: volume.id,
-                                productName: product.name,
-                                volumeName: volume.name,
-                            };
-                        }
-                    }
+            try {
+                // Find product and volume that has this barcode
+                const response = await axios.get(
+                    `${process.env.REACT_APP_BACKEND}has-volumes/barcode/${barcode}`
+                );
+
+                if (
+                    response.data &&
+                    response.data.product &&
+                    response.data.volume
+                ) {
+                    // Auto-select product and volume based on barcode
+                    originalHandleRowChange(
+                        index,
+                        "product",
+                        response.data.product
+                    );
+                    originalHandleRowChange(
+                        index,
+                        "volume",
+                        response.data.volume
+                    );
+
+                    // Fetch price suggestions for the found product and volume
+                    fetchPriceSuggestions(
+                        index,
+                        response.data.product,
+                        response.data.volume
+                    );
+
+                    // Show success message
+                    setSubmitMessage({
+                        text: `✅ تم العثور على المنتج: ${response.data.productName} - ${response.data.volumeName}`,
+                        isError: false,
+                    });
+                    setTimeout(() => {
+                        setSubmitMessage({ text: "", isError: false });
+                    }, 3000);
+                } else {
+                    // Show error message for unknown barcode
+                    setSubmitMessage({
+                        text: `❌ لم يتم العثور على منتج بالباركود: ${barcode}`,
+                        isError: true,
+                    });
+                    setTimeout(() => {
+                        setSubmitMessage({ text: "", isError: false });
+                    }, 3000);
                 }
+            } catch (error) {
+                console.error("Error looking up barcode:", error);
+                setSubmitMessage({
+                    text: `❌ خطأ في البحث عن الباركود: ${barcode}`,
+                    isError: true,
+                });
+                setTimeout(() => {
+                    setSubmitMessage({ text: "", isError: false });
+                }, 3000);
             }
-            return null;
         },
-        [products]
+        [originalHandleRowChange, fetchPriceSuggestions]
+    );
+
+    // Handle barcode change (same as SalesInvoice)
+    const handleBarcodeChange = useCallback(
+        (index, barcode) => {
+            lookupProductFromBarcode(index, barcode);
+        },
+        [lookupProductFromBarcode]
     );
 
     // Wrap handleRowChange to fetch suggestions when product or volume changes
@@ -191,50 +242,8 @@ export default function PurchaseInvoice(props) {
 
             const currentRow = invoiceRows[index];
 
-            // Handle barcode scanning
-            if (field === "barcode" && value) {
-                const barcodeResult = findProductByBarcode(value);
-                if (barcodeResult) {
-                    // Auto-select product and volume based on barcode
-                    originalHandleRowChange(
-                        index,
-                        "product",
-                        barcodeResult.productId
-                    );
-                    originalHandleRowChange(
-                        index,
-                        "volume",
-                        barcodeResult.volumeId
-                    );
-
-                    // Fetch price suggestions for the found product and volume
-                    fetchPriceSuggestions(
-                        index,
-                        barcodeResult.productId,
-                        barcodeResult.volumeId
-                    );
-
-                    // Show success message
-                    setSubmitMessage({
-                        text: `✅ تم العثور على المنتج: ${barcodeResult.productName} - ${barcodeResult.volumeName}`,
-                        isError: false,
-                    });
-                    setTimeout(() => {
-                        setSubmitMessage({ text: "", isError: false });
-                    }, 3000);
-                } else {
-                    // Show error message for unknown barcode
-                    setSubmitMessage({
-                        text: `❌ لم يتم العثور على منتج بالباركود: ${value}`,
-                        isError: true,
-                    });
-                    setTimeout(() => {
-                        setSubmitMessage({ text: "", isError: false });
-                    }, 3000);
-                }
-            }
             // Fetch suggestions when product changes (and volume is already set)
-            else if (field === "product" && value && currentRow?.volume) {
+            if (field === "product" && value && currentRow?.volume) {
                 fetchPriceSuggestions(index, value, currentRow.volume);
             }
             // Fetch suggestions when volume changes (and product is already set)
@@ -242,12 +251,7 @@ export default function PurchaseInvoice(props) {
                 fetchPriceSuggestions(index, currentRow.product, value);
             }
         },
-        [
-            originalHandleRowChange,
-            invoiceRows,
-            fetchPriceSuggestions,
-            findProductByBarcode,
-        ]
+        [originalHandleRowChange, invoiceRows, fetchPriceSuggestions]
     );
 
     // Initialize invoice state with ISO date string
@@ -754,10 +758,11 @@ export default function PurchaseInvoice(props) {
                                     invoiceRows.length > 1 &&
                                     i !== invoiceRows.length - 1
                                 }
-                                disabled={getDisabledState}
+                                disabled={getDisabledState()}
                                 viewMode={isViewMode}
                                 priceSuggestions={priceSuggestions[i] || null}
                                 totalRows={invoiceRows.length}
+                                onBarcodeChange={handleBarcodeChange}
                             />
                         );
                     })}

@@ -3,9 +3,11 @@ import commonStyles from "../../../styles/common.module.css";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaEdit } from "react-icons/fa";
-import { MdDelete } from "react-icons/md";
+// Volume deletion functionality disabled
+// import { MdDelete } from "react-icons/md";
 import VolumeForm from "./VolumeForm";
-import Modal from "../../general/Modal";
+// Volume deletion modal disabled
+// import Modal from "../../general/Modal";
 import SortableTable from "../../Basic/SortableTable";
 
 export default function ShowVolumes() {
@@ -13,8 +15,9 @@ export default function ShowVolumes() {
     const [showForm, setShowForm] = useState(false);
     const [currentVolume, setCurrentVolume] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [showModal, setShowModal] = useState(false);
-    const [volumeToDelete, setVolumeToDelete] = useState(null);
+    // Volume deletion state disabled
+    // const [showModal, setShowModal] = useState(false);
+    // const [volumeToDelete, setVolumeToDelete] = useState(null);
 
     useEffect(() => {
         fetchVolumes();
@@ -37,22 +40,23 @@ export default function ShowVolumes() {
         setShowForm(true);
     };
 
-    const confirmDelete = (volume) => {
-        setVolumeToDelete(volume);
-        setShowModal(true);
-    };
+    // Volume deletion functions disabled
+    // const confirmDelete = (volume) => {
+    //     setVolumeToDelete(volume);
+    //     setShowModal(true);
+    // };
 
-    const handleDelete = async () => {
-        try {
-            await axios.delete(
-                `${process.env.REACT_APP_BACKEND}volumes/${volumeToDelete._id}`
-            );
-            fetchVolumes();
-            setShowModal(false);
-        } catch (error) {
-            console.error("Error deleting volume:", error);
-        }
-    };
+    // const handleDelete = async () => {
+    //     try {
+    //         await axios.delete(
+    //             `${process.env.REACT_APP_BACKEND}volumes/${volumeToDelete._id}`
+    //         );
+    //         fetchVolumes();
+    //         setShowModal(false);
+    //     } catch (error) {
+    //         console.error("Error deleting volume:", error);
+    //     }
+    // };
 
     const handleFormSubmit = () => {
         setShowForm(false);
@@ -70,7 +74,8 @@ export default function ShowVolumes() {
                 padding: "0 20px",
             }}
         >
-            {showModal && (
+            {/* Volume deletion modal disabled */}
+            {/* {showModal && (
                 <Modal
                     onHide={() => setShowModal(false)}
                     data={{
@@ -80,7 +85,7 @@ export default function ShowVolumes() {
                     }}
                     onOk={handleDelete}
                 />
-            )}
+            )} */}
 
             {showForm ? (
                 <VolumeForm
@@ -153,12 +158,13 @@ export default function ShowVolumes() {
                                             onClick={() => handleEdit(volume)}
                                             className={classes.edit}
                                         />
-                                        <MdDelete
+                                        {/* Volume deletion button disabled */}
+                                        {/* <MdDelete
                                             onClick={() =>
                                                 confirmDelete(volume)
                                             }
                                             className={classes.remove}
-                                        />
+                                        /> */}
                                     </div>
                                 </td>
                             </tr>

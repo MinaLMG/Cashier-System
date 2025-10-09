@@ -25,11 +25,11 @@ const getProductMovement = async (req, res) => {
 
         // Get all sales items for this product
         const salesItems = await SalesItem.find({ product: productId })
-            .populate("sales_invoice", "date")
+            .populate("sales_invoice", "date created_at")
             .sort({ createdAt: 1 });
         // Get all return items for this product
         const returnItems = await ReturnItem.find({ product: productId })
-            .populate("return_invoice", "date")
+            .populate("return_invoice", "date created_at")
             .sort({ createdAt: 1 });
 
         // Get all volume conversions for this product
@@ -47,6 +47,7 @@ const getProductMovement = async (req, res) => {
 
             movements.push({
                 date: item.purchase_invoice.date,
+                final_date: item.purchase_invoice.date, // For purchase: final_date = invoice date
                 type: "purchase",
                 quantity: quantityInBaseUnits,
                 remaining: remainingInBaseUnits,
@@ -68,6 +69,7 @@ const getProductMovement = async (req, res) => {
 
             movements.push({
                 date: item.sales_invoice.date,
+                final_date: item.sales_invoice.created_at, // For sales: final_date = invoice created_at
                 type: "sale",
                 quantity: quantityInBaseUnits,
                 remaining: null, // Sales don't have remaining field
@@ -89,6 +91,7 @@ const getProductMovement = async (req, res) => {
 
             movements.push({
                 date: item.return_invoice.date,
+                final_date: item.return_invoice.created_at, // For return: final_date = invoice created_at
                 type: "return",
                 quantity: quantityInBaseUnits,
                 remaining: null, // Returns don't have remaining field
@@ -105,20 +108,20 @@ const getProductMovement = async (req, res) => {
 
         // Sort movements chronologically with priority rules
         movements.sort((a, b) => {
-            // First sort by date
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
+            // First sort by final_date
+            const finalDateA = new Date(a.final_date);
+            const finalDateB = new Date(b.final_date);
 
-            if (dateA.getTime() !== dateB.getTime()) {
-                return dateA - dateB;
+            if (finalDateA.getTime() !== finalDateB.getTime()) {
+                return finalDateA - finalDateB;
             }
 
-            // If same date, sort by priority (purchase > sale > return)
+            // If same final_date, sort by priority (purchase > sale > return)
             if (a.priority !== b.priority) {
                 return a.priority - b.priority;
             }
 
-            // If same date and same type, sort by createdAt
+            // If same final_date and same type, sort by createdAt
             return new Date(a.createdAt) - new Date(b.createdAt);
         });
         // Calculate remaining quantities chronologically

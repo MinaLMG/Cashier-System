@@ -1,5 +1,5 @@
 // SalesInvoiceRow.js
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { IoMdAddCircle } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { FaUndo } from "react-icons/fa";
@@ -27,6 +27,7 @@ export default function SalesInvoiceRow({
     totalRows,
 }) {
     const selectedProduct = products.find((p) => p._id === row.product);
+    const barcodeTimeoutRef = useRef(null);
 
     const basePrice =
         salesType === "walkin"
@@ -53,6 +54,35 @@ export default function SalesInvoiceRow({
     const volumeName =
         selectedProduct?.values?.find((v) => v.id === row.volume)?.name ||
         "غير معروف";
+
+    // Debounced barcode change handler
+    const handleBarcodeChange = (val) => {
+        // First update the value immediately
+        onChange(index, "barcode", val);
+
+        // Clear existing timeout
+        if (barcodeTimeoutRef.current) {
+            clearTimeout(barcodeTimeoutRef.current);
+        }
+
+        // Set new timeout for barcode lookup
+        barcodeTimeoutRef.current = setTimeout(() => {
+            if (val && val.trim() !== "" && val.length >= 3) {
+                // Only lookup if barcode is at least 3 characters
+                console.log("Looking up barcode:", val); // Debug log
+                onBarcodeChange(index, val);
+            }
+        }, 500); // 500ms debounce
+    };
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (barcodeTimeoutRef.current) {
+                clearTimeout(barcodeTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Handle keyboard shortcuts
     useEffect(() => {
@@ -120,15 +150,7 @@ export default function SalesInvoiceRow({
                         <TextInput
                             placeholder="الباركود"
                             value={row.barcode || ""}
-                            onchange={(val) => {
-                                // First update the value
-                                onChange(index, "barcode", val);
-
-                                // Then trigger barcode lookup if not empty
-                                if (val && val.trim() !== "") {
-                                    onBarcodeChange(index, val);
-                                }
-                            }}
+                            onchange={handleBarcodeChange}
                             disabled={disabled}
                         />
                         {errors.barcode && (

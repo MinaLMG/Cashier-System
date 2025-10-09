@@ -48,7 +48,7 @@ const returnItemSchema = new mongoose.Schema({
         },
     ],
     total_revenue_loss: { type: Number, default: 0 }, // total revenue loss from this return
-    date: { type: Date, default: Date.now },
+    date: { type: Date },
 });
 
 // Add timestamps to the schema

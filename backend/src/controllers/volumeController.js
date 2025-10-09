@@ -25,16 +25,17 @@ exports.createVolume = async (req, res) => {
     }
 };
 
-exports.deleteVolume = async (req, res) => {
-    try {
-        const volume = await Volume.findByIdAndDelete(req.params.id);
-        if (!volume)
-            return res.status(404).json({ error: "Volume not found." });
-        res.status(200).json({ message: "Volume deleted." });
-    } catch (err) {
-        res.status(500).json({ error: "Failed to delete volume." });
-    }
-};
+// Volume deletion functionality disabled
+// exports.deleteVolume = async (req, res) => {
+//     try {
+//         const volume = await Volume.findByIdAndDelete(req.params.id);
+//         if (!volume)
+//             return res.status(404).json({ error: "Volume not found." });
+//         res.status(200).json({ message: "Volume deleted." });
+//     } catch (err) {
+//         res.status(500).json({ error: "Failed to delete volume." });
+//     }
+// };
 exports.updateVolume = async (req, res) => {
     try {
         const volume = await Volume.findByIdAndUpdate(req.params.id, req.body, {

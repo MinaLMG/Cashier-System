@@ -1,52 +1,52 @@
- const Product = require("../models/Product");
+const Product = require("../models/Product");
 const HasVolume = require("../models/HasVolume");
 
 // Helper function to check if conversions have non-barcode changes
 const hasNonBarcodeConversionChanges = (currentConversions, newConversions) => {
     if (!currentConversions || !newConversions) return false;
-    
+
     // Create maps for easier comparison
     const currentMap = new Map();
     const newMap = new Map();
-    
-    currentConversions.forEach(conv => {
+
+    currentConversions.forEach((conv) => {
         currentMap.set(`${conv.from}-${conv.to}`, {
             from: conv.from,
             to: conv.to,
             value: conv.value,
-            barcode: conv.barcode || null
+            barcode: conv.barcode || null,
         });
     });
-    
-    newConversions.forEach(conv => {
+
+    newConversions.forEach((conv) => {
         newMap.set(`${conv.from}-${conv.to}`, {
             from: conv.from,
             to: conv.to,
             value: conv.value,
-            barcode: conv.barcode || null
+            barcode: conv.barcode || null,
         });
     });
-    
-    // Check if any conversion has changed in non-barcode fields
+
+    // Check if any existing conversion has changed in non-barcode fields
     for (const [key, currentConv] of currentMap) {
         const newConv = newMap.get(key);
-        
+
         // If conversion was removed, that's a non-barcode change
         if (!newConv) return true;
-        
-        // Check if from, to, or value changed
-        if (currentConv.from !== newConv.from || 
-            currentConv.to !== newConv.to || 
-            currentConv.value !== newConv.value) {
+
+        // Check if from, to, or value changed for existing conversions
+        if (
+            currentConv.from !== newConv.from ||
+            currentConv.to !== newConv.to ||
+            currentConv.value !== newConv.value
+        ) {
             return true;
         }
     }
-    
-    // Check if any new conversions were added
-    for (const [key, newConv] of newMap) {
-        if (!currentMap.has(key)) return true;
-    }
-    
+
+    // Note: We now allow adding new conversions, so we don't check for new conversions here
+    // Only check if existing conversions were modified or removed
+
     return false;
 };
 
@@ -115,7 +115,12 @@ exports.updateProduct = async (req, res) => {
                     const currentProduct = await Product.findById(productId);
                     if (currentProduct) {
                         // Check if conversions have non-barcode changes
-                        if (hasNonBarcodeConversionChanges(currentProduct.conversions, req.body.conversions)) {
+                        if (
+                            hasNonBarcodeConversionChanges(
+                                currentProduct.conversions,
+                                req.body.conversions
+                            )
+                        ) {
                             return res.status(400).json({
                                 error: "لا يمكن تعديل تحويلات المنتج (من، إلى، القيمة) - تم استخدامه في فواتير المشتريات. يمكن تعديل الباركود فقط.",
                                 canModifyConversions: false,
@@ -329,7 +334,12 @@ exports.updateFullProduct = async (req, res) => {
             const currentProduct = await Product.findById(productId);
             if (currentProduct) {
                 // Check if conversions have non-barcode changes
-                if (hasNonBarcodeConversionChanges(currentProduct.conversions, conversions)) {
+                if (
+                    hasNonBarcodeConversionChanges(
+                        currentProduct.conversions,
+                        conversions
+                    )
+                ) {
                     return res.status(400).json({
                         error: "لا يمكن تعديل تحويلات المنتج (من، إلى، القيمة) - تم استخدامه في فواتير المشتريات. يمكن تعديل الباركود فقط.",
                         canModifyConversions: false,

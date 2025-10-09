@@ -10,6 +10,7 @@ import commonStyles from "../../../styles/common.module.css";
 export default function CustomerForm({
     customer,
     isEditing,
+    mode = "add", // "add", "edit", or "view"
     onSubmit,
     onCancel,
 }) {
@@ -26,12 +27,14 @@ export default function CustomerForm({
         text: "",
         isError: false,
     });
+    const isViewMode = mode === "view";
+    const isEditMode = mode === "edit" || isEditing;
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Validate form on every change
     useEffect(() => {
-        // Only validate if user has interacted or we're in edit mode
-        if (!hasUserInteracted && !isEditing) {
+        // Only validate if user has interacted or we're in edit mode, but not in view mode
+        if (!hasUserInteracted && !isEditMode) {
             setFormError("");
             setFieldErrors({});
             return;
@@ -65,6 +68,9 @@ export default function CustomerForm({
     }, [formData, hasUserInteracted, isEditing]);
 
     const handleChange = (field, value) => {
+        // Don't allow changes in view mode
+        if (isViewMode) return;
+
         // Mark that user has started interacting
         if (!hasUserInteracted) {
             setHasUserInteracted(true);
@@ -83,13 +89,19 @@ export default function CustomerForm({
 
     // Initialize form for edit mode
     useEffect(() => {
-        if (isEditing && customer) {
+        if (isEditMode && customer) {
             setHasUserInteracted(true); // Enable validation for edit mode
         }
-    }, [isEditing, customer]);
+    }, [isEditMode, customer]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // In view mode, just call onCancel to close
+        if (isViewMode) {
+            onCancel();
+            return;
+        }
 
         // Check if form has errors
         const hasErrors = Object.keys(fieldErrors).some(
@@ -114,7 +126,7 @@ export default function CustomerForm({
         setIsSubmitting(true);
 
         try {
-            if (isEditing) {
+            if (isEditMode) {
                 await axios.put(
                     `${process.env.REACT_APP_BACKEND}customers/${customer._id}`,
                     formData
@@ -189,7 +201,11 @@ export default function CustomerForm({
     return (
         <div className={formStyles.formContainer}>
             <h2 className={formStyles.formTitle}>
-                {isEditing ? "تعديل العميل" : "إضافة عميل جديد"}
+                {isViewMode
+                    ? "عرض تفاصيل العميل"
+                    : isEditMode
+                    ? "تعديل العميل"
+                    : "إضافة عميل جديد"}
             </h2>
             <form className={formStyles.formGrid}>
                 <TextInput
@@ -201,6 +217,7 @@ export default function CustomerForm({
                     onchange={(value) => handleChange("name", value)}
                     width="300px"
                     error={fieldErrors.name || ""}
+                    disabled={isViewMode}
                 />
 
                 <Select
@@ -213,6 +230,7 @@ export default function CustomerForm({
                     ]}
                     width="58px"
                     error={fieldErrors.type || ""}
+                    disabled={isViewMode}
                 />
 
                 <TextInput
@@ -224,6 +242,7 @@ export default function CustomerForm({
                     onchange={(value) => handleChange("phone", value)}
                     width="300px"
                     error={fieldErrors.phone || ""}
+                    disabled={isViewMode}
                 />
 
                 <TextInput
@@ -235,25 +254,36 @@ export default function CustomerForm({
                     onchange={(value) => handleChange("address", value)}
                     width="300px"
                     error={fieldErrors.address || ""}
+                    disabled={isViewMode}
                 />
                 <div className={formStyles.formActions}>
                     <Button
-                        content={isEditing ? "تحديث" : "إضافة"}
+                        content={
+                            isViewMode
+                                ? "إغلاق"
+                                : isEditMode
+                                ? "تحديث"
+                                : "إضافة"
+                        }
                         onClick={handleSubmit}
                         disabled={
-                            Object.keys(fieldErrors).some(
-                                (key) => fieldErrors[key]
-                            ) ||
-                            formError ||
-                            isSubmitting
+                            isViewMode
+                                ? false
+                                : Object.keys(fieldErrors).some(
+                                      (key) => fieldErrors[key]
+                                  ) ||
+                                  formError ||
+                                  isSubmitting
                         }
                         className={formStyles.primaryButton}
                     />
-                    <Button
-                        content="إلغاء"
-                        onClick={onCancel}
-                        className={formStyles.secondaryButton}
-                    />
+                    {!isViewMode && (
+                        <Button
+                            content="إلغاء"
+                            onClick={onCancel}
+                            className={formStyles.secondaryButton}
+                        />
+                    )}
                 </div>
 
                 {/* Form-level error below submit button */}

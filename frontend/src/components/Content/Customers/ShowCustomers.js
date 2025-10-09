@@ -3,9 +3,11 @@ import commonStyles from "../../../styles/common.module.css";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaEdit, FaEye } from "react-icons/fa";
-import { MdDelete } from "react-icons/md";
+// Customer deletion functionality disabled
+// import { MdDelete } from "react-icons/md";
 import CustomerForm from "./CustomerForm";
-import Modal from "../../general/Modal";
+// Customer deletion modal disabled
+// import Modal from "../../general/Modal";
 import SortableTable from "../../Basic/SortableTable";
 
 export default function ShowCustomers() {
@@ -13,8 +15,10 @@ export default function ShowCustomers() {
     const [showForm, setShowForm] = useState(false);
     const [currentCustomer, setCurrentCustomer] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [showModal, setShowModal] = useState(false);
-    const [customerToDelete, setCustomerToDelete] = useState(null);
+    const [isViewing, setIsViewing] = useState(false);
+    // Customer deletion state disabled
+    // const [showModal, setShowModal] = useState(false);
+    // const [customerToDelete, setCustomerToDelete] = useState(null);
 
     useEffect(() => {
         fetchCustomers();
@@ -34,30 +38,40 @@ export default function ShowCustomers() {
     const handleEdit = (customer) => {
         setCurrentCustomer(customer);
         setIsEditing(true);
+        setIsViewing(false);
         setShowForm(true);
     };
 
-    const confirmDelete = (customer) => {
-        setCustomerToDelete(customer);
-        setShowModal(true);
+    const handleView = (customer) => {
+        setCurrentCustomer(customer);
+        setIsEditing(false);
+        setIsViewing(true);
+        setShowForm(true);
     };
 
-    const handleDelete = async () => {
-        try {
-            await axios.delete(
-                `${process.env.REACT_APP_BACKEND}customers/${customerToDelete._id}`
-            );
-            fetchCustomers();
-            setShowModal(false);
-        } catch (error) {
-            console.error("Error deleting customer:", error);
-        }
-    };
+    // Customer deletion functions disabled
+    // const confirmDelete = (customer) => {
+    //     setCustomerToDelete(customer);
+    //     setShowModal(true);
+    // };
+
+    // const handleDelete = async () => {
+    //     try {
+    //         await axios.delete(
+    //             `${process.env.REACT_APP_BACKEND}customers/${customerToDelete._id}`
+    //         );
+    //         fetchCustomers();
+    //         setShowModal(false);
+    //     } catch (error) {
+    //         console.error("Error deleting customer:", error);
+    //     }
+    // };
 
     const handleFormSubmit = () => {
         setShowForm(false);
         setCurrentCustomer(null);
         setIsEditing(false);
+        setIsViewing(false);
         fetchCustomers();
     };
 
@@ -70,7 +84,8 @@ export default function ShowCustomers() {
                 padding: "0 20px",
             }}
         >
-            {showModal && (
+            {/* Customer deletion modal disabled */}
+            {/* {showModal && (
                 <Modal
                     onHide={() => setShowModal(false)}
                     data={{
@@ -80,17 +95,19 @@ export default function ShowCustomers() {
                     }}
                     onOk={handleDelete}
                 />
-            )}
+            )} */}
 
             {showForm ? (
                 <CustomerForm
                     customer={currentCustomer}
                     isEditing={isEditing}
+                    mode={isViewing ? "view" : isEditing ? "edit" : "add"}
                     onSubmit={handleFormSubmit}
                     onCancel={() => {
                         setShowForm(false);
                         setCurrentCustomer(null);
                         setIsEditing(false);
+                        setIsViewing(false);
                     }}
                 />
             ) : (
@@ -122,6 +139,7 @@ export default function ShowCustomers() {
                             }}
                             onClick={() => {
                                 setIsEditing(false);
+                                setIsViewing(false);
                                 setCurrentCustomer(null);
                                 setShowForm(true);
                             }}
@@ -164,15 +182,17 @@ export default function ShowCustomers() {
                                             className={classes.edit}
                                         />
                                         <FaEye
-                                            className={`${classes.view} ${commonStyles.disabledIcon}`}
-                                            title="عرض التفاصيل غير متاح حاليًا"
+                                            onClick={() => handleView(customer)}
+                                            className={classes.view}
+                                            title="عرض تفاصيل العميل"
                                         />
-                                        <MdDelete
+                                        {/* Customer deletion button disabled */}
+                                        {/* <MdDelete
                                             onClick={() =>
                                                 confirmDelete(customer)
                                             }
                                             className={classes.remove}
-                                        />
+                                        /> */}
                                     </div>
                                 </td>
                             </tr>

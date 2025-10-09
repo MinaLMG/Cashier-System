@@ -8,9 +8,9 @@ const returnInvoiceSchema = new mongoose.Schema({
         validate: {
             validator: function (date) {
                 const today = new Date();
-                today.setHours(0, 0, 0, 0);
+                console.log("date from validator", date);
                 const invoiceDate = new Date(date);
-                invoiceDate.setHours(0, 0, 0, 0);
+                console.log("invoiceDate from validator", invoiceDate);
                 return invoiceDate <= today;
             },
             message: "تاريخ الفاتورة لا يمكن أن يكون في المستقبل",
