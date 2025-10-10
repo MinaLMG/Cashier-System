@@ -12,15 +12,13 @@ const updateSuggestedPrices = async (productId, gamma = 0.9) => {
         const currentProduct = await Product.findById(productId).select(
             "u_suggested_buy_price u_suggested_pharmacy_price u_suggested_walkin_price"
         );
-
         // Find the most recent purchase item for this product
         const latestPurchase = await PurchaseItem.findOne({
             product: productId,
         })
-            .sort({ createdAt: -1 })
+            .sort({ created_at: -1 })
             .select("v_buy_price v_pharmacy_price v_walkin_price volume")
             .populate("volume", "value");
-
         if (!latestPurchase) {
             // No purchase data available
             return null;
@@ -100,11 +98,9 @@ const updateSuggestedPricesForInvoice = async (purchaseItems, gamma = 0.9) => {
         const uniqueProductIds = [
             ...new Set(purchaseItems.map((item) => item.product.toString())),
         ];
-
         const updatePromises = uniqueProductIds.map(async (productId) => {
             return await updateSuggestedPrices(productId, gamma);
         });
-
         const results = await Promise.all(updatePromises);
         return results.filter((result) => result !== null);
     } catch (error) {
