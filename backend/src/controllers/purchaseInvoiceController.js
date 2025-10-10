@@ -646,11 +646,35 @@ exports.getAllFullPurchaseInvoices = async (req, res) => {
                     supplier: invoice.supplier || null,
                     rows,
                     total_cost: invoice.total_cost, // Was 'cost'
+                    created_at: invoice.created_at, // Include creation date for sorting
                 };
             })
         );
 
-        res.status(200).json(fullInvoices);
+        // Sort by creation date ascending, then by invoice date ascending
+        const sortedInvoices = fullInvoices.sort((a, b) => {
+            // First sort by invoice date ascending
+            const invoiceDateA = new Date(a.date);
+            const invoiceDateB = new Date(b.date);
+            if (invoiceDateA.getTime() !== invoiceDateB.getTime()) {
+                return invoiceDateA.getTime() - invoiceDateB.getTime();
+            }
+            // If invoice dates are equal, sort by creation date ascending
+            const creationDateA = new Date(a.created_at);
+            const creationDateB = new Date(b.created_at);
+            return creationDateA.getTime() - creationDateB.getTime();
+        });
+
+        // Reverse the sorted array before sending response
+        const reversedInvoices = sortedInvoices.reverse();
+
+        // Remove created_at from response to keep API clean
+        const finalInvoices = reversedInvoices.map((invoice) => {
+            const { created_at, ...invoiceWithoutCreatedAt } = invoice;
+            return invoiceWithoutCreatedAt;
+        });
+
+        res.status(200).json(finalInvoices);
     } catch (err) {
         console.error("getAllFullPurchaseInvoices error:", err);
         res.status(500).json({ error: "فشل في تحميل الفواتير" });
