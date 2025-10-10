@@ -65,7 +65,7 @@ export default function PurchaseInvoice(props) {
         v_pharmacy_price: "",
         v_walkin_price: "",
         expiry: null,
-        remaining: "",
+        // remaining: "", // COMMENTED OUT - will be set to full quantity automatically
     };
 
     // Define row validation function
@@ -723,13 +723,13 @@ export default function PurchaseInvoice(props) {
                         <th className={classes.head} scope="col">
                             تاريخ انتهاء الصلاحية
                         </th>
-                        <th
+                        {/* <th
                             className={classes.head}
                             scope="col"
                             style={{ width: "100px" }}
                         >
                             الباقى( لو فاتورة باثر رجعى)
-                        </th>
+                        </th> */}
                         {!isViewMode && (
                             <th
                                 className={classes.head}
@@ -773,7 +773,7 @@ export default function PurchaseInvoice(props) {
                             <strong>إجمالي الفاتورة:</strong>
                         </td>
                         <td
-                            colSpan={isViewMode ? "5" : "6"}
+                            colSpan={isViewMode ? "4" : "5"}
                             className={classes.item}
                         >
                             <div className="d-flex justify-content-between">

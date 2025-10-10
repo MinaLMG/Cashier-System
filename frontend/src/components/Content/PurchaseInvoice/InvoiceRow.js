@@ -442,8 +442,8 @@ export default function InvoiceRow(props) {
                 )}
             </td>
 
-            {/* الباقي */}
-            <td className={classes.item}>
+            {/* الباقي - COMMENTED OUT */}
+            {/* <td className={classes.item}>
                 {viewMode ? (
                     <div className={classes.viewText}>
                         {row.remaining || "0"}
@@ -474,7 +474,7 @@ export default function InvoiceRow(props) {
                         )}
                     </>
                 )}
-            </td>
+            </td> */}
 
             {/* Controls */}
             {!viewMode && (

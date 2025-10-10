@@ -282,7 +282,8 @@ exports.createFullPurchaseInvoice = async (req, res) => {
                     v_pharmacy_price: Number(r.v_pharmacy_price),
                     v_walkin_price: Number(r.v_walkin_price),
                     expiry: r.expiry ? new Date(r.expiry) : null,
-                    remaining: remaining_quantity,
+                    // remaining: remaining_quantity, // COMMENTED OUT - will be set to full quantity automatically
+                    remaining: remaining_quantity, // Set to full quantity (quantity * volume value)
                 };
             })
         );
@@ -444,7 +445,8 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                     v_pharmacy_price: Number(r.v_pharmacy_price),
                     v_walkin_price: Number(r.v_walkin_price),
                     expiry: r.expiry ? new Date(r.expiry) : null,
-                    remaining: remaining_quantity,
+                    // remaining: remaining_quantity, // COMMENTED OUT - will be set to full quantity automatically
+                    remaining: remaining_quantity, // Set to full quantity (quantity * volume value)
                 });
             }
         }
