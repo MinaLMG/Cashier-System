@@ -723,13 +723,15 @@ export default function PurchaseInvoice(props) {
                         <th className={classes.head} scope="col">
                             تاريخ انتهاء الصلاحية
                         </th>
-                        {/* <th
-                            className={classes.head}
-                            scope="col"
-                            style={{ width: "100px" }}
-                        >
-                            الباقى( لو فاتورة باثر رجعى)
-                        </th> */}
+                        {isViewMode && (
+                            <th
+                                className={classes.head}
+                                scope="col"
+                                style={{ width: "100px" }}
+                            >
+                                الباقى
+                            </th>
+                        )}
                         {!isViewMode && (
                             <th
                                 className={classes.head}
@@ -773,7 +775,7 @@ export default function PurchaseInvoice(props) {
                             <strong>إجمالي الفاتورة:</strong>
                         </td>
                         <td
-                            colSpan={isViewMode ? "4" : "5"}
+                            colSpan={isViewMode ? "5" : "5"}
                             className={classes.item}
                         >
                             <div className="d-flex justify-content-between">

@@ -10,6 +10,7 @@ import ShowCustomers from "./Customers/ShowCustomers";
 import ShowVolumes from "./Volumes/ShowVolumes";
 import Revenue from "./Revenue/Revenue";
 import ProductMovement from "./ProductMovement/ProductMovement";
+import Notifications from "./Notifications/Notifications";
 
 export default function Content(props) {
     return (
@@ -96,6 +97,7 @@ export default function Content(props) {
             {props.selected === "إدارة العملاء" && <ShowCustomers />}
             {props.selected === "إدارة العبوات" && <ShowVolumes />}
             {props.selected === "حركة المنتج" && <ProductMovement />}
+            {props.selected === "الإشعارات" && <Notifications />}
         </div>
     );
 }

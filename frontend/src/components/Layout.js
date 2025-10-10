@@ -27,6 +27,10 @@ export default function Layout() {
             title: "إدارة البيانات",
             tasks: ["إدارة الموردين", "إدارة العملاء", "إدارة العبوات"],
         },
+        {
+            title: "النظام",
+            tasks: ["الإشعارات"],
+        },
     ];
     const [selected, setSelected] = useState("");
     function changeSelected(ch) {

@@ -40,6 +40,10 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    low_stock_created: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 // Add timestamps to the schema

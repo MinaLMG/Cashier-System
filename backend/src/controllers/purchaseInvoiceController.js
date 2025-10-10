@@ -293,6 +293,11 @@ exports.createFullPurchaseInvoice = async (req, res) => {
         for (const item of createdItems) {
             await updateProductPrices(item.product);
             await updateProductRemaining(item.product);
+
+            // Reset low_stock_created flag when new purchase items are added
+            await Product.findByIdAndUpdate(item.product, {
+                low_stock_created: false,
+            });
         }
 
         // Update suggested prices for all product-volume combinations
@@ -525,6 +530,16 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
         for (const productId of allAffectedProductIds) {
             await updateProductPrices(productId);
             await updateProductRemaining(productId);
+        }
+
+        // Reset low_stock_created flag for products that have new items added
+        const newItemProductIds = itemsToInsert.map((i) =>
+            i.product.toString()
+        );
+        for (const productId of newItemProductIds) {
+            await Product.findByIdAndUpdate(productId, {
+                low_stock_created: false,
+            });
         }
 
         // Update suggested prices for all product-volume combinations in the updated invoice

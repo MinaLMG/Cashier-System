@@ -1,0 +1,194 @@
+.container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.refreshButton {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.refreshButton:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+.refreshButton:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    font-size: 18px;
+    color: #666;
+}
+
+.noNotifications {
+    text-align: center;
+    padding: 40px;
+    font-size: 18px;
+    color: #666;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+}
+
+.notificationsList {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.notificationItem {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.notificationItem.unseen {
+    border-left: 4px solid #007bff;
+    background-color: #f8f9ff;
+}
+
+.notificationItem:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.notificationHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.notificationInfo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.typeBadge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
+
+.typeBadge.lowStock {
+    background-color: #dc3545;
+}
+
+.typeBadge.expiryWarning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.typeBadge.other {
+    background-color: #6c757d;
+}
+
+.date {
+    color: #666;
+    font-size: 14px;
+}
+
+.notificationActions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.markSeenButton {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s;
+}
+
+.markSeenButton:hover {
+    background-color: #218838;
+}
+
+.deleteButton {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s;
+}
+
+.deleteButton:hover {
+    background-color: #c82333;
+}
+
+.notificationMessage {
+    font-size: 16px;
+    line-height: 1.5;
+    color: #333;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    border-right: 3px solid #007bff;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .buttons {
+        justify-content: center;
+    }
+
+    .notificationHeader {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .notificationInfo {
+        justify-content: center;
+    }
+
+    .notificationActions {
+        justify-content: center;
+    }
+}
