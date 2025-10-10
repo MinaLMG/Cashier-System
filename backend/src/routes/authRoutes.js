@@ -160,47 +160,48 @@ router.post("/login", async (req, res) => {
     }
 });
 
+// UNUSED ENDPOINTS - COMMENTED OUT
 // @route   GET /api/auth/me
 // @desc    Get current user
 // @access  Private
-router.get("/me", authMiddleware, async (req, res) => {
-    try {
-        res.json({
-            success: true,
-            user: {
-                id: req.user._id,
-                username: req.user.username,
-                role: req.user.role,
-                name: req.user.name || req.user.username,
-            },
-        });
-    } catch (error) {
-        console.error("Get user error:", error);
-        res.status(500).json({
-            success: false,
-            message: "خطأ في الخادم.",
-        });
-    }
-});
+// router.get("/me", authMiddleware, async (req, res) => {
+//     try {
+//         res.json({
+//             success: true,
+//             user: {
+//                 id: req.user._id,
+//                 username: req.user.username,
+//                 role: req.user.role,
+//                 name: req.user.name || req.user.username,
+//             },
+//         });
+//     } catch (error) {
+//         console.error("Get user error:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: "خطأ في الخادم.",
+//         });
+//     }
+// });
 
 // @route   POST /api/auth/logout
 // @desc    Logout user (client-side token removal)
 // @access  Private
-router.post("/logout", authMiddleware, async (req, res) => {
-    try {
-        // Since we're using JWT, logout is handled client-side
-        // This endpoint is mainly for consistency and future enhancements
-        res.json({
-            success: true,
-            message: "تم تسجيل الخروج بنجاح.",
-        });
-    } catch (error) {
-        console.error("Logout error:", error);
-        res.status(500).json({
-            success: false,
-            message: "خطأ في الخادم.",
-        });
-    }
-});
+// router.post("/logout", authMiddleware, async (req, res) => {
+//     try {
+//         // Since we're using JWT, logout is handled client-side
+//         // This endpoint is mainly for consistency and future enhancements
+//         res.json({
+//             success: true,
+//             message: "تم تسجيل الخروج بنجاح.",
+//         });
+//     } catch (error) {
+//         console.error("Logout error:", error);
+//         res.status(500).json({
+//             success: false,
+//             message: "خطأ في الخادم.",
+//         });
+//     }
+// });
 
 module.exports = router;

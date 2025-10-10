@@ -18,7 +18,9 @@ exports.createHasVolume = async (req, res) => {
             .status(400)
             .json({ error: "Product, volume, and value are required." });
     }
-
+    if (value <= 0) {
+        return res.status(400).json({ error: "Value must be greater than 0." });
+    }
     try {
         const entry = new HasVolume({ product, volume, value, barcode, sale });
         await entry.save();
