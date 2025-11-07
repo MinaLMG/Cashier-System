@@ -11,7 +11,8 @@ const hasVolumeSchema = new mongoose.Schema({
         ref: "Volume",
         required: true,
     },
-    value: { type: Number, required: true },
+    //integer number
+    value: { type: Number, required: true, integer: true },
     barcode: { type: String, default: null },
     sale_price: { type: Number },
 });

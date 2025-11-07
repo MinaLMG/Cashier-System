@@ -617,11 +617,6 @@ exports.getAllFullProducts = async (req, res) => {
                     name: hv.volume.name,
                     val: hv.value,
                 }));
-                console.log(
-                    "product.u_walkin_price, u_pharmacy_price:",
-                    product.u_walkin_price,
-                    product.u_pharmacy_price
-                );
                 return {
                     _id: product._id,
                     name: product.name,
