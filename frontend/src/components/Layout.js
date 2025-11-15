@@ -154,6 +154,7 @@ export default function Layout() {
     };
     const [salesInvoiceToView, setSalesInvoiceToView] = useState(null);
     const [purchaseInvoiceToView, setPurchaseInvoiceToView] = useState(null);
+    const [productToView, setProductToView] = useState(null);
 
     // Function to handle back from view or edit
     const handleBackFromView = () => {
@@ -164,6 +165,9 @@ export default function Layout() {
             selected === "عدل فاتورة مشتريات"
         ) {
             setSelected("اعرض كل فواتير المشتريات");
+        } else if (selected === "عرض تفاصيل المنتج") {
+            setSelected("اعرض كل البضاعة");
+            setProductToView(null);
         }
     };
     return (
@@ -229,6 +233,12 @@ export default function Layout() {
                         setSelected("عرض فاتورة مشتريات");
                     }}
                     purchaseInvoiceToView={purchaseInvoiceToView}
+                    // View product props
+                    onViewProduct={(e) => {
+                        setProductToView(e);
+                        setSelected("عرض تفاصيل المنتج");
+                    }}
+                    productToView={productToView}
                     // Back from view handler
                     onBackFromView={handleBackFromView}
                 ></Content>

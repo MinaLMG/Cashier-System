@@ -583,6 +583,7 @@ exports.getFullProductById = async (req, res) => {
             id: entry.volume._id,
             name: entry.volume.name,
             val: entry.value,
+            barcode: entry.barcode || null,
         }));
 
         res.status(200).json({
@@ -616,6 +617,7 @@ exports.getAllFullProducts = async (req, res) => {
                     id: hv.volume._id,
                     name: hv.volume.name,
                     val: hv.value,
+                    barcode: hv.barcode || null,
                 }));
                 return {
                     _id: product._id,

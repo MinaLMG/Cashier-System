@@ -1,5 +1,6 @@
 import ShowInventory from "./Inventory/ShowInventory";
 import ProductForm from "./AddProduct/ProductForm";
+import ProductDetails from "./Inventory/ProductDetails";
 import classes from "./Content.module.css";
 import PurchaseInvoice from "./PurchaseInvoice/PurchaseInvoice";
 import ShowPurchaseInvoices from "./ShowInvoices/ShowPurchaseInvoices";
@@ -28,7 +29,16 @@ export default function Content(props) {
                     onEdit={(e) => {
                         props.onEditProduct(e);
                     }}
+                    onView={(e) => {
+                        props.onViewProduct(e);
+                    }}
                 ></ShowInventory>
+            )}
+            {props.selected === "عرض تفاصيل المنتج" && (
+                <ProductDetails
+                    product={props.productToView}
+                    onBack={props.onBackFromView}
+                />
             )}
             {props.selected === "زود فاتورة مشتريات" && (
                 <PurchaseInvoice mode="add"></PurchaseInvoice>

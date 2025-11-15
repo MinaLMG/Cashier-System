@@ -8,19 +8,57 @@
     align-content: center;
 }
 
+.actionsContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 .edit,
-.remove {
+.remove,
+.printIcon {
     font-size: 30px;
-    margin: 0 10px;
     cursor: pointer;
+    transition: all 0.3s;
 }
 
 .edit {
     color: brown;
 }
 
+.edit:hover {
+    color: #8b4513;
+    transform: scale(1.1);
+}
+
 .remove {
     color: #848484;
+}
+
+.printIcon {
+    color: #28a745;
+    font-size: 20px;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.printIcon:hover {
+    color: #218838;
+    transform: scale(1.15);
+}
+
+.volumeRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 4px 0;
+}
+
+.volumeRow:last-child {
+    margin-bottom: 0;
 }
 
 .remove.disabled {
