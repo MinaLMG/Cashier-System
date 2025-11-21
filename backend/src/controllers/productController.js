@@ -587,13 +587,14 @@ exports.getFullProductById = async (req, res) => {
         }));
 
         res.status(200).json({
-            id: product._id,
+            _id: product._id,
             name: product.name,
             "min-stock": product.min_stock,
             conversions: product.conversions,
             values,
             u_walkin_price: product.u_walkin_price,
             u_pharmacy_price: product.u_pharmacy_price,
+            u_guidal_price: product.u_guidal_price,
             total_remaining: product.total_remaining,
         });
     } catch (err) {
@@ -627,6 +628,7 @@ exports.getAllFullProducts = async (req, res) => {
                     values,
                     u_walkin_price: product.u_walkin_price, // Was customer/cust price
                     u_pharmacy_price: product.u_pharmacy_price,
+                    u_guidal_price: product.u_guidal_price,
                     total_remaining: product.total_remaining,
                 };
             })

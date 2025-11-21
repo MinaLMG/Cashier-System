@@ -405,6 +405,50 @@ export default function InvoiceRow(props) {
                 )}
             </td>
 
+            {/* السعر الاسترشادى */}
+            <td className={classes.item}>
+                {viewMode ? (
+                    <div className={classes.viewText}>
+                        {Number(row.v_guidal_price || 0).toFixed(2)} ج.م
+                    </div>
+                ) : (
+                    <>
+                        <TextInput
+                            className={classes["no-margin"]}
+                            type="number"
+                            placeholder="السعر الاسترشادى"
+                            label="السعر الاسترشادى"
+                            id={`v_guidal_price` + index}
+                            value={row["v_guidal_price"]}
+                            onchange={(val) =>
+                                onChange(index, "v_guidal_price", val)
+                            }
+                            disabled={
+                                typeof disabled === "function"
+                                    ? disabled("product")
+                                    : disabled
+                            }
+                            min={0}
+                        />
+                        {priceSuggestions?.v_guidal_price && (
+                            <div className={classes.priceSuggestion}>
+                                <span className={classes.suggestionIcon}>
+                                    💡
+                                </span>
+                                <span className={classes.suggestionText}>
+                                    مقترح: {priceSuggestions.v_guidal_price} ج.م
+                                </span>
+                            </div>
+                        )}
+                        {errors.v_guidal_price && (
+                            <div className={classes.error}>
+                                {errors.v_guidal_price}
+                            </div>
+                        )}
+                    </>
+                )}
+            </td>
+
             {/* تاريخ الصلاحية */}
             <td className={classes.item}>
                 {viewMode ? (

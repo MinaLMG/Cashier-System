@@ -138,6 +138,17 @@ export default function ProductDetails({ product, onBack }) {
                     </div>
                 )}
 
+                {productData.u_guidal_price && (
+                    <div className={classes.section}>
+                        <h2 className={classes.sectionTitle}>
+                            السعر الاسترشادى (وحدة)
+                        </h2>
+                        <p className={classes.sectionValue}>
+                            {productData.u_guidal_price.toFixed(2)} ج.م
+                        </p>
+                    </div>
+                )}
+
                 <div className={classes.section}>
                     <h2 className={classes.sectionTitle}>العبوات</h2>
                     <div className={classes.volumesList}>

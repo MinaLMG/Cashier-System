@@ -64,6 +64,7 @@ export default function PurchaseInvoice(props) {
         v_buy_price: "",
         v_pharmacy_price: "",
         v_walkin_price: "",
+        v_guidal_price: "",
         expiry: null,
         // remaining: "", // COMMENTED OUT - will be set to full quantity automatically
     };
@@ -85,6 +86,7 @@ export default function PurchaseInvoice(props) {
         const v_buy_price = Number(row.v_buy_price);
         const v_pharmacyPrice = Number(row.v_pharmacy_price);
         const v_walkinPrice = Number(row.v_walkin_price);
+        const v_guidalPrice = Number(row.v_guidal_price);
 
         if (isNaN(v_buy_price) || v_buy_price <= 0)
             errors.v_buy_price = "سعر شراء غير صحيح";
@@ -92,6 +94,8 @@ export default function PurchaseInvoice(props) {
             errors.v_pharmacy_price = "سعر صيدلية غير صحيح";
         if (isNaN(v_walkinPrice) || v_walkinPrice <= 0)
             errors.v_walkin_price = "سعر زبون غير صحيح";
+        if (isNaN(v_guidalPrice) || v_guidalPrice <= 0)
+            errors.v_guidal_price = "السعر الاسترشادى غير صحيح";
 
         if (v_pharmacyPrice < v_buy_price) {
             errors.v_pharmacy_price = "يجب أن يكون سعر الصيدلية ≥ سعر الشراء";
@@ -549,7 +553,7 @@ export default function PurchaseInvoice(props) {
     const handleAddProductSuccess = (id) => {
         // Fetch the full product details from the backend using the ID
         axios
-            .get(`${process.env.REACT_APP_BACKEND}products/${id}`)
+            .get(`${process.env.REACT_APP_BACKEND}products/full/${id}`)
             .then((response) => {
                 const newProduct = response.data;
 
@@ -558,20 +562,6 @@ export default function PurchaseInvoice(props) {
 
                 // Close the modal
                 setShowAddProductModal(false);
-
-                // Optionally, select the new product in the current row
-                if (invoiceRows.length > 0) {
-                    const lastRowIndex = invoiceRows.length - 1;
-                    const lastRow = invoiceRows[lastRowIndex];
-
-                    if (!lastRow.product) {
-                        handleRowChange(
-                            lastRowIndex,
-                            "product",
-                            newProduct._id
-                        );
-                    }
-                }
             })
             .catch((error) => {
                 console.error("Error fetching new product:", error);
@@ -719,6 +709,13 @@ export default function PurchaseInvoice(props) {
                             style={{ width: "100px" }}
                         >
                             سعر البيع للزبون
+                        </th>
+                        <th
+                            className={classes.head}
+                            scope="col"
+                            style={{ width: "100px" }}
+                        >
+                            السعر الاسترشادى
                         </th>
                         <th className={classes.head} scope="col">
                             تاريخ انتهاء الصلاحية

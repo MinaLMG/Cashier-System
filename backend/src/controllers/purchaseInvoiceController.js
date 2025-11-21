@@ -192,10 +192,12 @@ exports.createFullPurchaseInvoice = async (req, res) => {
                 r.v_buy_price &&
                 r.v_pharmacy_price &&
                 r.v_walkin_price &&
+                r.v_guidal_price &&
                 !isNaN(Number(r.quantity)) &&
                 !isNaN(Number(r.v_buy_price)) &&
                 !isNaN(Number(r.v_pharmacy_price)) &&
-                !isNaN(Number(r.v_walkin_price))
+                !isNaN(Number(r.v_walkin_price)) &&
+                !isNaN(Number(r.v_guidal_price))
         );
 
         if (validRows.length === 0) {
@@ -281,6 +283,7 @@ exports.createFullPurchaseInvoice = async (req, res) => {
                     v_buy_price: Number(r.v_buy_price),
                     v_pharmacy_price: Number(r.v_pharmacy_price),
                     v_walkin_price: Number(r.v_walkin_price),
+                    v_guidal_price: Number(r.v_guidal_price),
                     expiry: r.expiry ? new Date(r.expiry) : null,
                     // remaining: remaining_quantity, // COMMENTED OUT - will be set to full quantity automatically
                     remaining: remaining_quantity, // Set to full quantity (quantity * volume value)
@@ -385,10 +388,12 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
             r.v_buy_price &&
             r.v_pharmacy_price &&
             r.v_walkin_price &&
+            r.v_guidal_price &&
             !isNaN(Number(r.quantity)) &&
             !isNaN(Number(r.v_buy_price)) &&
             !isNaN(Number(r.v_pharmacy_price)) &&
-            !isNaN(Number(r.v_walkin_price))
+            !isNaN(Number(r.v_walkin_price)) &&
+            !isNaN(Number(r.v_guidal_price))
     );
 
     if (validRows.length === 0) {
@@ -449,6 +454,7 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                     v_buy_price: Number(r.v_buy_price),
                     v_pharmacy_price: Number(r.v_pharmacy_price),
                     v_walkin_price: Number(r.v_walkin_price),
+                    v_guidal_price: Number(r.v_guidal_price),
                     expiry: r.expiry ? new Date(r.expiry) : null,
                     // remaining: remaining_quantity, // COMMENTED OUT - will be set to full quantity automatically
                     remaining: remaining_quantity, // Set to full quantity (quantity * volume value)
@@ -501,6 +507,7 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                 item.v_buy_price = Number(incoming.v_buy_price);
                 item.v_pharmacy_price = Number(incoming.v_pharmacy_price);
                 item.v_walkin_price = Number(incoming.v_walkin_price);
+                item.v_guidal_price = Number(incoming.v_guidal_price);
                 item.expiry = incoming.expiry
                     ? new Date(incoming.expiry)
                     : null;
@@ -616,6 +623,7 @@ exports.getFullPurchaseInvoiceById = async (req, res) => {
             v_buy_price: item.v_buy_price.toString(),
             v_pharmacy_price: item.v_pharmacy_price.toString(),
             v_walkin_price: item.v_walkin_price.toString(),
+            v_guidal_price: item.v_guidal_price?.toString() || "",
             expiry: item.expiry ? item.expiry.toISOString().split("T")[0] : "",
             remaining: item.remaining?.toString() || "",
         }));
@@ -651,6 +659,7 @@ exports.getAllFullPurchaseInvoices = async (req, res) => {
                     v_buy_price: item.v_buy_price.toString(),
                     v_pharmacy_price: item.v_pharmacy_price.toString(),
                     v_walkin_price: item.v_walkin_price.toString(),
+                    v_guidal_price: item.v_guidal_price?.toString() || "",
                     expiry: item.expiry
                         ? item.expiry.toISOString().split("T")[0]
                         : "",
@@ -711,7 +720,7 @@ exports.getPriceSuggestions = async (req, res) => {
 
         // Get stored suggested unit prices from Product
         const product = await Product.findById(productId).select(
-            "u_suggested_buy_price u_suggested_pharmacy_price u_suggested_walkin_price suggestions_updated_at"
+            "u_suggested_buy_price u_suggested_pharmacy_price u_suggested_walkin_price u_suggested_guidal_price suggestions_updated_at"
         );
 
         if (!product) {
@@ -738,7 +747,8 @@ exports.getPriceSuggestions = async (req, res) => {
         const hasStoredSuggestions =
             product.u_suggested_buy_price !== null ||
             product.u_suggested_pharmacy_price !== null ||
-            product.u_suggested_walkin_price !== null;
+            product.u_suggested_walkin_price !== null ||
+            product.u_suggested_guidal_price !== null;
 
         if (!hasStoredSuggestions) {
             return res.status(200).json({
@@ -771,6 +781,13 @@ exports.getPriceSuggestions = async (req, res) => {
                       )
                   )
                 : null,
+            v_guidal_price: product.u_suggested_guidal_price
+                ? Number(
+                      (product.u_suggested_guidal_price * volumeValue).toFixed(
+                          2
+                      )
+                  )
+                : null,
         };
 
         res.status(200).json({
@@ -786,6 +803,9 @@ exports.getPriceSuggestions = async (req, res) => {
                     : null,
                 v_suggested_walkin_price: product.u_suggested_walkin_price
                     ? product.u_suggested_walkin_price * volumeValue
+                    : null,
+                v_suggested_guidal_price: product.u_suggested_guidal_price
+                    ? product.u_suggested_guidal_price * volumeValue
                     : null,
                 suggestions_updated_at: product.suggestions_updated_at,
             },

@@ -10,14 +10,16 @@ const updateSuggestedPrices = async (productId, gamma = 0.9) => {
     try {
         // Get the current product with existing suggested prices
         const currentProduct = await Product.findById(productId).select(
-            "u_suggested_buy_price u_suggested_pharmacy_price u_suggested_walkin_price"
+            "u_suggested_buy_price u_suggested_pharmacy_price u_suggested_walkin_price u_suggested_guidal_price"
         );
         // Find the most recent purchase item for this product
         const latestPurchase = await PurchaseItem.findOne({
             product: productId,
         })
             .sort({ created_at: -1 })
-            .select("v_buy_price v_pharmacy_price v_walkin_price volume")
+            .select(
+                "v_buy_price v_pharmacy_price v_walkin_price v_guidal_price volume"
+            )
             .populate("volume", "value");
         if (!latestPurchase) {
             // No purchase data available
@@ -30,6 +32,11 @@ const updateSuggestedPrices = async (productId, gamma = 0.9) => {
         const newUnitPharmacyPrice =
             latestPurchase.v_pharmacy_price / volumeValue;
         const newUnitWalkinPrice = latestPurchase.v_walkin_price / volumeValue;
+        const newUnitGuidalPrice =
+            latestPurchase.v_guidal_price !== undefined &&
+            latestPurchase.v_guidal_price !== null
+                ? latestPurchase.v_guidal_price / volumeValue
+                : null;
 
         // Calculate exponential moving average
         // Formula: (gamma * old + new) / (1 + gamma)
@@ -53,6 +60,13 @@ const updateSuggestedPrices = async (productId, gamma = 0.9) => {
             currentProduct.u_suggested_walkin_price,
             newUnitWalkinPrice
         );
+        const newSuggestedGuidalPrice =
+            newUnitGuidalPrice !== null
+                ? calculateEMA(
+                      currentProduct.u_suggested_guidal_price,
+                      newUnitGuidalPrice
+                  )
+                : currentProduct.u_suggested_guidal_price;
 
         // Update the Product document with suggested unit prices
         const updatedProduct = await Product.findByIdAndUpdate(
@@ -65,6 +79,11 @@ const updateSuggestedPrices = async (productId, gamma = 0.9) => {
                 u_suggested_walkin_price: Number(
                     newSuggestedWalkinPrice.toFixed(2)
                 ),
+                u_suggested_guidal_price:
+                    newSuggestedGuidalPrice !== null &&
+                    newSuggestedGuidalPrice !== undefined
+                        ? Number(newSuggestedGuidalPrice.toFixed(2))
+                        : null,
                 suggestions_updated_at: new Date(),
             },
             { new: true }
@@ -78,6 +97,11 @@ const updateSuggestedPrices = async (productId, gamma = 0.9) => {
             u_suggested_walkin_price: Number(
                 newSuggestedWalkinPrice.toFixed(2)
             ),
+            u_suggested_guidal_price:
+                newSuggestedGuidalPrice !== null &&
+                newSuggestedGuidalPrice !== undefined
+                    ? Number(newSuggestedGuidalPrice.toFixed(2))
+                    : null,
             gamma: gamma,
             updated_at: new Date(),
         };
