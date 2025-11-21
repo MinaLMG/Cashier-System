@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import classes from "./ProductDetails.module.css";
-import { FaPrint } from "react-icons/fa";
 import PrintBarcodeModal from "./PrintBarcodeModal";
 
 export default function ProductDetails({ product, onBack }) {
@@ -45,14 +44,6 @@ export default function ProductDetails({ product, onBack }) {
         } finally {
             setLoading(false);
         }
-    };
-
-    const handlePrintBarcode = (barcode, volumeName) => {
-        setPrintModal({
-            show: true,
-            barcode: barcode,
-            volumeName: volumeName,
-        });
     };
 
     const handleClosePrintModal = () => {

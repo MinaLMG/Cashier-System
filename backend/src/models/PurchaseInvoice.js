@@ -22,6 +22,7 @@ const purchaseInvoiceSchema = new mongoose.Schema({
     },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     total_cost: { type: Number, required: true },
+    notes: { type: String, default: "" },
     serial: { type: String, unique: true },
 });
 

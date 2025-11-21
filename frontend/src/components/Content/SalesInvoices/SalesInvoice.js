@@ -65,6 +65,7 @@ export default function SalesInvoice(props) {
         type: "walkin",
         date: new Date().toISOString(), // Full ISO string with time
         offer: 0,
+        notes: "",
     });
 
     // Define row validation function
@@ -236,6 +237,7 @@ export default function SalesInvoice(props) {
                 base,
                 final_amount,
                 total_selling_price,
+                notes,
             } = props.invoice;
             setInvoice({
                 date: new Date(date).toISOString(), // Convert to ISO string with time
@@ -244,6 +246,7 @@ export default function SalesInvoice(props) {
                 offer,
                 final_amount,
                 total_selling_price,
+                notes: props.invoice?.notes || "",
             });
             setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
             setBaseCost(base || 0);
@@ -452,6 +455,7 @@ export default function SalesInvoice(props) {
                 type: invoice.type,
                 date: invoice.date,
                 offer: Number(invoice.offer || 0),
+                notes: invoice.notes || "",
             };
 
             try {
@@ -522,6 +526,7 @@ export default function SalesInvoice(props) {
             type: invoice.type,
             date: invoice.date,
             offer: Number(invoice.offer || 0),
+            notes: invoice.notes || "",
             rows: validRows.map((row) => ({
                 product: row.product,
                 volume: row.volume,
@@ -1674,6 +1679,25 @@ export default function SalesInvoice(props) {
                             </tr>
                         </tbody>
                     </InputTable>
+
+                    <div className="mb-3">
+                        <label
+                            htmlFor="sales-notes"
+                            style={{ display: "block", textAlign: "right" }}
+                        >
+                            ملاحظات
+                        </label>
+                        <textarea
+                            id="sales-notes"
+                            className="form-control"
+                            rows={2}
+                            value={invoice.notes || ""}
+                            onChange={(e) =>
+                                handleInvoiceChange("notes", e.target.value)
+                            }
+                            disabled={getDisabledState()}
+                        />
+                    </div>
                 </>
             )}
 

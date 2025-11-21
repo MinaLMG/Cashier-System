@@ -263,6 +263,7 @@ export default function PurchaseInvoice(props) {
         date: new Date().toISOString(),
         supplier: null,
         total_cost: "0",
+        notes: "",
     });
 
     // Form validation function
@@ -360,11 +361,12 @@ export default function PurchaseInvoice(props) {
     // Load invoice data if in edit or view mode
     useEffect(() => {
         if ((props.mode === "edit" || props.mode === "view") && props.invoice) {
-            const { date, supplier, rows, total_cost } = props.invoice;
+            const { date, supplier, rows, total_cost, notes } = props.invoice;
             setInvoice({
                 date,
                 supplier,
                 total_cost,
+                notes: notes || "",
             });
             setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
         } else if (
@@ -481,6 +483,7 @@ export default function PurchaseInvoice(props) {
                 expiry: row.expiry || null,
             })),
             total_cost: Number(invoice.total_cost),
+            notes: invoice.notes || "",
         };
 
         try {
@@ -785,6 +788,25 @@ export default function PurchaseInvoice(props) {
                     </tr>
                 </tbody>
             </InputTable>
+
+            <div className="mb-3">
+                <label
+                    htmlFor="purchase-notes"
+                    style={{ display: "block", textAlign: "right" }}
+                >
+                    ملاحظات
+                </label>
+                <textarea
+                    id="purchase-notes"
+                    className="form-control"
+                    rows={2}
+                    value={invoice.notes || ""}
+                    onChange={(e) =>
+                        handleInvoiceChange("notes", e.target.value)
+                    }
+                    disabled={isViewMode}
+                />
+            </div>
 
             {/* Show appropriate buttons based on mode */}
             {isViewMode ? (

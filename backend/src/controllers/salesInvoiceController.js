@@ -50,11 +50,11 @@ exports.getAllSalesInvoices = async (req, res) => {
 };
 
 exports.createSalesInvoice = async (req, res) => {
-    const { date } = req.body;
+    const { date, notes } = req.body;
     if (!date) return res.status(400).json({ error: "Date is required." });
 
     try {
-        const invoice = new SalesInvoice({ date });
+        const invoice = new SalesInvoice({ date, notes: notes || "" });
         await invoice.save();
         res.status(201).json(invoice);
     } catch (err) {
@@ -64,7 +64,7 @@ exports.createSalesInvoice = async (req, res) => {
 
 exports.updateSalesInvoice = async (req, res) => {
     try {
-        const { customer, type, date, offer } = req.body;
+        const { customer, type, date, offer, notes } = req.body;
 
         // Validate required fields
         if (!date || !type) {
@@ -137,6 +137,7 @@ exports.updateSalesInvoice = async (req, res) => {
             date: new Date(date),
             customer: customer || null,
             offer: Number(offer || 0),
+            notes: notes || "",
         };
 
         // Check if customer type has changed
@@ -255,7 +256,7 @@ exports.deleteSalesInvoice = async (req, res) => {
 };
 
 exports.createFullSalesInvoice = async (req, res) => {
-    const { date, type, rows, customer, offer } = req.body;
+    const { date, type, rows, customer, offer, notes } = req.body;
 
     // Step 1: Validate invoice data
     if (!date || !type || !rows?.length) {
@@ -483,6 +484,7 @@ exports.createFullSalesInvoice = async (req, res) => {
             customer: customer ? customer : null,
             createdAt: new Date(),
             offer: offer || 0,
+            notes: notes || "",
             serial,
         });
 
@@ -743,6 +745,7 @@ exports.getFullSalesInvoices = async (req, res) => {
                     type: inv.type || "walkin",
                     date: inv.date,
                     offer: inv.offer || 0,
+                    notes: inv.notes || "",
                     rows: items.map((item) => ({
                         product: item.product,
                         volume: item.volume,

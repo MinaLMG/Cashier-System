@@ -134,7 +134,7 @@ exports.deletePurchaseInvoice = async (req, res) => {
 };
 
 exports.createFullPurchaseInvoice = async (req, res) => {
-    const { date, supplier, rows, total_cost } = req.body; // Was 'cost'
+    const { date, supplier, rows, total_cost, notes } = req.body; // Was 'cost'
 
     // Basic validation
     if (
@@ -261,6 +261,7 @@ exports.createFullPurchaseInvoice = async (req, res) => {
             supplier: supplier || null,
             user: req.user?._id || null,
             total_cost: recalculatedCost, // Was 'cost'
+            notes: notes || "",
             createdAt: new Date(),
             serial,
         });
@@ -365,7 +366,7 @@ exports.createFullPurchaseInvoice = async (req, res) => {
 
 exports.updateFullPurchaseInvoice = async (req, res) => {
     const invoiceId = req.params.id;
-    const { date, supplier, rows } = req.body;
+    const { date, supplier, rows, notes } = req.body;
 
     // Step 1: Validate request
     if (!date || !rows?.length) {
@@ -427,6 +428,7 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                 date,
                 supplier: supplier || null,
                 total_cost: recalculatedCost, // Was 'cost'
+                notes: notes || "",
             },
             { runValidators: true }
         );
@@ -634,6 +636,7 @@ exports.getFullPurchaseInvoiceById = async (req, res) => {
             supplier: invoice.supplier || null,
             rows,
             total_cost: invoice.total_cost, // Was 'cost'
+            notes: invoice.notes || "",
         });
     } catch (err) {
         console.error("getFullPurchaseInvoiceById error:", err);
@@ -672,6 +675,7 @@ exports.getAllFullPurchaseInvoices = async (req, res) => {
                     supplier: invoice.supplier || null,
                     rows,
                     total_cost: invoice.total_cost, // Was 'cost'
+                    notes: invoice.notes || "",
                     created_at: invoice.created_at, // Include creation date for sorting
                 };
             })

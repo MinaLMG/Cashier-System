@@ -13,6 +13,7 @@ const salesInvoiceSchema = new mongoose.Schema({
     total_purchase_cost: { type: Number, required: true, default: 0 }, // Total purchase cost
     type: { type: String, enum: ["walkin", "pharmacy"], required: true },
     offer: { type: Number, required: true, default: 0 }, // Discount amount
+    notes: { type: String, default: "" },
     serial: { type: String, unique: true },
 });
 
