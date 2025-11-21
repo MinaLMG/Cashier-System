@@ -172,6 +172,29 @@
     font-size: 16px;
 }
 
+.pricesTableWrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.pricesTable {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+}
+
+.pricesTable th,
+.pricesTable td {
+    border: 1px solid #e0e0e0;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.pricesTable th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+}
+
 .loading,
 .error {
     text-align: center;

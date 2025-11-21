@@ -116,7 +116,7 @@ export default function ProductDetails({ product, onBack }) {
                     </p>
                 </div>
 
-                {productData.u_walkin_price && (
+                {/* {productData.u_walkin_price && (
                     <div className={classes.section}>
                         <h2 className={classes.sectionTitle}>
                             سعر زبون (وحدة)
@@ -147,7 +147,7 @@ export default function ProductDetails({ product, onBack }) {
                             {productData.u_guidal_price.toFixed(2)} ج.م
                         </p>
                     </div>
-                )}
+                )} 
 
                 <div className={classes.section}>
                     <h2 className={classes.sectionTitle}>العبوات</h2>
@@ -193,31 +193,76 @@ export default function ProductDetails({ product, onBack }) {
                             <p className={classes.noData}>لا توجد عبوات</p>
                         )}
                     </div>
-                </div>
+                </div>*/}
 
-                {productData.conversions &&
-                    productData.conversions.length > 0 && (
-                        <div className={classes.section}>
-                            <h2 className={classes.sectionTitle}>التحويلات</h2>
-                            <div className={classes.conversionsList}>
-                                {productData.conversions.map((conv, index) => (
-                                    <div
-                                        key={index}
-                                        className={classes.conversionItem}
-                                    >
-                                        <span>
-                                            {conv.from} = {conv.value} {conv.to}
-                                        </span>
-                                        {conv.barcode && (
-                                            <span className={classes.barcode}>
-                                                (باركود: {conv.barcode})
-                                            </span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                {productData.values && productData.values.length > 0 && (
+                    <div className={classes.section}>
+                        <h2 className={classes.sectionTitle}>
+                            أسعار البيع لكل عبوة
+                        </h2>
+                        <div className={classes.pricesTableWrapper}>
+                            <table className={classes.pricesTable}>
+                                <thead>
+                                    <tr>
+                                        <th>العبوة</th>
+                                        <th>القيمة</th>
+                                        <th>سعر الصيدلية</th>
+                                        <th>سعر الزبون</th>
+                                        <th>السعر الاسترشادى</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {productData.values.map((volume, index) => {
+                                        const val = Number(volume.val) || 0;
+                                        const pharmacy =
+                                            productData.u_pharmacy_price && val
+                                                ? (
+                                                      productData.u_pharmacy_price *
+                                                      val
+                                                  ).toFixed(2)
+                                                : null;
+                                        const walkin =
+                                            productData.u_walkin_price && val
+                                                ? (
+                                                      productData.u_walkin_price *
+                                                      val
+                                                  ).toFixed(2)
+                                                : null;
+                                        const guidal =
+                                            productData.u_guidal_price && val
+                                                ? (
+                                                      productData.u_guidal_price *
+                                                      val
+                                                  ).toFixed(2)
+                                                : null;
+
+                                        return (
+                                            <tr key={index}>
+                                                <td>{volume.name}</td>
+                                                <td>{volume.val}</td>
+                                                <td>
+                                                    {pharmacy
+                                                        ? `${pharmacy} ج.م`
+                                                        : "-"}
+                                                </td>
+                                                <td>
+                                                    {walkin
+                                                        ? `${walkin} ج.م`
+                                                        : "-"}
+                                                </td>
+                                                <td>
+                                                    {guidal
+                                                        ? `${guidal} ج.م`
+                                                        : "-"}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
-                    )}
+                    </div>
+                )}
             </div>
 
             {printModal.show && (

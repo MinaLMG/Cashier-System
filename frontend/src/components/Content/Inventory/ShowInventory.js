@@ -2,7 +2,7 @@ import classes from "./ShowInventory.module.css";
 import commonStyles from "../../../styles/common.module.css";
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { FaEdit, FaPrint } from "react-icons/fa";
+import { FaEdit, FaEye, FaPrint } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import SortableTable from "../../Basic/SortableTable";
 import PrintBarcodeModal from "./PrintBarcodeModal";
@@ -165,6 +165,13 @@ export default function ShowInventory(props) {
                                         }}
                                         className={classes.edit}
                                         title="تعديل"
+                                    />
+                                    <FaEye
+                                        onClick={() => {
+                                            props.onView?.(inv);
+                                        }}
+                                        className={classes.view}
+                                        title="عرض التفاصيل"
                                     />
                                     <MdDelete
                                         className={`${classes.remove} ${commonStyles.disabledIcon}`}
