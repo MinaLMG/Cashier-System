@@ -736,34 +736,38 @@ export default function PurchaseInvoice(props) {
                         <th className={classes.head} scope="col">
                             العبوة
                         </th>
-                        <th className={classes.head} scope="col">
+                        <th
+                            className={classes.head}
+                            scope="col"
+                            style={{ width: "95px" }}
+                        >
                             الكمية
                         </th>
                         <th
                             className={classes.head}
                             scope="col"
-                            style={{ width: "100px" }}
+                            style={{ width: "105px" }}
                         >
                             سعر الشراء
                         </th>
                         <th
                             className={classes.head}
                             scope="col"
-                            style={{ width: "100px" }}
+                            style={{ width: "105px" }}
                         >
                             سعر البيع للصيدلية
                         </th>
                         <th
                             className={classes.head}
                             scope="col"
-                            style={{ width: "100px" }}
+                            style={{ width: "105px" }}
                         >
                             سعر البيع للزبون
                         </th>
                         <th
                             className={classes.head}
                             scope="col"
-                            style={{ width: "100px" }}
+                            style={{ width: "105px" }}
                         >
                             السعر الاسترشادى
                         </th>
@@ -822,7 +826,7 @@ export default function PurchaseInvoice(props) {
                             <strong>إجمالي الفاتورة:</strong>
                         </td>
                         <td
-                            colSpan={isViewMode ? "5" : "5"}
+                            colSpan={isViewMode ? "6" : "6"}
                             className={classes.item}
                         >
                             <div className="d-flex justify-content-between">
