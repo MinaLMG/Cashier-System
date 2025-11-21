@@ -5,21 +5,40 @@ import axios from "axios";
 import { FaEdit, FaEye, FaPrint } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import SortableTable from "../../Basic/SortableTable";
+import Pagination from "../../Basic/Pagination";
 
 export default function ShowPurchaseInvoices(props) {
     const [invoices, setInvoices] = useState([]);
     const [suppliers, setSuppliers] = useState([]);
+    const [page, setPage] = useState(1);
+    const [pageSize] = useState(50);
+    const [total, setTotal] = useState(0);
+    const [loading, setLoading] = useState(false);
+
+    const fetchInvoices = async (currentPage) => {
+        try {
+            setLoading(true);
+            const offset = (currentPage - 1) * pageSize;
+            const res = await axios.get(
+                `${process.env.REACT_APP_BACKEND}purchase-invoices/full`,
+                {
+                    params: {
+                        offset,
+                        size: pageSize,
+                    },
+                }
+            );
+            setInvoices(res.data.items || []);
+            setTotal(res.data.total || 0);
+        } catch (err) {
+            console.error("Failed to fetch invoices:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        axios
-            .get(process.env.REACT_APP_BACKEND + "purchase-invoices/full")
-            .then((res) => {
-                const sorted = res.data.sort(
-                    (a, b) => new Date(b.date) - new Date(a.date)
-                );
-                setInvoices(sorted);
-            })
-            .catch((err) => console.error("Failed to fetch invoices:", err));
+        fetchInvoices(page);
 
         axios
             .get(process.env.REACT_APP_BACKEND + "suppliers")
@@ -27,7 +46,13 @@ export default function ShowPurchaseInvoices(props) {
                 setSuppliers(res.data);
             })
             .catch((err) => console.error("Failed to fetch suppliers:", err));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        fetchInvoices(page);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page]);
 
     const handleView = (invoice) => {
         if (props.onView) {
@@ -91,7 +116,17 @@ export default function ShowPurchaseInvoices(props) {
                 initialSortDirection="desc"
                 tableClassName={`table table-bordered ${classes.table}`}
                 renderRow={renderRow}
-                emptyMessage="لا توجد فواتير مشتريات حتى الآن"
+                emptyMessage={
+                    loading
+                        ? "جاري تحميل الفواتير..."
+                        : "لا توجد فواتير مشتريات حتى الآن"
+                }
+            />
+            <Pagination
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setPage}
             />
         </div>
     );

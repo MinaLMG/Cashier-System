@@ -729,11 +729,29 @@ exports.getAvailableReturnVolumes = async (req, res) => {
 
 exports.getFullSalesInvoices = async (req, res) => {
     try {
-        const invoices = await SalesInvoice.find().sort({ date: -1 });
+        const { offset, size } = req.query;
 
-        const result = await Promise.all(
+        const parsedOffset = Number.parseInt(offset, 10);
+        const parsedSize = Number.parseInt(size, 10);
+        const safeOffset =
+            Number.isFinite(parsedOffset) && parsedOffset >= 0
+                ? parsedOffset
+                : 0;
+        const safeSize =
+            Number.isFinite(parsedSize) && parsedSize > 0
+                ? Math.min(parsedSize, 500)
+                : 50;
+
+        const total = await SalesInvoice.countDocuments();
+
+        const invoices = await SalesInvoice.find()
+            .sort({ date: -1, created_at: -1 })
+            .skip(safeOffset)
+            .limit(safeSize);
+
+        const items = await Promise.all(
             invoices.map(async (inv) => {
-                const items = await SalesItem.find({
+                const rows = await SalesItem.find({
                     sales_invoice: inv._id,
                 });
 
@@ -746,7 +764,7 @@ exports.getFullSalesInvoices = async (req, res) => {
                     date: inv.date,
                     offer: inv.offer || 0,
                     notes: inv.notes || "",
-                    rows: items.map((item) => ({
+                    rows: rows.map((item) => ({
                         product: item.product,
                         volume: item.volume,
                         quantity: item.quantity,
@@ -760,7 +778,10 @@ exports.getFullSalesInvoices = async (req, res) => {
             })
         );
 
-        return res.status(200).json(result);
+        return res.status(200).json({
+            items,
+            total,
+        });
     } catch (err) {
         console.error("Error fetching sales invoices:", err);
         return res.status(500).json({

@@ -5,6 +5,7 @@ import axios from "axios";
 import { FaEdit, FaEye, FaPrint } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import SortableTable from "../../Basic/SortableTable";
+import Pagination from "../../Basic/Pagination";
 import PrintBarcodeModal from "./PrintBarcodeModal";
 import TextInput from "../../Basic/TextInput";
 
@@ -184,118 +185,12 @@ export default function ShowInventory(props) {
                 }}
                 emptyMessage="لا توجد بضاعة شراء حتى الآن"
             />
-            {/* Pagination controls */}
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginTop: "12px",
-                    gap: "8px",
-                    flexWrap: "wrap",
-                }}
-            >
-                <div>
-                    {total > 0 && (
-                        <span>
-                            عرض {Math.min((page - 1) * pageSize + 1, total)}-
-                            {Math.min(page * pageSize, total)} من {total}
-                        </span>
-                    )}
-                </div>
-                <div
-                    style={{
-                        display: "flex",
-                        gap: "8px",
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                    }}
-                >
-                    <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        disabled={page <= 1}
-                        onClick={() => setPage(1)}
-                    >
-                        الأولى
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        disabled={page <= 1}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                        السابق
-                    </button>
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "4px",
-                        }}
-                    >
-                        <span>صفحة</span>
-                        <input
-                            type="number"
-                            min={1}
-                            max={total > 0 ? Math.ceil(total / pageSize) : 1}
-                            value={page}
-                            onChange={(e) => {
-                                const raw = e.target.value;
-                                const num = parseInt(raw, 10);
-                                const totalPages =
-                                    total > 0 ? Math.ceil(total / pageSize) : 1;
-                                if (Number.isNaN(num)) {
-                                    setPage(1);
-                                } else {
-                                    const clamped = Math.min(
-                                        Math.max(num, 1),
-                                        totalPages || 1
-                                    );
-                                    setPage(clamped);
-                                }
-                            }}
-                            style={{
-                                width: "60px",
-                                textAlign: "center",
-                            }}
-                            className="form-control form-control-sm"
-                        />
-                        <span>
-                            من {total > 0 ? Math.ceil(total / pageSize) : 1}
-                        </span>
-                    </div>
-                    <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        disabled={
-                            page >= Math.ceil(total / pageSize) || total === 0
-                        }
-                        onClick={() =>
-                            setPage((p) =>
-                                Math.min(
-                                    Math.ceil(total / pageSize) || 1,
-                                    p + 1
-                                )
-                            )
-                        }
-                    >
-                        التالى
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        disabled={
-                            page >= Math.ceil(total / pageSize) || total === 0
-                        }
-                        onClick={() =>
-                            setPage(Math.ceil(total / pageSize) || 1)
-                        }
-                    >
-                        الأخيرة
-                    </button>
-                </div>
-            </div>
+            <Pagination
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setPage}
+            />
             {printModal.show && (
                 <PrintBarcodeModal
                     barcode={printModal.barcode}

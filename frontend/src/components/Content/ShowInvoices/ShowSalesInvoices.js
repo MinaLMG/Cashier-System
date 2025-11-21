@@ -5,23 +5,40 @@ import axios from "axios";
 import { FaEdit, FaEye, FaPrint } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import SortableTable from "../../Basic/SortableTable";
+import Pagination from "../../Basic/Pagination";
 
 export default function ShowSalesInvoices(props) {
     const [invoices, setInvoices] = useState([]);
     const [customers, setCustomers] = useState([]);
+    const [page, setPage] = useState(1);
+    const [pageSize] = useState(50);
+    const [total, setTotal] = useState(0);
+    const [loading, setLoading] = useState(false);
+
+    const fetchInvoices = async (currentPage) => {
+        try {
+            setLoading(true);
+            const offset = (currentPage - 1) * pageSize;
+            const res = await axios.get(
+                `${process.env.REACT_APP_BACKEND}sales-invoices/full`,
+                {
+                    params: {
+                        offset,
+                        size: pageSize,
+                    },
+                }
+            );
+            setInvoices(res.data.items || []);
+            setTotal(res.data.total || 0);
+        } catch (err) {
+            console.error("Failed to fetch sales invoices:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        axios
-            .get(process.env.REACT_APP_BACKEND + "sales-invoices/full")
-            .then((res) => {
-                const sorted = res.data.sort(
-                    (a, b) => new Date(b.date) - new Date(a.date)
-                );
-                setInvoices(sorted);
-            })
-            .catch((err) =>
-                console.error("Failed to fetch sales invoices:", err)
-            );
+        fetchInvoices(page);
 
         axios
             .get(process.env.REACT_APP_BACKEND + "customers")
@@ -29,7 +46,13 @@ export default function ShowSalesInvoices(props) {
                 setCustomers(res.data);
             })
             .catch((err) => console.error("Failed to fetch customers:", err));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        fetchInvoices(page);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page]);
 
     // Add the handleEdit function
     const handleEdit = (invoice) => {
@@ -148,8 +171,18 @@ export default function ShowSalesInvoices(props) {
                 initialSortDirection="desc"
                 tableClassName={`table table-bordered ${classes.table}`}
                 renderRow={renderRow}
-                emptyMessage="لا توجد فواتير بيع حتى الآن"
+                emptyMessage={
+                    loading
+                        ? "جاري تحميل فواتير المبيعات..."
+                        : "لا توجد فواتير بيع حتى الآن"
+                }
                 width="100%"
+            />
+            <Pagination
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setPage}
             />
         </div>
     );

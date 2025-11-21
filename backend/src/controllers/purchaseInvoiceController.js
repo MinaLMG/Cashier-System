@@ -646,7 +646,25 @@ exports.getFullPurchaseInvoiceById = async (req, res) => {
 
 exports.getAllFullPurchaseInvoices = async (req, res) => {
     try {
-        const invoices = await PurchaseInvoice.find();
+        const { offset, size } = req.query;
+
+        const parsedOffset = Number.parseInt(offset, 10);
+        const parsedSize = Number.parseInt(size, 10);
+        const safeOffset =
+            Number.isFinite(parsedOffset) && parsedOffset >= 0
+                ? parsedOffset
+                : 0;
+        const safeSize =
+            Number.isFinite(parsedSize) && parsedSize > 0
+                ? Math.min(parsedSize, 500)
+                : 50;
+
+        const total = await PurchaseInvoice.countDocuments();
+
+        const invoices = await PurchaseInvoice.find()
+            .sort({ date: -1, created_at: -1 })
+            .skip(safeOffset)
+            .limit(safeSize);
 
         const fullInvoices = await Promise.all(
             invoices.map(async (invoice) => {
@@ -674,37 +692,16 @@ exports.getAllFullPurchaseInvoices = async (req, res) => {
                     date: invoice.date.toISOString().split("T")[0],
                     supplier: invoice.supplier || null,
                     rows,
-                    total_cost: invoice.total_cost, // Was 'cost'
+                    total_cost: invoice.total_cost,
                     notes: invoice.notes || "",
-                    created_at: invoice.created_at, // Include creation date for sorting
                 };
             })
         );
 
-        // Sort by creation date ascending, then by invoice date ascending
-        const sortedInvoices = fullInvoices.sort((a, b) => {
-            // First sort by invoice date ascending
-            const invoiceDateA = new Date(a.date);
-            const invoiceDateB = new Date(b.date);
-            if (invoiceDateA.getTime() !== invoiceDateB.getTime()) {
-                return invoiceDateA.getTime() - invoiceDateB.getTime();
-            }
-            // If invoice dates are equal, sort by creation date ascending
-            const creationDateA = new Date(a.created_at);
-            const creationDateB = new Date(b.created_at);
-            return creationDateA.getTime() - creationDateB.getTime();
+        res.status(200).json({
+            items: fullInvoices,
+            total,
         });
-
-        // Reverse the sorted array before sending response
-        const reversedInvoices = sortedInvoices.reverse();
-
-        // Remove created_at from response to keep API clean
-        const finalInvoices = reversedInvoices.map((invoice) => {
-            const { created_at, ...invoiceWithoutCreatedAt } = invoice;
-            return invoiceWithoutCreatedAt;
-        });
-
-        res.status(200).json(finalInvoices);
     } catch (err) {
         console.error("getAllFullPurchaseInvoices error:", err);
         res.status(500).json({ error: "فشل في تحميل الفواتير" });
