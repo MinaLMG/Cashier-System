@@ -165,7 +165,10 @@ export default function Layout() {
             selected === "عدل فاتورة مشتريات"
         ) {
             setSelected("اعرض كل فواتير المشتريات");
-        } else if (selected === "عرض تفاصيل المنتج") {
+        } else if (
+            selected === "عرض تفاصيل المنتج" ||
+            selected === "عدل منتج"
+        ) {
             setSelected("اعرض كل البضاعة");
             setProductToView(null);
         }

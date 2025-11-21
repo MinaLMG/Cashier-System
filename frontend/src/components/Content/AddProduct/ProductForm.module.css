@@ -30,6 +30,10 @@
     transform: scale(1.1);
 }
 
+.backButton {
+    margin-right: 10px;
+}
+
 /* Volume Management Section */
 .volumeSection {
     width: 100%;

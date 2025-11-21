@@ -655,7 +655,6 @@ export default function PurchaseInvoice(props) {
                 title="المورد"
                 value={invoice.supplier || ""}
                 options={[
-                    { value: "", label: "بدون مورّد" },
                     ...suppliers.map((s) => ({
                         value: s._id,
                         label: s.name,

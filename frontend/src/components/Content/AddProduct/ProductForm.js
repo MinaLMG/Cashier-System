@@ -15,6 +15,7 @@ export default function ProductForm({
     product: initialProductData,
     onSuccess,
     inModal,
+    onBack,
 }) {
     const [product, setProduct] = useState({
         name: "",
@@ -752,6 +753,19 @@ export default function ProductForm({
                             });
                     }}
                 />
+                {mode === "edit" && !inModal && (
+                    <Button
+                        content="العودة"
+                        onClick={
+                            onBack
+                                ? onBack
+                                : () => {
+                                      window.history.back();
+                                  }
+                        }
+                        className={classes.backButton}
+                    />
+                )}
 
                 {/* Form-level error below submit button */}
                 {formError && (

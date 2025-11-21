@@ -22,6 +22,7 @@ export default function Content(props) {
                     mode="edit"
                     product={props.productToEdit}
                     onSuccess={props.onEditProductSuccess}
+                    onBack={props.onBackFromView}
                 />
             )}
             {props.selected === "اعرض كل البضاعة" && (
