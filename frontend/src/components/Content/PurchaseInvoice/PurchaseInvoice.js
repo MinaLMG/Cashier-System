@@ -386,14 +386,16 @@ export default function PurchaseInvoice(props) {
                     setTimeout(() => {
                         setSubmitMessage({ text: "", isError: false });
                     }, 3000);
-                    suspendedInvoiceLoaded.current = true; // Mark as loaded
 
-                    // Remove from localStorage after loading
+                    // Remove from localStorage after loading so it's one-shot
                     localStorage.removeItem("suspendedPurchaseInvoice");
                 } catch (err) {
                     console.error("Error loading suspended invoice:", err);
                 }
             }
+
+            // Mark that we have attempted to load (whether or not data existed)
+            suspendedInvoiceLoaded.current = true;
         }
     }, [emptyRow, props.invoice, props.mode, setInvoiceRows]);
 
