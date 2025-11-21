@@ -603,12 +603,97 @@ exports.getFullProductById = async (req, res) => {
     }
 };
 
+// Helper: convert *-wildcard pattern to a case-insensitive RegExp
+const wildcardToRegex = (pattern) => {
+    if (!pattern || typeof pattern !== "string") return null;
+    const trimmed = pattern.trim();
+    if (!trimmed) return null;
+
+    // Escape regex special chars except *
+    const escaped = trimmed.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+    const regexString = "^" + escaped.replace(/\*/g, ".*") + "$";
+    try {
+        return new RegExp(regexString, "i");
+    } catch (e) {
+        console.error("Invalid search pattern regex:", e);
+        return null;
+    }
+};
+
 exports.getAllFullProducts = async (req, res) => {
     try {
-        // Update the query to sort by name
-        const products = await Product.find().sort({ name: 1 });
+        const { search, offset, size } = req.query;
 
-        const result = await Promise.all(
+        // Determine if caller expects paginated response
+        const isPaginated =
+            search !== undefined || offset !== undefined || size !== undefined;
+
+        // Build MongoDB filter
+        const filter = {};
+        if (search) {
+            const regex = wildcardToRegex(search);
+            if (!regex) {
+                // Invalid pattern → no results
+                return res
+                    .status(200)
+                    .json(isPaginated ? { items: [], total: 0 } : []);
+            }
+            filter.name = regex;
+        }
+
+        // If not paginated, keep old behaviour: return full list as an array
+        if (!isPaginated) {
+            const products = await Product.find().sort({ name: 1 });
+
+            const result = await Promise.all(
+                products.map(async (product) => {
+                    const hasVolumes = await HasVolume.find({
+                        product: product._id,
+                    }).populate("volume");
+
+                    const values = hasVolumes.map((hv) => ({
+                        id: hv.volume._id,
+                        name: hv.volume.name,
+                        val: hv.value,
+                        barcode: hv.barcode || null,
+                    }));
+                    return {
+                        _id: product._id,
+                        name: product.name,
+                        "min-stock": product.min_stock,
+                        conversions: product.conversions,
+                        values,
+                        u_walkin_price: product.u_walkin_price,
+                        u_pharmacy_price: product.u_pharmacy_price,
+                        u_guidal_price: product.u_guidal_price,
+                        total_remaining: product.total_remaining,
+                    };
+                })
+            );
+
+            return res.status(200).json(result);
+        }
+
+        // Paginated branch
+        const parsedOffset = Number.parseInt(offset, 10);
+        const parsedSize = Number.parseInt(size, 10);
+        const safeOffset =
+            Number.isFinite(parsedOffset) && parsedOffset >= 0
+                ? parsedOffset
+                : 0;
+        const safeSize =
+            Number.isFinite(parsedSize) && parsedSize > 0
+                ? Math.min(parsedSize, 500)
+                : 50;
+
+        const total = await Product.countDocuments(filter);
+
+        const products = await Product.find(filter)
+            .sort({ name: 1 })
+            .skip(safeOffset)
+            .limit(safeSize);
+
+        const items = await Promise.all(
             products.map(async (product) => {
                 const hasVolumes = await HasVolume.find({
                     product: product._id,
@@ -626,7 +711,7 @@ exports.getAllFullProducts = async (req, res) => {
                     "min-stock": product.min_stock,
                     conversions: product.conversions,
                     values,
-                    u_walkin_price: product.u_walkin_price, // Was customer/cust price
+                    u_walkin_price: product.u_walkin_price,
                     u_pharmacy_price: product.u_pharmacy_price,
                     u_guidal_price: product.u_guidal_price,
                     total_remaining: product.total_remaining,
@@ -634,7 +719,7 @@ exports.getAllFullProducts = async (req, res) => {
             })
         );
 
-        res.status(200).json(result);
+        return res.status(200).json({ items, total });
     } catch (err) {
         console.error("getFullProducts error:", err);
         res.status(500).json({ error: "فشل في تحميل المنتجات الكاملة" });
