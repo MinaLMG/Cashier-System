@@ -603,6 +603,25 @@ exports.getFullProductById = async (req, res) => {
     }
 };
 
+// Lightweight product options: only _id and name
+exports.getProductOptions = async (req, res) => {
+    try {
+        const products = await Product.find({}, { name: 1 })
+            .sort({ name: 1 })
+            .lean();
+
+        const options = products.map((p) => ({
+            _id: p._id,
+            name: p.name,
+        }));
+
+        res.status(200).json(options);
+    } catch (err) {
+        console.error("getProductOptions error:", err);
+        res.status(500).json({ error: "فشل في تحميل قائمة أسماء المنتجات" });
+    }
+};
+
 // Helper: convert *-wildcard pattern to a case-insensitive RegExp
 const wildcardToRegex = (pattern) => {
     if (!pattern || typeof pattern !== "string") return null;

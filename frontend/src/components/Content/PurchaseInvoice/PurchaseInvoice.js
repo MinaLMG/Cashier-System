@@ -239,12 +239,17 @@ export default function PurchaseInvoice(props) {
         [lookupProductFromBarcode]
     );
 
-    // Wrap handleRowChange to fetch suggestions when product or volume changes
+    // Wrap handleRowChange to lazy-load product details and fetch suggestions
     const handleRowChange = useCallback(
         (index, field, value) => {
             originalHandleRowChange(index, field, value);
 
             const currentRow = invoiceRows[index];
+
+            // When product changes, ensure we have full product details loaded
+            if (field === "product" && value) {
+                ensureFullProductLoaded(value);
+            }
 
             // Fetch suggestions when product changes (and volume is already set)
             if (field === "product" && value && currentRow?.volume) {
@@ -341,22 +346,47 @@ export default function PurchaseInvoice(props) {
         setInvoice((prev) => ({ ...prev, total_cost: total.toString() }));
     }, [invoiceRows]);
 
-    // Fetch data on component mount
+    // Fetch data on component mount (lightweight product options)
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const [suppliersRes, productsRes] = await Promise.all([
                     axios.get(`${process.env.REACT_APP_BACKEND}suppliers`),
-                    axios.get(`${process.env.REACT_APP_BACKEND}products/full`),
+                    axios.get(
+                        `${process.env.REACT_APP_BACKEND}products/options`
+                    ),
                 ]);
                 setSuppliers(suppliersRes.data);
-                setProducts(productsRes.data);
+                setProducts(productsRes.data); // Only {_id, name} at this stage
             } catch (err) {
                 console.error("Failed to fetch data:", err);
             }
         };
         fetchData();
     }, []);
+
+    // Lazy-load full product details and cache them in the products array
+    const ensureFullProductLoaded = async (productId) => {
+        if (!productId) return;
+
+        // If we already have full data for this product, skip the request
+        const existing = products.find((p) => p._id === productId);
+        if (existing && existing.values && existing.u_walkin_price != null) {
+            return;
+        }
+
+        try {
+            const res = await axios.get(
+                `${process.env.REACT_APP_BACKEND}products/full/${productId}`
+            );
+            const fullProduct = res.data;
+            setProducts((prev) =>
+                prev.map((p) => (p._id === productId ? fullProduct : p))
+            );
+        } catch (err) {
+            console.error("Failed to load full product details:", err);
+        }
+    };
 
     // Load invoice data if in edit or view mode
     useEffect(() => {
@@ -369,6 +399,14 @@ export default function PurchaseInvoice(props) {
                 notes: notes || "",
             });
             setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
+
+            // Pre-load full product details for all products used in the invoice
+            const uniqueProductIds = [
+                ...new Set(rows.map((r) => r.product).filter(Boolean)),
+            ];
+            uniqueProductIds.forEach((id) => {
+                ensureFullProductLoaded(id);
+            });
         } else if (
             props.mode !== "edit" &&
             props.mode !== "view" &&
@@ -562,8 +600,16 @@ export default function PurchaseInvoice(props) {
             .then((response) => {
                 const newProduct = response.data;
 
-                // Add the new product to the products list
-                setProducts((prevProducts) => [...prevProducts, newProduct]);
+                // Add or replace the product in the products list
+                setProducts((prevProducts) => {
+                    const exists = prevProducts.some((p) => p._id === id);
+                    if (exists) {
+                        return prevProducts.map((p) =>
+                            p._id === id ? newProduct : p
+                        );
+                    }
+                    return [...prevProducts, newProduct];
+                });
 
                 // Close the modal
                 setShowAddProductModal(false);

@@ -208,22 +208,47 @@ export default function SalesInvoice(props) {
         return !hasErrors;
     }, [invoice, invoiceRows, hasUserInteracted, props.mode, validateRow]);
 
-    // Fetch data on component mount
+    // Fetch data on component mount (lightweight product options)
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const [customers, products] = await Promise.all([
                     axios.get(`${process.env.REACT_APP_BACKEND}customers`),
-                    axios.get(`${process.env.REACT_APP_BACKEND}products/full`),
+                    axios.get(
+                        `${process.env.REACT_APP_BACKEND}products/options`
+                    ),
                 ]);
                 setCustomers(customers.data);
-                setProducts(products.data);
+                setProducts(products.data); // Only {_id, name} at this stage
             } catch (err) {
                 console.error("Failed to fetch data:", err);
             }
         };
         fetchData();
     }, []);
+
+    // Lazy-load full product details and cache them in the products array
+    const ensureFullProductLoaded = async (productId) => {
+        if (!productId) return;
+
+        // If we already have full data for this product, skip the request
+        const existing = products.find((p) => p._id === productId);
+        if (existing && existing.values && existing.u_walkin_price != null) {
+            return;
+        }
+
+        try {
+            const res = await axios.get(
+                `${process.env.REACT_APP_BACKEND}products/full/${productId}`
+            );
+            const fullProduct = res.data;
+            setProducts((prev) =>
+                prev.map((p) => (p._id === productId ? fullProduct : p))
+            );
+        } catch (err) {
+            console.error("Failed to load full product details:", err);
+        }
+    };
 
     // Load invoice data if in edit or view mode
     useEffect(() => {
@@ -250,6 +275,14 @@ export default function SalesInvoice(props) {
             });
             setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
             setBaseCost(base || 0);
+
+            // Pre-load full product details for all products used in the invoice
+            const uniqueProductIds = [
+                ...new Set(rows.map((r) => r.product).filter(Boolean)),
+            ];
+            uniqueProductIds.forEach((id) => {
+                ensureFullProductLoaded(id);
+            });
 
             // Trigger validation after loading data
             setTimeout(() => {
@@ -832,6 +865,11 @@ export default function SalesInvoice(props) {
             // Get the updated row data
             const updatedRow = { ...invoiceRows[index], [field]: value };
 
+            // When product changes, ensure we have full product details loaded
+            if (field === "product" && value) {
+                ensureFullProductLoaded(value);
+            }
+
             // If both product and volume are selected, lookup the barcode
             if (updatedRow.product && updatedRow.volume) {
                 await lookupBarcodeFromProductVolume(
@@ -885,9 +923,10 @@ export default function SalesInvoice(props) {
 
                 const salesItem = response.data[0]; // Get first matching sales item
 
-                const product = products.find(
-                    (p) => p._id === (rowData.product._id || rowData.product)
-                );
+                const productId = rowData.product._id || rowData.product;
+                await ensureFullProductLoaded(productId);
+
+                const product = products.find((p) => p._id === productId);
 
                 if (!product) {
                     console.error("Could not find product for return");
