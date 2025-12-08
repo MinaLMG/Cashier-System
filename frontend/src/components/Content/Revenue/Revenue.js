@@ -139,10 +139,13 @@ export default function Revenue(props) {
                       )
                     : Promise.resolve({ data: [] }),
             ]);
-
             // Combine both types of invoices
-            const allInvoices = [...salesResponse.data, ...returnResponse.data];
-
+            const allInvoices = [
+                ...(salesResponse.data?.items ? salesResponse.data.items : []),
+                ...(returnResponse.data?.items
+                    ? returnResponse.data.items
+                    : []),
+            ];
             // Filter invoices by date range
             const filteredInvoices = allInvoices.filter((invoice) => {
                 const invoiceDate = new Date(invoice.date);
