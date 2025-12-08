@@ -16,6 +16,7 @@ import { FaUndo } from "react-icons/fa";
 export default function SalesInvoice(props) {
     const [customers, setCustomers] = useState([]);
     const [products, setProducts] = useState([]);
+    const [productsLoaded, setProductsLoaded] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitMessage, setSubmitMessage] = useState({
         text: "",
@@ -47,6 +48,30 @@ export default function SalesInvoice(props) {
 
     // Add ref to track if suspended invoice has been loaded
     const suspendedInvoiceLoaded = useRef(false);
+
+    // Normalize row data regardless of source (suspended/edit)
+    const getProductId = useCallback((product) => {
+        if (!product) return null;
+        if (typeof product === "object")
+            return product._id || product.id || null;
+        return product;
+    }, []);
+
+    const getVolumeId = useCallback((volume) => {
+        if (!volume) return null;
+        if (typeof volume === "object") return volume._id || volume.id || null;
+        return volume;
+    }, []);
+
+    const normalizeRows = useCallback(
+        (rows = []) =>
+            rows.map((row) => ({
+                ...row,
+                product: getProductId(row.product),
+                volume: getVolumeId(row.volume),
+            })),
+        [getProductId, getVolumeId]
+    );
 
     // Define the initial empty row using useMemo to prevent dependency changes
     const emptyRow = useMemo(
@@ -220,6 +245,7 @@ export default function SalesInvoice(props) {
                 ]);
                 setCustomers(customers.data);
                 setProducts(products.data); // Only {_id, name} at this stage
+                setProductsLoaded(true);
             } catch (err) {
                 console.error("Failed to fetch data:", err);
             }
@@ -228,30 +254,46 @@ export default function SalesInvoice(props) {
     }, []);
 
     // Lazy-load full product details and cache them in the products array
-    const ensureFullProductLoaded = async (productId) => {
-        if (!productId) return;
+    const ensureFullProductLoaded = useCallback(
+        async (productId) => {
+            if (!productId) return;
 
-        // If we already have full data for this product, skip the request
-        const existing = products.find((p) => p._id === productId);
-        if (existing && existing.values && existing.u_walkin_price != null) {
-            return;
-        }
+            // If we already have full data for this product, skip the request
+            const existing = products.find((p) => p._id === productId);
+            if (
+                existing &&
+                existing.values &&
+                existing.u_walkin_price != null
+            ) {
+                return;
+            }
 
-        try {
-            const res = await axios.get(
-                `${process.env.REACT_APP_BACKEND}products/full/${productId}`
-            );
-            const fullProduct = res.data;
-            setProducts((prev) =>
-                prev.map((p) => (p._id === productId ? fullProduct : p))
-            );
-        } catch (err) {
-            console.error("Failed to load full product details:", err);
-        }
-    };
+            try {
+                const res = await axios.get(
+                    `${process.env.REACT_APP_BACKEND}products/full/${productId}`
+                );
+                const fullProduct = res.data;
+                setProducts((prev) => {
+                    const exists = prev.some((p) => p._id === productId);
+                    return exists
+                        ? prev.map((p) =>
+                              p._id === productId ? fullProduct : p
+                          )
+                        : [...prev, fullProduct];
+                });
+            } catch (err) {
+                console.error("Failed to load full product details:", err);
+            }
+        },
+        [products]
+    );
 
     // Load invoice data if in edit or view mode
     useEffect(() => {
+        if (!productsLoaded) {
+            return; // Wait until base products load to avoid overwriting hydrated data
+        }
+
         if ((props.mode === "edit" || props.mode === "view") && props.invoice) {
             const {
                 date,
@@ -273,12 +315,19 @@ export default function SalesInvoice(props) {
                 total_selling_price,
                 notes: props.invoice?.notes || "",
             });
-            setInvoiceRows(rows.length > 0 ? rows : [{ ...emptyRow }]);
+            const normalizedRows = normalizeRows(rows);
+            setInvoiceRows(
+                normalizedRows.length > 0 ? normalizedRows : [{ ...emptyRow }]
+            );
             setBaseCost(base || 0);
 
             // Pre-load full product details for all products used in the invoice
             const uniqueProductIds = [
-                ...new Set(rows.map((r) => r.product).filter(Boolean)),
+                ...new Set(
+                    normalizedRows
+                        .map((r) => getProductId(r.product))
+                        .filter(Boolean)
+                ),
             ];
             uniqueProductIds.forEach((id) => {
                 ensureFullProductLoaded(id);
@@ -298,8 +347,26 @@ export default function SalesInvoice(props) {
             if (suspended) {
                 try {
                     const data = JSON.parse(suspended);
+                    const normalizedRows = normalizeRows(data.rows || []);
                     setInvoice(data.invoice);
-                    setInvoiceRows(data.rows);
+                    setInvoiceRows(
+                        normalizedRows.length > 0
+                            ? normalizedRows
+                            : [{ ...emptyRow }]
+                    );
+
+                    // Pre-load full product details for all products in suspended invoice
+                    const uniqueProductIds = [
+                        ...new Set(
+                            normalizedRows
+                                .map((r) => getProductId(r.product))
+                                .filter(Boolean)
+                        ),
+                    ];
+                    uniqueProductIds.forEach((id) => {
+                        ensureFullProductLoaded(id);
+                    });
+
                     setSubmitMessage({
                         text: "✅ تم استرجاع الفاتورة المعلقة",
                         isError: false,
@@ -318,7 +385,16 @@ export default function SalesInvoice(props) {
             // Mark that we have attempted to load (whether or not data existed)
             suspendedInvoiceLoaded.current = true;
         }
-    }, [emptyRow, props.invoice, props.mode, setInvoiceRows]);
+    }, [
+        emptyRow,
+        props.invoice,
+        props.mode,
+        setInvoiceRows,
+        normalizeRows,
+        ensureFullProductLoaded,
+        getProductId,
+        productsLoaded,
+    ]);
 
     // Reset suspended invoice loaded flag when mode changes
     useEffect(() => {
