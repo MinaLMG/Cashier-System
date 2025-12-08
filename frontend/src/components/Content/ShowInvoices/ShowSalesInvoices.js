@@ -107,7 +107,24 @@ export default function ShowSalesInvoices(props) {
 
         return (
             <tr key={invoice._id}>
-                <td>{index + 1}</td>
+                <td>
+                    {index + 1}
+                    {invoice.isCredit && (
+                        <span
+                            style={{
+                                backgroundColor: "var(--warning-color)",
+                                color: "white",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                marginRight: "5px",
+                                fontSize: "0.8em",
+                                fontWeight: "bold",
+                            }}
+                        >
+                            آجل
+                        </span>
+                    )}
+                </td>
                 <td>{formatDateTime(invoice.date)}</td>
                 <td>{customerName}</td>
                 <td>{typeLabel}</td>

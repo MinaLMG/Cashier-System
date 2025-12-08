@@ -18,5 +18,6 @@ router.use("/has-volumes", require("./hasVolumeRoutes"));
 router.use("/expires", require("./expiresRoutes"));
 router.use("/got-minimums", require("./gotMinimumRoutes"));
 router.use("/product-movements", require("./productMovementRoutes"));
+router.use("/credit-payments", require("./creditPaymentRoutes"));
 
 module.exports = router;

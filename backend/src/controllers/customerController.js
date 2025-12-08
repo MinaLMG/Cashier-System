@@ -10,7 +10,7 @@ exports.getAllCustomers = async (req, res) => {
 };
 
 exports.createCustomer = async (req, res) => {
-    const { name, type, phone, address } = req.body;
+    const { name, type, phone, address, payment_type } = req.body;
 
     // Validate required fields
     if (!name || !type)
@@ -30,6 +30,13 @@ exports.createCustomer = async (req, res) => {
         });
     }
 
+    // Validate payment type
+    if (payment_type && payment_type !== "cash" && payment_type !== "credit") {
+        return res.status(400).json({
+            error: "Payment type must be either 'cash' or 'credit'.",
+        });
+    }
+
     try {
         // Check for duplicate customer name
         const existing = await Customer.findOne({ name });
@@ -38,7 +45,13 @@ exports.createCustomer = async (req, res) => {
                 .status(409)
                 .json({ error: "Customer with this name already exists." });
 
-        const customer = new Customer({ name, type, phone, address });
+        const customer = new Customer({
+            name,
+            type,
+            phone,
+            address,
+            payment_type: payment_type || "cash",
+        });
         await customer.save();
         res.status(201).json(customer);
     } catch (err) {
@@ -96,7 +109,7 @@ exports.updateCustomer = async (req, res) => {
 
         const customer = await Customer.findByIdAndUpdate(
             req.params.id,
-            { type, name, phone, address },
+            { type, name, phone, address }, // payment_type is intentionally excluded
             { new: true, runValidators: true }
         );
 

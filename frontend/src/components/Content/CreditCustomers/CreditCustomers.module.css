@@ -1,0 +1,96 @@
+.container {
+    padding: 20px;
+    width: 100%;
+}
+
+.title {
+    text-align: center;
+    color: var(--text-color);
+    margin-bottom: 2rem;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.summaryCards {
+    display: flex;
+    justify-content: space-around;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.card {
+    background: var(--background-color);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+    flex: 1;
+    min-width: 200px;
+    border-top: 4px solid transparent;
+}
+
+.card h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: var(--text-color-secondary);
+}
+
+.card p {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.debit {
+    border-color: var(--accent-red);
+}
+
+.credit {
+    border-color: var(--success-color);
+}
+
+.balance {
+    border-color: var(--primary-color);
+}
+
+.paymentForm {
+    background: var(--background-color);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.paymentForm h3 {
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.formRow {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.input {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--input-background);
+    color: var(--text-color);
+    min-width: 200px;
+}
+
+.input:focus {
+    outline: 2px solid var(--primary-color);
+}

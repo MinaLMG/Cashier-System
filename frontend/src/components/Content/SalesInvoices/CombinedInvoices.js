@@ -121,7 +121,7 @@ export default function CombinedInvoices() {
         setError("");
         try {
             const res = await axios.get(
-                `${process.env.REACT_APP_BACKEND}sales-invoices/full?size=5000`
+                `${process.env.REACT_APP_BACKEND}sales-invoices/full?size=5000&exclude_credit=false`
             );
             const invoices = res.data?.items || [];
 
@@ -149,6 +149,7 @@ export default function CombinedInvoices() {
                     quantity: r.quantity,
                     v_price: r.v_price,
                     value: Number(r.quantity || 0) * Number(r.v_price || 0),
+                    isCredit: inv.isCredit, // Pass credit flag
                 }));
                 const offerRows =
                     Number(inv.offer || 0) > 0
@@ -161,6 +162,7 @@ export default function CombinedInvoices() {
                                   quantity: null,
                                   v_price: inv.offer,
                                   value: -Number(inv.offer || 0),
+                                  isCredit: inv.isCredit, // Pass credit flag
                               },
                           ]
                         : [];
@@ -176,7 +178,11 @@ export default function CombinedInvoices() {
             });
 
             const totalValue = flatItems.reduce(
-                (sum, item) => sum + Number(item.value || 0),
+                (sum, item) => {
+                    // Exclude credit items from total
+                    if (item.isCredit) return sum;
+                    return sum + Number(item.value || 0);
+                },
                 0
             );
 
@@ -334,15 +340,31 @@ export default function CombinedInvoices() {
                                         <td
                                             className={tableclasses.item}
                                             style={{
-                                                color:
-                                                    item.value >= 0
-                                                        ? "var(--success-color)"
-                                                        : "var(--accent-red)",
+                                                color: item.isCredit
+                                                    ? "var(--text-color-secondary)" // Grey out for credit
+                                                    : item.value >= 0
+                                                    ? "var(--success-color)"
+                                                    : "var(--accent-red)",
                                                 fontWeight: "bold",
                                             }}
                                         >
                                             {Number(item.value || 0).toFixed(2)}{" "}
                                             ج.م
+                                            {item.isCredit && (
+                                                <span
+                                                    style={{
+                                                        marginRight: "5px",
+                                                        fontSize: "0.8em",
+                                                        backgroundColor:
+                                                            "var(--warning-color)",
+                                                        color: "#fff",
+                                                        padding: "2px 5px",
+                                                        borderRadius: "4px",
+                                                    }}
+                                                >
+                                                    آجل
+                                                </span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))

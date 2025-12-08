@@ -744,9 +744,9 @@ exports.getAvailableReturnVolumes = async (req, res) => {
     }
 };
 
-exports.getFullSalesInvoices = async (req, res) => {
+    exports.getFullSalesInvoices = async (req, res) => {
     try {
-        const { offset, size } = req.query;
+        const { offset, size, exclude_credit } = req.query;
 
         const parsedOffset = Number.parseInt(offset, 10);
         const parsedSize = Number.parseInt(size, 10);
@@ -759,12 +759,25 @@ exports.getFullSalesInvoices = async (req, res) => {
                 ? Math.min(parsedSize, 500)
                 : 50;
 
-        const total = await SalesInvoice.countDocuments();
+        let query = {};
 
-        const invoices = await SalesInvoice.find()
+        // Filter out credit customers if requested
+        if (exclude_credit === "true") {
+            const creditCustomers = await Customer.find(
+                { payment_type: "credit" },
+                "_id"
+            );
+            const creditCustomerIds = creditCustomers.map((c) => c._id);
+            query.customer = { $nin: creditCustomerIds };
+        }
+
+        const total = await SalesInvoice.countDocuments(query);
+
+        const invoices = await SalesInvoice.find(query)
             .sort({ date: -1, created_at: -1 })
             .skip(safeOffset)
-            .limit(safeSize);
+            .limit(safeSize)
+            .populate("customer", "payment_type name"); // Populate customer to get payment_type
 
         const items = await Promise.all(
             invoices.map(async (inv) => {
@@ -776,7 +789,9 @@ exports.getFullSalesInvoices = async (req, res) => {
 
                 return {
                     _id: inv._id,
-                    customer: inv.customer || "",
+                    customer: inv.customer?._id || "",
+                    customerName: inv.customer?.name || "",
+                    isCredit: inv.customer?.payment_type === "credit", // Add flag for frontend
                     type: inv.type || "walkin",
                     date: inv.date,
                     offer: inv.offer || 0,

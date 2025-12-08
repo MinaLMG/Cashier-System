@@ -19,6 +19,7 @@ export default function CustomerForm({
         phone: customer?.phone || "",
         address: customer?.address || "",
         type: customer?.type || "walkin",
+        payment_type: customer?.payment_type || "cash",
     });
     const [fieldErrors, setFieldErrors] = useState({});
     const [formError, setFormError] = useState(""); // Form-level error below submit button
@@ -60,6 +61,18 @@ export default function CustomerForm({
             hasErrors = true;
         } else if (formData.type !== "walkin" && formData.type !== "pharmacy") {
             newErrors.type = "نوع العميل غير صالح";
+            hasErrors = true;
+        }
+
+        // Validate payment_type
+        if (!formData.payment_type) {
+            newErrors.payment_type = "نظام الدفع مطلوب";
+            hasErrors = true;
+        } else if (
+            formData.payment_type !== "cash" &&
+            formData.payment_type !== "credit"
+        ) {
+            newErrors.payment_type = "نظام الدفع غير صالح";
             hasErrors = true;
         }
 
@@ -167,6 +180,7 @@ export default function CustomerForm({
                     phone: "",
                     address: "",
                     type: "walkin",
+                    payment_type: "cash",
                 });
                 setFieldErrors({});
                 setFormError("");
@@ -231,6 +245,19 @@ export default function CustomerForm({
                     width="58px"
                     error={fieldErrors.type || ""}
                     disabled={isViewMode}
+                />
+
+                <Select
+                    title="نظام الدفع"
+                    value={formData.payment_type}
+                    onchange={(value) => handleChange("payment_type", value)}
+                    options={[
+                        { value: "cash", label: "نقدى" },
+                        { value: "credit", label: "آجل" },
+                    ]}
+                    width="58px"
+                    error={fieldErrors.payment_type || ""}
+                    disabled={isViewMode || isEditMode} // Disabled in edit mode as per requirements
                 />
 
                 <TextInput

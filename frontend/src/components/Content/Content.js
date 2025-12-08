@@ -13,6 +13,8 @@ import Revenue from "./Revenue/Revenue";
 import CombinedInvoices from "./SalesInvoices/CombinedInvoices";
 import ProductMovement from "./ProductMovement/ProductMovement";
 import Notifications from "./Notifications/Notifications";
+import CreditCustomers from "./CreditCustomers/CreditCustomers";
+import PaymentManager from "./CreditCustomers/PaymentManager";
 
 export default function Content(props) {
     return (
@@ -106,6 +108,8 @@ export default function Content(props) {
                 ></Revenue>
             )}
             {props.selected === "فواتير مجمعة" && <CombinedInvoices />}
+            {props.selected === "عرض عملاء الآجل" && <CreditCustomers />}
+            {props.selected === "سداد العملاء الآجل" && <PaymentManager />}
             {props.selected === "إدارة الموردين" && <ShowSuppliers />}
             {props.selected === "إدارة العملاء" && <ShowCustomers />}
             {props.selected === "إدارة العبوات" && <ShowVolumes />}

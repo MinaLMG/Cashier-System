@@ -131,7 +131,7 @@ export default function Revenue(props) {
             // Fetch both sales and return invoices
             const [salesResponse, returnResponse] = await Promise.all([
                 axios.get(
-                    `${process.env.REACT_APP_BACKEND}sales-invoices/full`
+                    `${process.env.REACT_APP_BACKEND}sales-invoices/full?exclude_credit=true`
                 ),
                 includeReturns
                     ? axios.get(
