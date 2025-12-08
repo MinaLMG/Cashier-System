@@ -164,6 +164,36 @@ export default function PurchaseInvoice(props) {
         []
     );
 
+    // Lazy-load full product details and cache them in the products array
+    const ensureFullProductLoaded = useCallback(
+        async (productId) => {
+            if (!productId) return;
+
+            // If we already have full data for this product, skip the request
+            const existing = products.find((p) => p._id === productId);
+            if (
+                existing &&
+                existing.values &&
+                existing.u_walkin_price != null
+            ) {
+                return;
+            }
+
+            try {
+                const res = await axios.get(
+                    `${process.env.REACT_APP_BACKEND}products/full/${productId}`
+                );
+                const fullProduct = res.data;
+                setProducts((prev) =>
+                    prev.map((p) => (p._id === productId ? fullProduct : p))
+                );
+            } catch (err) {
+                console.error("Failed to load full product details:", err);
+            }
+        },
+        [products]
+    );
+
     // Function to lookup product and volume from barcode using API (same as SalesInvoice)
     const lookupProductFromBarcode = useCallback(
         async (index, barcode) => {
@@ -180,24 +210,18 @@ export default function PurchaseInvoice(props) {
                     response.data.product &&
                     response.data.volume
                 ) {
+                    const productId = response.data.product;
+                    const volumeId = response.data.volume;
+
+                    // Ensure full product details are loaded before setting product/volume
+                    await ensureFullProductLoaded(productId);
+
                     // Auto-select product and volume based on barcode
-                    originalHandleRowChange(
-                        index,
-                        "product",
-                        response.data.product
-                    );
-                    originalHandleRowChange(
-                        index,
-                        "volume",
-                        response.data.volume
-                    );
+                    originalHandleRowChange(index, "product", productId);
+                    originalHandleRowChange(index, "volume", volumeId);
 
                     // Fetch price suggestions for the found product and volume
-                    fetchPriceSuggestions(
-                        index,
-                        response.data.product,
-                        response.data.volume
-                    );
+                    fetchPriceSuggestions(index, productId, volumeId);
 
                     // Show success message
                     setSubmitMessage({
@@ -228,7 +252,11 @@ export default function PurchaseInvoice(props) {
                 }, 3000);
             }
         },
-        [originalHandleRowChange, fetchPriceSuggestions]
+        [
+            originalHandleRowChange,
+            fetchPriceSuggestions,
+            ensureFullProductLoaded,
+        ]
     );
 
     // Handle barcode change (same as SalesInvoice)
@@ -260,7 +288,12 @@ export default function PurchaseInvoice(props) {
                 fetchPriceSuggestions(index, currentRow.product, value);
             }
         },
-        [originalHandleRowChange, invoiceRows, fetchPriceSuggestions]
+        [
+            originalHandleRowChange,
+            invoiceRows,
+            fetchPriceSuggestions,
+            ensureFullProductLoaded,
+        ]
     );
 
     // Initialize invoice state with ISO date string
@@ -365,29 +398,6 @@ export default function PurchaseInvoice(props) {
         fetchData();
     }, []);
 
-    // Lazy-load full product details and cache them in the products array
-    const ensureFullProductLoaded = async (productId) => {
-        if (!productId) return;
-
-        // If we already have full data for this product, skip the request
-        const existing = products.find((p) => p._id === productId);
-        if (existing && existing.values && existing.u_walkin_price != null) {
-            return;
-        }
-
-        try {
-            const res = await axios.get(
-                `${process.env.REACT_APP_BACKEND}products/full/${productId}`
-            );
-            const fullProduct = res.data;
-            setProducts((prev) =>
-                prev.map((p) => (p._id === productId ? fullProduct : p))
-            );
-        } catch (err) {
-            console.error("Failed to load full product details:", err);
-        }
-    };
-
     // Load invoice data if in edit or view mode
     useEffect(() => {
         if ((props.mode === "edit" || props.mode === "view") && props.invoice) {
@@ -437,7 +447,13 @@ export default function PurchaseInvoice(props) {
             // Mark that we have attempted to load (whether or not data existed)
             suspendedInvoiceLoaded.current = true;
         }
-    }, [emptyRow, props.invoice, props.mode, setInvoiceRows]);
+    }, [
+        emptyRow,
+        props.invoice,
+        props.mode,
+        setInvoiceRows,
+        ensureFullProductLoaded,
+    ]);
 
     // Reset suspended invoice loaded flag when mode changes
     useEffect(() => {

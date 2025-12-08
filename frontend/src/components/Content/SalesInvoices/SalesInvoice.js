@@ -651,10 +651,16 @@ export default function SalesInvoice(props) {
                     response.data.product &&
                     response.data.volume
                 ) {
+                    const productId = response.data.product;
+                    const volumeId = response.data.volume;
+
+                    // Ensure full product details are loaded before setting product/volume
+                    await ensureFullProductLoaded(productId);
+
                     // Update the row with found product and volume
                     const newRows = [...invoiceRows];
-                    newRows[index].product = response.data.product;
-                    newRows[index].volume = response.data.volume;
+                    newRows[index].product = productId;
+                    newRows[index].volume = volumeId;
                     setInvoiceRows(newRows);
 
                     // Clear product and volume errors
@@ -669,7 +675,7 @@ export default function SalesInvoice(props) {
                     // Also update the barcode validation cache
                     setBarcodeValidationCache((prev) => ({
                         ...prev,
-                        [`${response.data.product}-${response.data.volume}-${barcode}`]: true,
+                        [`${productId}-${volumeId}-${barcode}`]: true,
                     }));
                 } else {
                     // Barcode not found - set error
@@ -700,7 +706,14 @@ export default function SalesInvoice(props) {
                 }, 100);
             }
         },
-        [invoiceRows, isUpdatingFields, rowErrors, setRowErrors, setInvoiceRows]
+        [
+            invoiceRows,
+            isUpdatingFields,
+            rowErrors,
+            setRowErrors,
+            setInvoiceRows,
+            ensureFullProductLoaded,
+        ]
     );
 
     // Add a function to validate barcode with the backend

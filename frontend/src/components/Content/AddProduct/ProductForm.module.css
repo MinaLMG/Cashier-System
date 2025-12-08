@@ -30,6 +30,18 @@
     transform: scale(1.1);
 }
 
+.randomizeIcon {
+    color: var(--primary-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.randomizeIcon:hover {
+    color: var(--accent-blue);
+    transform: scale(1.1) rotate(90deg);
+}
+
 .backButton {
     margin-right: 10px;
 }

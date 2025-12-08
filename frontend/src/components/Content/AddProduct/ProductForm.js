@@ -3,7 +3,7 @@ import axios from "axios";
 import Select from "../../Basic/Select";
 import TextInput from "../../Basic/TextInput";
 import classes from "./ProductForm.module.css";
-import { FaPlus, FaMinus } from "react-icons/fa6";
+import { FaPlus, FaMinus, FaShuffle } from "react-icons/fa6";
 import Button from "../../Basic/Button";
 import FormMessage from "../../Basic/FormMessage";
 import InputTable from "../../Basic/InputTable";
@@ -396,6 +396,18 @@ export default function ProductForm({
             setFieldErrors((prev) => ({ ...prev, [field]: "" }));
         }
     };
+
+    // Function to generate a random 9-digit number
+    const generateRandomBarcode = () => {
+        // Generate a random 9-digit number (100000000 to 999999999)
+        return Math.floor(100000000 + Math.random() * 900000000).toString();
+    };
+
+    // Handle randomize barcode click
+    const handleRandomizeBarcode = (index) => {
+        const randomBarcode = generateRandomBarcode();
+        handleConversionChange(index, "barcode", randomBarcode);
+    };
     // Function to fetch volumes
     const fetchVolumes = useCallback(async () => {
         try {
@@ -605,21 +617,44 @@ export default function ProductForm({
                                 )}
                             </td>
                             <td>
-                                <TextInput
-                                    type="text"
-                                    placeholder="باركود"
-                                    label="باركود"
-                                    id={`barcode-${index}`}
-                                    value={row.barcode || ""}
-                                    onchange={(e) =>
-                                        handleConversionChange(
-                                            index,
-                                            "barcode",
-                                            e
-                                        )
-                                    }
-                                    disabled={!canModifyBarcode}
-                                />
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                    }}
+                                >
+                                    <TextInput
+                                        type="text"
+                                        placeholder="باركود"
+                                        label="باركود"
+                                        id={`barcode-${index}`}
+                                        value={row.barcode || ""}
+                                        onchange={(e) =>
+                                            handleConversionChange(
+                                                index,
+                                                "barcode",
+                                                e
+                                            )
+                                        }
+                                        disabled={!canModifyBarcode}
+                                    />
+                                    {(!row.barcode || row.barcode === "") &&
+                                        canModifyBarcode && (
+                                            <FaShuffle
+                                                className={
+                                                    classes.randomizeIcon
+                                                }
+                                                size="1.2em"
+                                                onClick={() =>
+                                                    handleRandomizeBarcode(
+                                                        index
+                                                    )
+                                                }
+                                                title="إنشاء باركود عشوائي"
+                                            />
+                                        )}
+                                </div>
                             </td>
                             <td className={classes.actionColumn}>
                                 {index === product.conversions.length - 1 && (
