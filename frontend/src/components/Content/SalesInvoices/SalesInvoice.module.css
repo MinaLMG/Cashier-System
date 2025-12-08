@@ -111,3 +111,101 @@
         padding: 4px;
     }
 }
+
+/* Period Selector Styles */
+.periodSelector {
+    background-color: var(--background-color, #ffffff);
+    padding: 2rem;
+    border-radius: var(--border-radius-md, 12px);
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06);
+    border: 2px solid var(--secondary-color, #667eea);
+    transition: all 0.3s ease;
+}
+
+.periodSelector:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.08);
+}
+
+.periodTypes {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 1rem;
+    background-color: rgba(102, 126, 234, 0.05);
+    border-radius: var(--border-radius-md, 8px);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+}
+
+.periodTypeLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1rem;
+    color: var(--text-color, #333);
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--border-radius-sm, 6px);
+    transition: all 0.2s ease;
+    background-color: transparent;
+    border: 1px solid transparent;
+}
+
+.periodTypeLabel:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.3);
+    transform: translateY(-1px);
+}
+
+.periodTypeLabel input[type="radio"] {
+    margin: 0;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--secondary-color, #667eea);
+    transform: scale(1.1);
+}
+
+.periodTypeLabel input[type="radio"]:checked + span {
+    color: var(--secondary-color, #667eea);
+    font-weight: 600;
+}
+
+.periodTypeLabel span {
+    transition: color 0.2s ease;
+    user-select: none;
+}
+
+.dateInputs {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.dateInput {
+    flex: 1;
+    min-width: 250px;
+    max-width: 400px;
+}
+
+.error {
+    color: var(--accent-red, #dc3545);
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: rgba(220, 53, 69, 0.1);
+    border-radius: var(--border-radius-sm, 6px);
+    text-align: center;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.2rem;
+    color: var(--text-color-secondary, #6c757d);
+}

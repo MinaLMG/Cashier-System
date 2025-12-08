@@ -10,6 +10,7 @@ import ShowSuppliers from "./Suppliers/ShowSuppliers";
 import ShowCustomers from "./Customers/ShowCustomers";
 import ShowVolumes from "./Volumes/ShowVolumes";
 import Revenue from "./Revenue/Revenue";
+import CombinedInvoices from "./SalesInvoices/CombinedInvoices";
 import ProductMovement from "./ProductMovement/ProductMovement";
 import Notifications from "./Notifications/Notifications";
 
@@ -104,6 +105,7 @@ export default function Content(props) {
                     }}
                 ></Revenue>
             )}
+            {props.selected === "فواتير مجمعة" && <CombinedInvoices />}
             {props.selected === "إدارة الموردين" && <ShowSuppliers />}
             {props.selected === "إدارة العملاء" && <ShowCustomers />}
             {props.selected === "إدارة العبوات" && <ShowVolumes />}
