@@ -3,6 +3,7 @@ import axios from "axios";
 import Button from "../../Basic/Button";
 import DateTimeInput from "../../Basic/DateTimeInput";
 import Select from "../../Basic/Select";
+import TextInput from "../../Basic/TextInput";
 import InputTable from "../../Basic/InputTable";
 import SalesInvoiceRow from "./SalesInvoiceRow";
 import useInvoiceRows from "../../../hooks/useInvoiceRows";
@@ -29,6 +30,7 @@ export default function SalesInvoice(props) {
     // eslint-disable-next-line no-unused-vars
     const [baseCost, setBaseCost] = useState(0);
     const [profit, setProfit] = useState(0);
+    const [totalSellingPrice, setTotalSellingPrice] = useState(0);
 
     // Return modal state
     const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
@@ -332,7 +334,6 @@ export default function SalesInvoice(props) {
             uniqueProductIds.forEach((id) => {
                 ensureFullProductLoaded(id);
             });
-
             // Trigger validation after loading data
             setTimeout(() => {
                 validateRows();
@@ -401,7 +402,7 @@ export default function SalesInvoice(props) {
         suspendedInvoiceLoaded.current = false;
     }, [props.mode]);
 
-    // Calculate total whenever rows or invoice type changes
+    // Calculate total whenever rows, invoice type, or offer changes
     useEffect(() => {
         const calculateTotal = () => {
             return invoiceRows.reduce((total, row) => {
@@ -432,10 +433,8 @@ export default function SalesInvoice(props) {
             }, 0);
         };
         const total_selling_price = calculateTotal();
-        const final_amount =
-            props.mode === "add"
-                ? total_selling_price - Number(invoice.offer || 0)
-                : invoice.final_amount || 0;
+        setTotalSellingPrice(total_selling_price);
+        const final_amount = total_selling_price - Number(invoice.offer || 0);
 
         setFinalTotal(final_amount);
 
@@ -464,6 +463,14 @@ export default function SalesInvoice(props) {
 
     // Handle invoice field changes
     const handleInvoiceChange = (field, value) => {
+        if (field === "offer") {
+            const numeric = Number(value);
+            const safeValue = isNaN(numeric) ? 0 : Math.max(0, numeric);
+            const capped = Math.min(safeValue, totalSellingPrice || 0);
+            setInvoice((prev) => ({ ...prev, offer: capped }));
+            return;
+        }
+
         if (field === "customer" && value) {
             // If a customer is selected, set the type based on the customer's type
             const selectedCustomer = customers.find((c) => c._id === value);
@@ -556,6 +563,13 @@ export default function SalesInvoice(props) {
                 return;
             }
 
+            const currentTotal =
+                totalSellingPrice || props.invoice?.total_selling_price || 0;
+            if (Number(invoice.offer || 0) > currentTotal) {
+                setFormError("⚠️ لا يمكن أن يتجاوز الخصم إجمالي الفاتورة");
+                return;
+            }
+
             setIsSubmitting(true);
 
             // In edit mode, we only update the main invoice data
@@ -615,6 +629,19 @@ export default function SalesInvoice(props) {
         }
 
         // For add mode, continue with the existing logic
+        // Validate offer is a non-negative number
+        if (isNaN(Number(invoice.offer)) || Number(invoice.offer) < 0) {
+            setFormError("⚠️ يجب أن يكون الخصم رقمًا غير سالب");
+            return;
+        }
+
+        // Validate offer is within total
+        const currentTotal = totalSellingPrice || 0;
+        if (Number(invoice.offer || 0) > currentTotal) {
+            setFormError("⚠️ لا يمكن أن يتجاوز الخصم إجمالي الفاتورة");
+            return;
+        }
+
         // Validate all rows before submission
         validateAllRows();
 
@@ -1795,8 +1822,34 @@ export default function SalesInvoice(props) {
 
                             {/* Total row */}
                             <tr className={classes.totalRow}>
-                                <td colSpan="4" className={classes.totalLabel}>
+                                <td colSpan="2" className={classes.totalLabel}>
                                     <strong>إجمالي الفاتورة:</strong>
+                                </td>
+                                <td colSpan="2" className={classes.totalValue}>
+                                    {isViewMode ? (
+                                        <div className={classes.viewText}>
+                                            الخصم:{" "}
+                                            {Number(invoice.offer || 0).toFixed(
+                                                2
+                                            )}{" "}
+                                            ج.م
+                                        </div>
+                                    ) : (
+                                        <TextInput
+                                            type="number"
+                                            label="الخصم"
+                                            value={invoice.offer || 0}
+                                            onchange={(val) =>
+                                                handleInvoiceChange(
+                                                    "offer",
+                                                    val
+                                                )
+                                            }
+                                            min={0}
+                                            className={classes["no-margin"]}
+                                            disabled={getDisabledState()}
+                                        />
+                                    )}
                                 </td>
                                 <td
                                     colSpan={isViewMode ? "3" : "4"}

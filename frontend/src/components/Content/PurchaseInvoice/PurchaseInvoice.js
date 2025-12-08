@@ -169,10 +169,8 @@ export default function PurchaseInvoice(props) {
     const ensureFullProductLoaded = useCallback(
         async (productId) => {
             if (!productId) return;
-            console.log("[ensureFullProductLoaded] products", products);
             // If we already have full data for this product, skip the request
             const existing = products.find((p) => p._id === productId);
-            console.log("[ensureFullProductLoaded] existing", existing);
             if (
                 existing &&
                 existing.values &&
@@ -185,7 +183,6 @@ export default function PurchaseInvoice(props) {
                 const res = await axios.get(
                     `${process.env.REACT_APP_BACKEND}products/full/${productId}`
                 );
-                console.log("[ensureFullProductLoaded] res", res.data);
                 const fullProduct = res.data;
                 setProducts((prev) => {
                     const exists = prev.some((p) => p._id === productId);

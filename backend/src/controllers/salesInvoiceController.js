@@ -212,6 +212,12 @@ exports.updateSalesInvoice = async (req, res) => {
             updateData.total_selling_price = newTotalSellingPrice;
             updateData.type = type;
 
+            if (Number(offer || 0) > newTotalSellingPrice) {
+                return res.status(400).json({
+                    error: "قيمة الخصم لا يمكن أن تتجاوز إجمالي الفاتورة",
+                });
+            }
+
             // Calculate new final amount
             updateData.final_amount = newTotalSellingPrice - Number(offer || 0);
 
@@ -220,6 +226,11 @@ exports.updateSalesInvoice = async (req, res) => {
                 existingInvoice.total_purchase_cost;
         } else {
             // Type hasn't changed, just recalculate final_amount based on new offer
+            if (Number(offer || 0) > existingInvoice.total_selling_price) {
+                return res.status(400).json({
+                    error: "قيمة الخصم لا يمكن أن تتجاوز إجمالي الفاتورة",
+                });
+            }
             updateData.final_amount =
                 existingInvoice.total_selling_price - Number(offer || 0);
         }
@@ -436,6 +447,12 @@ exports.createFullSalesInvoice = async (req, res) => {
         const total_selling_price = salesItems.reduce((sum, item) => {
             return sum + item.quantity * item.u_price * item.val;
         }, 0);
+
+        if (Number(offer || 0) > total_selling_price) {
+            return res.status(400).json({
+                error: "قيمة الخصم لا يمكن أن تتجاوز إجمالي الفاتورة",
+            });
+        }
 
         // Calculate final amount after discount
         const final_amount = total_selling_price - (offer || 0);
