@@ -24,6 +24,11 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
+    activeTemplate: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Template',
+        default: null
+    },
 });
 
 // Add timestamps to the schema
@@ -47,9 +52,9 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.hashed_password);
 };
 
-// Remove password from JSON output
+// Remove password from JSON output and convert Map to Object
 userSchema.methods.toJSON = function () {
-    const user = this.toObject();
+    const user = this.toObject({ getters: true, virtuals: true, flattenMaps: true });
     delete user.hashed_password;
     return user;
 };

@@ -1,33 +1,62 @@
 :root {
-    /* Primary Colors - Purple-Blue Schema */
-    --primary-color: #4a5568;
-    --primary-light: #718096;
-    --primary-dark: #2d3748;
+    /* Primary Colors - High Contrast Light Schema */
+    /* OLD: Dark Purlpes -> NEW: Light Grays/Whites for Backgrounds, Dark for Text */
+    --primary-color: #f8f9fa; /* Light background */
+    --primary-light: #ffffff;
+    --primary-dark: #e9ecef; /* Slightly darker light for borders/hover */
 
-    /* Secondary Colors - Purple-Blue Gradients */
-    --secondary-color: #667eea;
-    --secondary-light: #a5b4fc;
-    --secondary-dark: #4c51bf;
+    /* Secondary Colors - Accents now, not backgrounds */
+    --secondary-color: #2d3748; /* Dark for text/borders */
+    --secondary-light: #4a5568;
+    --secondary-dark: #1a202c; /* Very dark */
 
-    /* Header Gradient Colors */
-    --header-gradient-start: #4c51bf;
-    --header-gradient-end: #667eea;
+    /* Customizable Theme Variables (User Requested) */
+    /* -- General Table Defaults (Legacy/Fallback) -- */
+    --table-borders: #2d3748; 
+    --table-header-bg: #e9ecef; 
+    --table-odd-rows-background: rgba(165, 180, 252, 0.05);
+    --table-even-row-bg: rgba(102, 126, 234, 0.08); 
+    --table-row-hover-bg: rgba(102, 126, 234, 0.15);
+    
+    /* -- View Mode Tables (OutputTable/SortableTable) -- */
+    --table-view-header-text: #000000;
+    --table-view-row-odd-bg: var(--table-odd-rows-background);
+    --table-view-row-hover-bg: var(--table-row-hover-bg);
 
-    /* Navigation Selected Gradient */
-    --nav-selected-start: #667eea;
-    --nav-selected-end: #a5b4fc;
+    /* -- Edit Mode Tables (InputTable) -- */
+    --table-edit-border: var(--table-borders);
+    --table-edit-header-bg: var(--table-header-bg);
+    --table-edit-header-text: #000000;
+    --table-edit-row-odd-bg: var(--table-odd-rows-background);
+    --table-edit-row-even-bg: var(--table-even-row-bg);
+    --table-edit-row-hover-bg: var(--table-row-hover-bg);
+    --table-edit-text: #000000;
 
-    /* Accent Colors */
-    --accent-red: #e53e3e;
+    /* -- Buttons (Modal Triggers etc) -- */
+    --modal-trigger-btn-bg: #2d3748; /* Default secondary */
+    --modal-trigger-btn-text: #ffffff;
+    
+    --hovering-li: #e9ecef; /* Matches primary-dark */
+
+    /* Header Gradient Colors -> Solid Light */
+    --header-gradient-start: #ffffff;
+    --header-gradient-end: #f7fafc;
+
+    /* Navigation Selected Gradient -> Solid Light Gray */
+    --nav-selected-start: #e2e8f0;
+    --nav-selected-end: #cbd5e0;
+
+    /* Accent Colors - Kept for semantic meaning but ensure contrast */
+    --accent-red: #c53030; /* Darker red for text visibility */
     --accent-heart: #e53e3e;
 
     /* Neutral Colors */
-    --text-color: #2d3748;
-    --text-light: #718096;
+    --text-color: #000000; /* PURE BLACK */
+    --text-light: #2d3748; /* Dark Gray */
     --background-color: #ffffff;
-    --border-color: #e2e8f0;
+    --border-color: #000000; /* High contrast border */
 
-    /* Status Colors */
+    /* Status Colors - Darker for text legibility if used as text, or keep background pastel */
     --success-color: #198754;
     --success-light: #d1e7dd;
     --error-color: #dc3545;
@@ -55,14 +84,81 @@
     --font-size-md: 16px;
     --font-size-lg: 18px;
     --font-size-xl: 24px;
+    
+    /* Font Weights */
+    --font-weight-bold: 700;
+    --font-weight-extra-bold: 900;
 
     /* Shadows */
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 
+    /* -- Buttons & Actions -- */
+    --btn-primary-bg: #2d3748; /* Dark Slate */
+    --btn-primary-text: #ffffff;
+    --btn-primary-hover-bg: #1a202c; /* Different dark */
+    
+    --btn-secondary-bg: #e2e8f0; /* Light Gray */
+    --btn-secondary-text: #1a202c; /* Dark text */
+    --btn-secondary-hover-bg: #cbd5e0;
+
+    --action-btn-bg: var(--accent-red);
+    --action-btn-hover-bg: #7a1609; /* Matches common.module.css hardcoded */
+
+    --tooltip-bg: rgba(0, 0, 0, 0.8);
+    --tooltip-text: #ffffff;
+
+    /* -- Inputs & Forms -- */
+    --input-focus-shadow: rgba(102, 126, 234, 0.25);
+    --input-error-shadow: rgba(229, 62, 62, 0.25);
+    --input-placeholder: #6c757d;
+
+    /* -- Modals -- */
+    --modal-overlay-bg: rgba(0, 0, 0, 0.5);
+    --modal-bg: #ffffff;
+    --modal-header-bg: #f8f9fa; /* Matches primary */
+    --modal-header-text: #000000;
+    --modal-border: #000000;
+    --modal-close-icon: #6c757d;
+    
+    /* -- Layout & Navigation -- */
+    --sidebar-bg: #f8f9fa; /* Matches primary */
+    --sidebar-item-text: #000000;
+    --sidebar-item-hover-bg: #e9ecef; /* Matches hovering-li */
+    --sidebar-active-item-bg: #e2e8f0; /* Matches nav-selected-start */
+    --card-bg: #ffffff;
+    --card-bg: #ffffff;
+
+    /* -- Typography -- */
+
+    /* -- Status & Alerts -- */
+    /* Success */
+    --status-success-bg: #d1e7dd;
+    --status-success-text: #0f5132;
+    --status-success-border: #badbcc;
+    /* Error */
+    --status-error-bg: #f8d7da;
+    --status-error-text: #842029;
+    --status-error-border: #f5c2c7;
+    /* Warning */
+    --warning-color: #ffc107;
+    --warning-light: #fff3cd;
+    --status-warning-border: #ffecb5;
+    /* Info */
+    --status-info-bg: #cff4fc;
+    --status-info-text: #055160;
+    --status-info-border: #b6effb;
+
+    /* -- Icons -- */
+    --icon-edit: brown;
+    --icon-delete: #848484; /* Gray for consistency or keep varied? User asked for control. */
+    --icon-view: #0d6efd;
+    --icon-add: #198754;
+    --icon-add: #198754;
+    
     /* Aliases for backward compatibility */
-    --dark-red: var(--primary-color);
-    --dark-yellow: var(--secondary-color);
-    --light-yellow: var(--secondary-light);
+    --dark-red: var(--accent-red);
+    --dark-yellow: #d69e2e;
+    --light-yellow: #fefcbf;
 }

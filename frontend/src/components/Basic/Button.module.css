@@ -2,40 +2,38 @@
     padding: 12px 24px;
     border-radius: var(--border-radius-md);
     outline: none;
-    border: 1px solid var(--secondary-color);
-    background: linear-gradient(
-        135deg,
-        var(--secondary-color) 0%,
-        var(--secondary-light) 100%
-    );
+    border: 2px solid var(--secondary-color); /* Strong border */
+    background: var(--background-color); /* Light background */
     font-size: var(--font-size-md);
-    color: white;
-    font-weight: 600;
+    color: var(--text-color); /* Dark text */
+    font-weight: var(--font-weight-bold);
     transition: all 0.2s ease;
     cursor: pointer;
     box-shadow: var(--shadow-sm);
+    text-transform: uppercase; /* Added for emphasis */
+    letter-spacing: 0.5px;
 }
 
 .btn:hover {
-    background: linear-gradient(
-        135deg,
-        var(--secondary-dark) 0%,
-        var(--secondary-color) 100%
-    );
+    background: var(--primary-dark); /* Light gray */
+    border-color: var(--secondary-dark);
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
+    color: var(--text-color);
 }
 
 .btn:active {
     transform: translateY(0);
     box-shadow: var(--shadow-sm);
+    background: var(--secondary-light);
 }
 
 .btn:disabled {
     cursor: not-allowed;
     opacity: 0.6;
-    background: var(--text-light);
+    background: var(--primary-dark);
     border-color: var(--text-light);
+    color: var(--text-light); /* Make sure disabled text is visible but dimmer */
     transform: none;
     box-shadow: none;
 }
@@ -43,4 +41,16 @@
 .btn:disabled:hover {
     transform: none;
     box-shadow: none;
+}
+
+.modalTrigger {
+    background: var(--modal-trigger-btn-bg);
+    color: var(--modal-trigger-btn-text);
+    border-color: var(--modal-trigger-btn-bg);
+}
+
+.modalTrigger:hover {
+    background: var(--secondary-dark); /* Or a darkened version of trigger bg */
+    border-color: var(--secondary-dark);
+    color: var(--modal-trigger-btn-text);
 }

@@ -4,8 +4,8 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: black;
-  opacity: 0.5;
+  background-color: var(--modal-overlay-bg);
+  opacity: 1; /* Overlay var has opacity handled if rgba, usually. If plain color, opacity needed. Theme has rgba. */
   z-index: 3;
 }
 .body {
@@ -16,21 +16,24 @@
   min-height: 20rem;
   top: 50vh;
   z-index: 4;
-  background-color: white;
+  background-color: var(--background-color);
   border-radius: 15px;
   display: flex;
   justify-content: space-between;
   flex-direction: column;
   transform: translate(-50%,-50%);
+  border: 2px solid var(--border-color); /* Strong border */
 }
 
 .header {
-  color: white;
-  background-color: var(--dark-red);
+  color: var(--text-color);
+  background-color: var(--primary-color);
   padding: 1px 5px;
   padding: 10px;
   text-align: center;
   border-radius: 15px 15px 0 0;
+  border-bottom: 2px solid var(--border-color);
+  font-weight: var(--font-weight-bold);
 }
 
 .message {
@@ -45,10 +48,10 @@
   padding: 10px 20px;
 }
 .button {
-  color: white;
-  background-color: var(--dark-red);
+  color: var(--text-color);
+  background-color: var(--background-color);
   border-radius: 5px;
-  border: 1px solid #ccc;
+  border: 2px solid var(--secondary-color);
   cursor: pointer;
   padding: 5px 10px;
   opacity: 0.8;}

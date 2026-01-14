@@ -14,12 +14,12 @@
 
 .select:focus {
     border-color: var(--secondary-color);
-    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    box-shadow: 0 0 0 0.2rem var(--input-focus-shadow);
     outline: none;
 }
 
 .select:disabled {
-    background-color: #f8f9fa;
+    background-color: var(--input-disabled-bg);
     color: var(--text-light);
     cursor: not-allowed;
 }
@@ -27,7 +27,7 @@
 /* Error styling */
 .errorSelect {
     border-color: var(--accent-red) !important;
-    box-shadow: 0 0 0 0.2rem rgba(229, 62, 62, 0.25) !important;
+    box-shadow: 0 0 0 0.2rem var(--input-error-shadow) !important;
 }
 
 .errorText {

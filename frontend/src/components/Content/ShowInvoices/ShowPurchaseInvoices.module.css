@@ -32,9 +32,9 @@
 .view {
 }
 .edit {
-    color: brown;
+    color: var(--icon-edit);
 }
 
 .remove {
-    color: #848484;
+    color: var(--icon-delete);
 }

@@ -28,20 +28,20 @@
 }
 
 .add {
-    color: #198754;
-    background-color: #fff;
+    color: var(--icon-add);
+    background-color: var(--background-color);
 }
 
 .edit {
-    color: brown;
+    color: var(--icon-edit);
 }
 
 .remove {
-    color: #848484;
+    color: var(--icon-delete);
 }
 
 .returnButton {
-    color: #dc3545;
+    color: var(--accent-red);
     font-size: 28px;
 }
 
@@ -73,20 +73,25 @@
 }
 
 .insertButton {
-    background-color: #198754;
-    color: white;
+    background-color: white;
+    color: #198754;
     border-color: #198754;
+    border: 2px solid #198754;
+    font-weight: var(--font-weight-bold);
 }
 
 .insertButton:hover:not(:disabled) {
-    background-color: #157347;
+    background-color: #198754;
+    color: white; /* Optional: keep inverted on hover or go full light */
     transform: translateY(-1px);
 }
 
 .deleteButton {
-    background-color: #dc3545;
-    color: white;
+    background-color: white;
+    color: #dc3545;
     border-color: #dc3545;
+    border: 2px solid #dc3545;
+     font-weight: var(--font-weight-bold);
 }
 
 .deleteButton:hover:not(:disabled) {

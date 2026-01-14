@@ -34,7 +34,7 @@ export default function Layout() {
         },
         {
             title: "النظام",
-            tasks: ["الإشعارات"],
+            tasks: ["الإشعارات", "إعدادات الألوان"],
         },
     ];
     const [selected, setSelected] = useState("");

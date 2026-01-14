@@ -12,7 +12,7 @@
 
 .formControl:focus {
     border-color: var(--secondary-color);
-    box-shadow: 0 0 0 0.3rem rgba(102, 126, 234, 0.15), var(--shadow-md);
+    box-shadow: 0 0 0 0.3rem var(--input-focus-shadow), var(--shadow-md);
     outline: none;
     transform: translateY(-1px);
 }
@@ -41,8 +41,8 @@
     padding: 16px 50px 16px 20px;
     font-size: 16px;
     border-radius: 12px;
-    border: 2px solid #e2e8f0;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid var(--border-color);
+    background: white;
 }
 
 .loginInput .formControl:focus {
@@ -69,7 +69,7 @@
 /* Error styling */
 .errorInput {
     border-color: var(--accent-red) !important;
-    box-shadow: 0 0 0 0.2rem rgba(229, 62, 62, 0.25) !important;
+    box-shadow: 0 0 0 0.2rem var(--input-error-shadow) !important;
 }
 
 .errorText {

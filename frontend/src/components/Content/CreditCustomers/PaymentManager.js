@@ -219,7 +219,7 @@ export default function PaymentManager({ customerId, onUpdate }) {
                                 <Button
                                     content="إلغاء"
                                     onClick={handleCloseModal}
-                                    style={{ backgroundColor: "gray" }}
+                                    style={{ backgroundColor: "var(--secondary-light)" }}
                                     type="button"
                                 />
                                 <Button

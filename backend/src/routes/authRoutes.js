@@ -106,50 +106,41 @@ router.post("/login", async (req, res) => {
             });
         }
         // Find user by username
-        const user = await User.findOne({ name: username });
-        console.log(user);
+        const user = await User.findOne({ name: username }).populate('activeTemplate');
+        console.log("Found user:", user?.name);
+
         if (!user) {
             return res.status(400).json({
                 success: false,
                 message: "اسم المستخدم أو كلمة المرور غير صحيحة.",
             });
         }
-        console.log(password, user.hashed_password);
-        // Check password
+        // ... (password check OMITTED as it matches context) ...
         const isMatch = await bcrypt.compare(password, user.hashed_password);
-        console.log(isMatch);
         if (!isMatch) {
-            return res.status(400).json({
+             return res.status(400).json({
                 success: false,
                 message: "اسم المستخدم أو كلمة المرور غير صحيحة.",
             });
         }
-
-        // Create JWT payload
+        
         const payload = {
             userId: user._id,
             username: user.name,
             role: user.role,
         };
 
-        // Sign token
         const token = jwt.sign(
             payload,
             process.env.JWT_SECRET || "your-secret-key",
-            { expiresIn: "365d" } // Token expires in 1 year instead of 24h
+            { expiresIn: "365d" }
         );
-        console.log(token);
-        // Return user data (without password) and token
+
         res.json({
             success: true,
             message: "تم تسجيل الدخول بنجاح.",
             accessToken: token,
-            user: {
-                id: user._id,
-                username: user.username,
-                role: user.role,
-                name: user.name || user.username,
-            },
+            user: user // User.toJSON() will now flatten the Map thanks to the model update
         });
     } catch (error) {
         console.error("Login error:", error);

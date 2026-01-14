@@ -149,3 +149,15 @@ code {
 .react-datepicker-popper {
     z-index: 3 !important;
 }
+
+/* Bootstrap overrides for theme consistency */
+.btn-primary {
+    background-color: var(--modal-trigger-btn-bg) !important;
+    border-color: var(--modal-trigger-btn-bg) !important;
+    color: var(--modal-trigger-btn-text) !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--secondary-dark) !important; /* Slight darken or use another var */
+    border-color: var(--secondary-dark) !important;
+}

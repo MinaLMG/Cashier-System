@@ -32,22 +32,22 @@
     justify-content: space-between;
     align-items: center;
     padding: 20px;
-    border-bottom: 2px solid #e0e0e0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    border-bottom: 2px solid var(--border-color);
+    background: var(--primary-color);
+    color: var(--text-color);
     border-radius: 12px 12px 0 0;
 }
 
 .header h2 {
     margin: 0;
     font-size: 24px;
-    font-weight: 600;
+    font-weight: var(--font-weight-extra-bold);
 }
 
 .closeButton {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
+    background: white;
+    border: 2px solid var(--text-color);
+    color: var(--text-color);
     font-size: 32px;
     width: 40px;
     height: 40px;
@@ -60,7 +60,7 @@
 }
 
 .closeButton:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--primary-dark);
 }
 
 .content {
@@ -70,8 +70,16 @@
 .infoSection {
     margin-bottom: 20px;
     padding: 16px;
-    background: #f8f9fa;
+    background: white;
     border-radius: 8px;
+    border: 2px solid var(--border-color);
+}
+/* ... skipped intermediate ... */
+.printButton {
+    background: white;
+    border: 2px solid var(--secondary-color);
+    color: var(--text-color);
+    font-weight: var(--font-weight-bold);
 }
 
 .infoLabel {
@@ -180,14 +188,16 @@
 }
 
 .printButton {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: var(--modal-trigger-btn-bg);
+    color: var(--modal-trigger-btn-text);
+    border: 2px solid var(--modal-trigger-btn-bg);
 }
 
 .printButton:hover:not(:disabled) {
     opacity: 0.9;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    background: var(--secondary-dark);
 }
 
 .printButton:disabled,

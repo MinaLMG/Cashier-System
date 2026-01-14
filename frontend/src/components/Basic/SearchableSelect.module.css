@@ -68,7 +68,7 @@
 .selectBox:focus {
     outline: none;
     border-color: #0d6efd;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    box-shadow: 0 0 0 0.25rem var(--input-focus-shadow);
 }
 
 .selectBox.disabled {
@@ -83,7 +83,7 @@
 
 .selectBox.error:focus {
     border-color: #dc3545;
-    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+    box-shadow: 0 0 0 0.25rem var(--input-error-shadow);
 }
 
 .selectBox.open {
@@ -203,9 +203,10 @@
 }
 
 .option.selected {
-    background-color: #0d6efd;
-    color: white;
-    font-weight: 600;
+    background-color: var(--primary-dark); /* Light gray selection */
+    color: var(--text-color); /* Dark text */
+    font-weight: var(--font-weight-bold);
+    border-left: 4px solid var(--secondary-dark); /* Indicator */
 }
 
 .option.selected:hover {

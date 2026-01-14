@@ -98,7 +98,7 @@
         var(--secondary-color),
         var(--secondary-light)
     );
-    color: white;
+    color: var(--text-color);
     box-shadow: var(--shadow-sm);
 }
 

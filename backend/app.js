@@ -8,6 +8,8 @@ const connectDB = require("./src/db/connect");
 
 const routes = require("./src/routes");
 const authRoutes = require("./src/routes/authRoutes");
+const templateRoutes = require("./src/routes/templateRoutes");
+const { seedDefaults } = require("./src/controllers/templateController");
 
 const app = express();
 app.use(express.json());
@@ -24,13 +26,16 @@ app.use(
 );
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+    seedDefaults(); // Seed default template after DB connection
+});
 
 // Base route
 app.get("/", (req, res) => res.send("Intermedical API is running."));
 
 // Register API routes
 app.use("/api/auth", authRoutes);
+app.use("/api/templates", templateRoutes);
 app.use("/api", routes);
 
 // Start server

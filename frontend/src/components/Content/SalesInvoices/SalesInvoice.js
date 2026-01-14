@@ -1240,6 +1240,7 @@ export default function SalesInvoice(props) {
                     <Button
                         content="إضافة عميل جديد"
                         onClick={() => setShowAddCustomerModal(true)}
+                        className={classes.modalTrigger}
                         type="primary"
                     />
                 </div>

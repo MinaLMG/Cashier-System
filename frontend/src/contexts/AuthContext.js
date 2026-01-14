@@ -78,6 +78,15 @@ export const AuthProvider = ({ children }) => {
         axios.interceptors.response.clear();
     };
 
+    const updateUserProfile = (updatedUser) => {
+        console.log("AuthContext: Updating user profile", updatedUser);
+        // Merge with existing user to preserve other fields
+        const newUser = { ...user, ...updatedUser };
+        console.log("AuthContext: New user object to save", newUser);
+        localStorage.setItem("user", JSON.stringify(newUser));
+        setUser(newUser);
+    };
+
     const clearAuth = () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("user");
@@ -91,6 +100,7 @@ export const AuthProvider = ({ children }) => {
         isLoading,
         login,
         logout,
+        updateUserProfile,
     };
 
     return (

@@ -12,6 +12,7 @@ import {
     FaUserCog,
     FaShoppingCart,
     FaHistory,
+    FaPalette,
 } from "react-icons/fa";
 
 // Icon mapping for navigation items
@@ -29,6 +30,7 @@ const getIconForTask = (task) => {
         "إدارة العبوات": FaBoxes,
         "إدارة المستخدمين": FaUserCog,
         "حركة المنتج": FaHistory,
+        "إعدادات الألوان": FaPalette,
     };
 
     return iconMap[task] || FaFileAlt;

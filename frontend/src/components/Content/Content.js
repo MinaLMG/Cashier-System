@@ -15,6 +15,7 @@ import ProductMovement from "./ProductMovement/ProductMovement";
 import Notifications from "./Notifications/Notifications";
 import CreditCustomers from "./CreditCustomers/CreditCustomers";
 import PaymentManager from "./CreditCustomers/PaymentManager";
+import Settings from "../Settings/Settings";
 
 export default function Content(props) {
     return (
@@ -115,6 +116,7 @@ export default function Content(props) {
             {props.selected === "إدارة العبوات" && <ShowVolumes />}
             {props.selected === "حركة المنتج" && <ProductMovement />}
             {props.selected === "الإشعارات" && <Notifications />}
+            {props.selected === "إعدادات الألوان" && <Settings />}
         </div>
     );
 }
