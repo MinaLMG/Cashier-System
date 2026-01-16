@@ -290,37 +290,20 @@ export default function SalesInvoiceRow({
                 <td className={classes.item}>
                     <div className={classes.viewText}>
                         {(() => {
-                            const returned = returnItems.filter(
-                                (r) =>
-                                    (r.sales_item?._id || r.sales_item) === row._id ||
-                                    ((r.product?._id || r.product) === row.product &&
-                                        (r.volume?._id || r.volume) === row.volume)
+                            const returned = returnItems.filter((r) => 
+                                String(r.sales_item) === String(row._id)
                             );
 
                             const totalBaseReturned = returned.reduce((sum, r) => {
-                                // Find the product for this return item to get its values
-                                const returnProd = products.find(
-                                    (p) => p._id === (r.product?._id || r.product)
-                                );
-                                // Find the specific volume conversion value
-                                const volumeId = r.volume?._id || r.volume;
-                                const volumeEntry = returnProd?.values?.find(
-                                    (v) => v.id === volumeId
-                                );
-                                const factor = Number(volumeEntry?.value || 1);
-                                return sum + Number(r.quantity || 0) * factor;
+                                const returnProd = products.find(p => String(p._id) === String(r.product?._id));
+                                const vEntry = returnProd?.values?.find(v => String(v.id) === String(r.volume?._id));
+                                return sum + (Number(r.quantity || 0) * Number(vEntry?.value || 1));
                             }, 0);
 
                             const normalizedReturned = totalBaseReturned / (volumeValue || 1);
 
-                            // Find unit name
-                            const product = products.find(
-                                (p) => p._id === row.product
-                            );
-                            const unitName =
-                                product?.values?.find(
-                                    (v) => v.id === row.volume
-                                )?.name || "وحدة";
+                            const product = products.find(p => String(p._id) === String(row.product));
+                            const unitName = product?.values?.find(v => String(v.id) === String(row.volume))?.name || "وحدة";
 
                             return normalizedReturned > 0
                                 ? `${normalizedReturned % 1 === 0 ? normalizedReturned : normalizedReturned.toFixed(2)} ${unitName}`

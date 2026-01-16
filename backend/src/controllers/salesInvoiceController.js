@@ -812,6 +812,7 @@ exports.getAvailableReturnVolumes = async (req, res) => {
                     offer: inv.offer || 0,
                     notes: inv.notes || "",
                     rows: rows.map((item) => ({
+                        _id: item._id,
                         product: item.product,
                         volume: item.volume,
                         quantity: item.quantity,

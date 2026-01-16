@@ -1454,20 +1454,22 @@ export default function SalesInvoice(props) {
                                                                     }
                                                                 >
                                                                     {(() => {
-                                                                        const returnedItem = returnItems.filter(
-                                                                            (r) =>
-                                                                                (r.sales_item?._id || r.sales_item) ===
-                                                                                item._id
+                                                                        const returnedItem = returnItems.filter((r) => 
+                                                                            String(r.sales_item) === String(item._id)
                                                                         );
                                                                         const totalBaseReturned = returnedItem.reduce((sum, r) => {
-                                                                            const returnProd = products.find(p => p._id === (r.product?._id || r.product));
-                                                                            const vId = r.volume?._id || r.volume;
-                                                                            const vEntry = returnProd?.values?.find(v => v.id === vId);
+                                                                            const returnProd = products.find(p => String(p._id) === String(r.product?._id));
+                                                                            const vEntry = returnProd?.values?.find(v => String(v.id) === String(r.volume?._id));
                                                                             return sum + (Number(r.quantity || 0) * Number(vEntry?.value || 1));
                                                                         }, 0);
-                                                                        const rowVolumeValue = item.volume?.value || 1;
+
+                                                                        const rowProd = products.find(p => String(p._id) === String(getProductId(item.product)));
+                                                                        const rowVolId = String(getVolumeId(item.volume));
+                                                                        const rowVolEntry = rowProd?.values?.find(v => String(v.id) === rowVolId);
+                                                                        const rowVolumeValue = rowVolEntry?.value || 1;
+                                                                        const unitName = rowVolEntry?.name || "وحدة";
+
                                                                         const normalized = totalBaseReturned / rowVolumeValue;
-                                                                        const unitName = item.volume?.name || "وحدة";
                                                                         return normalized > 0
                                                                             ? `${normalized % 1 === 0 ? normalized : normalized.toFixed(2)} ${unitName}`
                                                                             : "";
@@ -1614,25 +1616,17 @@ export default function SalesInvoice(props) {
                                                                     }
                                                                 >
                                                                     {(() => {
-                                                                        const returnedItem = returnItems.filter(
-                                                                            (r) =>
-                                                                                (r.sales_item?._id || r.sales_item) ===
-                                                                                    row._id ||
-                                                                                // Fallback for match
-                                                                                ((r.product?._id || r.product) ===
-                                                                                    row.product &&
-                                                                                    (r.volume?._id || r.volume) ===
-                                                                                        row.volume)
+                                                                        const returnedItem = returnItems.filter((r) => 
+                                                                            String(r.sales_item) === String(row._id)
                                                                         );
                                                                         const totalBaseReturned = returnedItem.reduce((sum, r) => {
-                                                                            const returnProd = products.find(p => p._id === (r.product?._id || r.product));
-                                                                            const vId = r.volume?._id || r.volume;
-                                                                            const vEntry = returnProd?.values?.find(v => v.id === vId);
+                                                                            const returnProd = products.find(p => String(p._id) === String(r.product?._id));
+                                                                            const vEntry = returnProd?.values?.find(v => String(v.id) === String(r.volume?._id));
                                                                             return sum + (Number(r.quantity || 0) * Number(vEntry?.value || 1));
                                                                         }, 0);
                                                                         
-                                                                        const rowProd = products.find(p => p._id === row.product);
-                                                                        const rowVolEntry = rowProd?.values?.find(v => v.id === row.volume);
+                                                                        const rowProd = products.find(p => String(p._id) === String(row.product));
+                                                                        const rowVolEntry = rowProd?.values?.find(v => String(v.id) === String(row.volume));
                                                                         const rowVolumeValue = rowVolEntry?.value || 1;
                                                                         
                                                                         const normalized = totalBaseReturned / rowVolumeValue;
@@ -1770,20 +1764,17 @@ export default function SalesInvoice(props) {
                                                                 classes.viewText
                                                             }
                                                         >
-                                                            {(() => {
-                                                                const returnedItem = returnItems.filter(
-                                                                    (r) =>
-                                                                        r.sales_item ===
-                                                                        invoice._id
-                                                                );
-                                                                const totalBaseReturned = returnedItem.reduce((sum, r) => {
-                                                                    const returnProd = products.find(p => p._id === (r.product?._id || r.product));
-                                                                    const vId = r.volume?._id || r.volume;
-                                                                    const vEntry = returnProd?.values?.find(v => v.id === vId);
-                                                                    return sum + (Number(r.quantity || 0) * Number(vEntry?.value || 1));
-                                                                }, 0);
+                                                              {(() => {
+                                                                  const returnedItem = returnItems.filter((r) => 
+                                                                      String(r.sales_item) === String(invoice._id)
+                                                                  );
+                                                                  const totalBaseReturned = returnedItem.reduce((sum, r) => {
+                                                                      const returnProd = products.find(p => String(p._id) === String(r.product?._id));
+                                                                      const vEntry = returnProd?.values?.find(v => String(v.id) === String(r.volume?._id));
+                                                                      return sum + (Number(r.quantity || 0) * Number(vEntry?.value || 1));
+                                                                  }, 0);
 
-                                                                const rowVolEntry = product?.values?.find(v => v.id === invoice.volume);
+                                                                const rowVolEntry = product?.values?.find(v => String(v.id) === String(invoice.volume));
                                                                 const rowVolumeValue = rowVolEntry?.value || 1;
                                                                 
                                                                 const normalized = totalBaseReturned / rowVolumeValue;
