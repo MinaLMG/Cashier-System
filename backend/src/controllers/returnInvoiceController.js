@@ -234,8 +234,8 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
                 error: "No sales items found for this sales item ID.",
             });
         }
-        // Calculate total returnable quantity from to_return field
-        const totalReturnableQuantity = salesItem.to_return;
+        // Calculate total returnable quantity from sources
+        const totalReturnableQuantity = salesItem.sources.reduce((sum, s) => sum + s.quantity, 0);
         const returnHasVolume = await HasVolume.findOne({
             product: salesItem.product._id,
             volume: return_volume_id,
@@ -387,10 +387,7 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
         );
         await returnItem.save();
 
-        // Update sales item to_return field and sources (reduce by return quantity)
-        const returnedBaseQuantity = quantity * returnHasVolume.value;
-        salesItem.to_return -= returnedBaseQuantity;
-        // The sources array was already updated in the loop above
+        // Update sales item sources (the sources array was already updated in the loop above)
         const updatedSalesItem = await salesItem.save();
 
         // Update product quantities and prices
@@ -494,11 +491,12 @@ exports.createReturnInvoice = async (req, res) => {
         // Calculate base quantity being returned
         const baseQuantityReturn = quantity * hasVolume.value;
 
-        // Check if we have enough quantity to return from to_return field
-        if (baseQuantityReturn > (salesItem.to_return || 0)) {
+        // Check if we have enough quantity to return from sources
+        const currentReturnable = salesItem.sources.reduce((sum, s) => sum + s.quantity, 0);
+        if (baseQuantityReturn > currentReturnable) {
             return res.status(400).json({
                 error: `Return quantity exceeds remaining returnable quantity. You have ${
-                    salesItem.to_return || 0
+                    currentReturnable
                 } base units available for return but trying to return ${quantity} units (${baseQuantityReturn} base units).`,
             });
         }
@@ -618,10 +616,7 @@ exports.createReturnInvoice = async (req, res) => {
             });
         }
 
-        // Update sales item to_return field and sources (reduce by return quantity)
-        const returnedBaseQuantity = quantity * hasVolume.value;
-        salesItem.to_return -= returnedBaseQuantity;
-        // The sources array was already updated in the loop above
+        // Update sales item sources (the sources array was already updated in the loop above)
         await salesItem.save();
 
         // Update product quantities and prices

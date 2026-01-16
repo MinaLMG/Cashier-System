@@ -526,7 +526,7 @@ exports.createFullSalesInvoice = async (req, res) => {
                 sales_invoice: newInvoice._id,
                 product: item.product,
                 volume: item.volume,
-                quantity: item.quantity, // Initialize with total returnable quantity in base units
+                quantity: item.quantity,
                 v_price: item.u_price * item.value,
                 sources: item.sources,
             });
@@ -726,9 +726,9 @@ exports.getAvailableReturnVolumes = async (req, res) => {
             .populate("volume")
             .populate("product");
 
-        // Calculate available quantities for each volume using to_return field
+        // Calculate available quantities for each volume using sources list
         const volumesWithQuantity = availableVolumes.map((hv) => {
-            const maxBaseQuantity = salesItem.to_return || 0;
+            const maxBaseQuantity = salesItem.sources.reduce((sum, s) => sum + s.quantity, 0);
             const maxVolumeQuantity = Math.floor(maxBaseQuantity / hv.value);
 
             return {
