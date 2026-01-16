@@ -6,6 +6,7 @@ import { FaEdit, FaEye, FaPrint } from "react-icons/fa";
 import { MdDelete } from "react-icons/md";
 import SortableTable from "../../Basic/SortableTable";
 import Pagination from "../../Basic/Pagination";
+import ConfirmModal from "../../UI/ConfirmModal";
 
 export default function ShowPurchaseInvoices(props) {
     const [invoices, setInvoices] = useState([]);
@@ -14,6 +15,8 @@ export default function ShowPurchaseInvoices(props) {
     const [pageSize] = useState(50);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [invoiceToDelete, setInvoiceToDelete] = useState(null);
 
     const fetchInvoices = async (currentPage) => {
         try {
@@ -69,6 +72,35 @@ export default function ShowPurchaseInvoices(props) {
         { key: "actions", title: "العمليات", sortable: false },
     ];
 
+    const handleDelete = (invoice) => {
+        setInvoiceToDelete(invoice);
+        setIsConfirmModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!invoiceToDelete) return;
+        try {
+            setLoading(true);
+            await axios.delete(
+                `${process.env.REACT_APP_BACKEND}purchase-invoices/${invoiceToDelete._id}`
+            );
+            // Refresh the list
+            fetchInvoices(page);
+            setIsConfirmModalOpen(false);
+            setInvoiceToDelete(null);
+            // alert("تم حذف الفاتورة بنجاح"); // Optional: use a toast instead
+        } catch (err) {
+            console.error("Failed to delete invoice:", err);
+            alert(
+                `فشل حذف الفاتورة: ${
+                    err.response?.data?.error || err.message
+                }\n${err.response?.data?.details || ""}`
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Render row function for the SortableTable
     const renderRow = (invoice, index) => {
         const supplierName = invoice.supplier
@@ -98,8 +130,10 @@ export default function ShowPurchaseInvoices(props) {
                             title="طباعة الفاتورة غير متاح حاليًا"
                         />
                         <MdDelete
-                            className={`${classes.remove} ${commonStyles.disabledIcon}`}
-                            title="حذف الفاتورة غير متاح حاليًا"
+                            onClick={() => handleDelete(invoice)}
+                            className={classes.remove}
+                            title="حذف الفاتورة"
+                            style={{ cursor: "pointer" }}
                         />
                     </div>
                 </td>
@@ -127,6 +161,19 @@ export default function ShowPurchaseInvoices(props) {
                 pageSize={pageSize}
                 total={total}
                 onPageChange={setPage}
+            />
+
+            <ConfirmModal
+                isOpen={isConfirmModalOpen}
+                title="تأكيد الحذف"
+                message={`هل أنت متأكد من حذف فاتورة المشتريات بتاريخ ${invoiceToDelete?.date}؟`}
+                onConfirm={handleConfirmDelete}
+                onCancel={() => {
+                    setIsConfirmModalOpen(false);
+                    setInvoiceToDelete(null);
+                }}
+                confirmText="حذف"
+                cancelText="إلغاء"
             />
         </div>
     );

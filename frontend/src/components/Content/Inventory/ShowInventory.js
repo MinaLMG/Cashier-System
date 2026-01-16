@@ -126,7 +126,7 @@ export default function ShowInventory(props) {
                 initialSortDirection="asc"
                 tableClassName={`table table-bordered ${classes.table}`}
                 renderRow={(inv, index) => {
-                    inv.values.sort((a, b) => a.val - b.val);
+                    inv.values.sort((a, b) => a.value - b.value);
                     return (
                         <tr key={inv._id || index}>
                             <td className={classes.item}>{index + 1}</td>
@@ -135,7 +135,7 @@ export default function ShowInventory(props) {
                                 {inv.values.map((v, di) => (
                                     <div key={di} className={classes.volumeRow}>
                                         <span>
-                                            {v.name} : {v.val}
+                                            {v.name} : {v.value}
                                         </span>
                                         {v.barcode && (
                                             <FaPrint

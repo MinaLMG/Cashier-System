@@ -1,5 +1,6 @@
 const Product = require("../models/Product");
 const PurchaseItem = require("../models/PurchaseItem");
+const HasVolume = require("../models/HasVolume");
 
 /**
  * Update suggested unit prices for a product based on exponential moving average
@@ -12,6 +13,7 @@ const updateSuggestedPrices = async (productId, gamma = 0.9) => {
         const currentProduct = await Product.findById(productId).select(
             "u_suggested_buy_price u_suggested_pharmacy_price u_suggested_walkin_price u_suggested_guidal_price"
         );
+        
         // Find the most recent purchase item for this product
         const latestPurchase = await PurchaseItem.findOne({
             product: productId,
@@ -19,15 +21,22 @@ const updateSuggestedPrices = async (productId, gamma = 0.9) => {
             .sort({ created_at: -1 })
             .select(
                 "v_buy_price v_pharmacy_price v_walkin_price v_guidal_price volume"
-            )
-            .populate("volume", "value");
+            );
+            
         if (!latestPurchase) {
             // No purchase data available
             return null;
         }
 
+        // Fix: Fetch volume value from HasVolume instead of assuming it's in the Volume model
+        const hasVolume = await HasVolume.findOne({
+            product: productId,
+            volume: latestPurchase.volume,
+        });
+        
         // Convert volume prices to unit prices
-        const volumeValue = latestPurchase.volume?.value || 1;
+        const volumeValue = hasVolume?.value || 1;
+        
         const newUnitBuyPrice = latestPurchase.v_buy_price / volumeValue;
         const newUnitPharmacyPrice =
             latestPurchase.v_pharmacy_price / volumeValue;

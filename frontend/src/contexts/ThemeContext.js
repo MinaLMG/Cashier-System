@@ -14,15 +14,11 @@ export const ThemeProvider = ({ children }) => {
 
     // Load theme from user object when authenticated
     useEffect(() => {
-        console.log("ThemeContext: Auth state changed", { isAuthenticated, hasUser: !!user });
-        
         // Load from Active Template if exists
         if (isAuthenticated && user && user.activeTemplate && user.activeTemplate.preferences) {
-            console.log("ThemeContext: Applying active template", user.activeTemplate.name);
             setCustomTheme(user.activeTemplate.preferences);
             applyTheme(user.activeTemplate.preferences);
         } else {
-            console.log("ThemeContext: No active template or logged out, resetting.");
             setCustomTheme({});
             removeThemeOverrides();
         }
@@ -30,9 +26,7 @@ export const ThemeProvider = ({ children }) => {
 
     const applyTheme = (theme) => {
         const root = document.documentElement;
-        console.log("ThemeContext: Applying theme", theme,root);
         Object.keys(theme).forEach((key) => {
-            console.log("ThemeContext: Setting style", key, theme[key]);
             root.style.setProperty(key, theme[key]);
         });
     };

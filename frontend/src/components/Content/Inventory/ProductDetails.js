@@ -204,7 +204,7 @@ export default function ProductDetails({ product, onBack }) {
                                 </thead>
                                 <tbody>
                                     {productData.values.map((volume, index) => {
-                                        const val = Number(volume.val) || 0;
+                                        const val = Number(volume.value) || 0;
                                         const pharmacy =
                                             productData.u_pharmacy_price && val
                                                 ? (
@@ -230,7 +230,7 @@ export default function ProductDetails({ product, onBack }) {
                                         return (
                                             <tr key={index}>
                                                 <td>{volume.name}</td>
-                                                <td>{volume.val}</td>
+                                                <td>{volume.value}</td>
                                                 <td>
                                                     {pharmacy
                                                         ? `${pharmacy} ج.م`

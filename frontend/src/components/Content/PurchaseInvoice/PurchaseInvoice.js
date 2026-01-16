@@ -31,6 +31,7 @@ export default function PurchaseInvoice(props) {
 
     // Add ref to track if suspended invoice has been loaded
     const suspendedInvoiceLoaded = useRef(false);
+    const loadedInvoiceId = useRef(null);
 
     // Determine if we're in view mode
     const isViewMode = props.mode === "view";
@@ -405,7 +406,11 @@ export default function PurchaseInvoice(props) {
                 total += quantity * v_buy_price;
             }
         });
-        setInvoice((prev) => ({ ...prev, total_cost: total.toString() }));
+        setInvoice((prev) => {
+            const newTotalStr = total.toString();
+            if (prev.total_cost === newTotalStr) return prev;
+            return { ...prev, total_cost: newTotalStr };
+        });
     }, [invoiceRows]);
 
     // Fetch data on component mount (lightweight product options)
@@ -437,10 +442,20 @@ export default function PurchaseInvoice(props) {
         }
 
         if ((props.mode === "edit" || props.mode === "view") && props.invoice) {
+            // Prevent overwriting local state if we're already editing this invoice
+            if (loadedInvoiceId.current === props.invoice._id) {
+                return;
+            }
+            loadedInvoiceId.current = props.invoice._id;
+
             const { date, supplier, rows, total_cost, notes } = props.invoice;
+            
+            // Fix: Extract supplier ID if it's an object
+            const supplierId = supplier && typeof supplier === "object" ? supplier._id : supplier;
+
             setInvoice({
                 date,
-                supplier,
+                supplier: supplierId,
                 total_cost,
                 notes: notes || "",
             });
@@ -530,6 +545,7 @@ export default function PurchaseInvoice(props) {
     // Reset suspended invoice loaded flag when mode changes
     useEffect(() => {
         suspendedInvoiceLoaded.current = false;
+        loadedInvoiceId.current = null;
     }, [props.mode]);
 
     // Handle invoice field changes
@@ -615,10 +631,13 @@ export default function PurchaseInvoice(props) {
         try {
             let response;
             if (props.mode === "edit") {
+                console.log("Editing invoice",requestBody);
                 response = await axios.put(
                     `${process.env.REACT_APP_BACKEND}purchase-invoices/full/${props.invoice._id}`,
                     requestBody
                 );
+                console.log(response);
+                console.log(response.data);
             } else {
                 response = await axios.post(
                     `${process.env.REACT_APP_BACKEND}purchase-invoices/full`,
@@ -821,15 +840,15 @@ export default function PurchaseInvoice(props) {
                         <th className={classes.head} scope="col">
                             المنتج
                         </th>
-                        <th className={classes.head} scope="col">
-                            العبوة
-                        </th>
                         <th
                             className={classes.head}
                             scope="col"
                             style={{ width: "95px" }}
                         >
                             الكمية
+                        </th>
+                        <th className={classes.head} scope="col">
+                            العبوة
                         </th>
                         <th
                             className={classes.head}
@@ -896,10 +915,11 @@ export default function PurchaseInvoice(props) {
                                 errors={isViewMode ? {} : rowErrors[i] || {}}
                                 isLastRow={i === invoiceRows.length - 1}
                                 canRemove={
-                                    invoiceRows.length > 1 &&
-                                    i !== invoiceRows.length - 1
+                                    invoiceRows.length > 1 || !isViewMode
                                 }
                                 disabled={getDisabledState()}
+                                // Disable product/volume if in edit mode and row has an ID
+                                disableProduct={props.mode === "edit" && !!row._id}
                                 viewMode={isViewMode}
                                 priceSuggestions={priceSuggestions[i] || null}
                                 totalRows={invoiceRows.length}
@@ -924,6 +944,7 @@ export default function PurchaseInvoice(props) {
                             </div>
                         </td>
                     </tr>
+                    
                 </tbody>
             </InputTable>
 

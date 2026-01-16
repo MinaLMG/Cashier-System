@@ -120,10 +120,15 @@ export default function CombinedInvoices() {
         setIsLoading(true);
         setError("");
         try {
-            const res = await axios.get(
-                `${process.env.REACT_APP_BACKEND}sales-invoices/full?size=5000&exclude_credit=false`
-            );
-            const invoices = res.data?.items || [];
+            const [salesRes, returnsRes] = await Promise.all([
+                axios.get(
+                    `${process.env.REACT_APP_BACKEND}sales-invoices/full?size=5000&exclude_credit=false`
+                ),
+                axios.get(`${process.env.REACT_APP_BACKEND}return-invoices/full`),
+            ]);
+
+            const salesInvoices = salesRes.data?.items || [];
+            const returnInvoices = returnsRes.data?.items || [];
 
             // Filter by date range
             const start = new Date(startDate);
@@ -134,13 +139,16 @@ export default function CombinedInvoices() {
                 end.setHours(23, 59, 59, 999);
             }
 
-            const filteredInvoices = invoices.filter((inv) => {
+            const filterByDate = (inv) => {
                 const d = new Date(inv.date);
                 return d >= start && d <= end;
-            });
+            };
 
-            // Flatten items + offers
-            const flatItems = filteredInvoices.flatMap((inv) => {
+            const filteredSales = salesInvoices.filter(filterByDate);
+            const filteredReturns = returnInvoices.filter(filterByDate);
+
+            // Flatten sales items + offers
+            const flatSales = filteredSales.flatMap((inv) => {
                 const rows = (inv.rows || []).map((r) => ({
                     kind: "item",
                     date: inv.date,
@@ -149,7 +157,7 @@ export default function CombinedInvoices() {
                     quantity: r.quantity,
                     v_price: r.v_price,
                     value: Number(r.quantity || 0) * Number(r.v_price || 0),
-                    isCredit: inv.isCredit, // Pass credit flag
+                    isCredit: inv.isCredit,
                 }));
                 const offerRows =
                     Number(inv.offer || 0) > 0
@@ -162,31 +170,45 @@ export default function CombinedInvoices() {
                                   quantity: null,
                                   v_price: inv.offer,
                                   value: -Number(inv.offer || 0),
-                                  isCredit: inv.isCredit, // Pass credit flag
+                                  isCredit: inv.isCredit,
                               },
                           ]
                         : [];
                 return [...rows, ...offerRows];
             });
 
-            // Sort: date desc first, then items before offers on the same date
-            flatItems.sort((a, b) => {
+            // Flatten return items
+            const flatReturns = filteredReturns.flatMap((inv) => {
+                return (inv.items || []).map((item) => ({
+                    kind: "return",
+                    date: inv.date,
+                    product: item.product?._id || item.product,
+                    volume: item.volume?._id || item.volume,
+                    quantity: item.quantity,
+                    v_price: item.v_price,
+                    // Return value is negative revenue
+                    value: -Number(item.quantity || 0) * Number(item.v_price || 0), 
+                    isCredit: false, // Returns are usually cash adjustments or balance adjustments, assume not credit for simple view or handle logic if needed
+                }));
+            });
+
+            const allItems = [...flatSales, ...flatReturns];
+
+            // Sort: date desc
+            allItems.sort((a, b) => {
                 const dateDiff = new Date(b.date) - new Date(a.date);
                 if (dateDiff !== 0) return dateDiff;
-                if (a.kind !== b.kind) return a.kind === "item" ? -1 : 1;
+                // returns after items?
                 return 0;
             });
 
-            const totalValue = flatItems.reduce(
-                (sum, item) => {
-                    // Exclude credit items from total
-                    if (item.isCredit) return sum;
-                    return sum + Number(item.value || 0);
-                },
-                0
-            );
+            const totalValue = allItems.reduce((sum, item) => {
+                // Exclude credit items from total
+                if (item.isCredit) return sum;
+                return sum + Number(item.value || 0);
+            }, 0);
 
-            setItems(flatItems);
+            setItems(allItems);
             setTotals({ value: totalValue });
         } catch (err) {
             console.error("Failed to fetch combined invoices", err);
@@ -308,23 +330,25 @@ export default function CombinedInvoices() {
                                         <td className={tableclasses.item}>
                                             {item.kind === "item"
                                                 ? "عنصر"
+                                                : item.kind === "return"
+                                                ? "مرتجع"
                                                 : "خصم"}
                                         </td>
                                         <td className={tableclasses.item}>
-                                            {item.kind === "item"
+                                            {item.kind === "item" || item.kind === "return"
                                                 ? productNameById[
                                                       item.product
                                                   ] || "--"
                                                 : "--"}
                                         </td>
                                         <td className={tableclasses.item}>
-                                            {item.kind === "item"
+                                            {item.kind === "item" || item.kind === "return"
                                                 ? volumeNameById[item.volume] ||
                                                   "--"
                                                 : "--"}
                                         </td>
                                         <td className={tableclasses.item}>
-                                            {item.kind === "item"
+                                            {item.kind === "item" || item.kind === "return"
                                                 ? item.quantity
                                                 : "--"}
                                         </td>

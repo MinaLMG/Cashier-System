@@ -4,6 +4,8 @@ const returnInvoiceController = require("../controllers/returnInvoiceController"
 
 // Used routes
 router.get("/reports", returnInvoiceController.getAllReturnInvoicesForReports);
+router.get("/full", returnInvoiceController.getAllReturnInvoicesFull);
+router.get("/sales/:id", returnInvoiceController.getReturnsBySalesInvoiceId);
 router.post(
     "/from-invoice",
     returnInvoiceController.createReturnInvoiceFromInvoice

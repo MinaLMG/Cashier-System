@@ -50,7 +50,7 @@ export default function ReturnModal({
 
         // Calculate unit price based on volume conversion
         // The original v_price is for the original volume, we need to adjust for the new volume
-        const originalVolumeValue = salesItem?.salesItem?.volume?.value || 1;
+        const originalVolumeValue = salesItem?.salesItem?.soldVolumeValue || 1;
         const selectedVolumeValue = selectedVolumeData.value || 1;
 
         // Calculate the unit price (price per base unit)

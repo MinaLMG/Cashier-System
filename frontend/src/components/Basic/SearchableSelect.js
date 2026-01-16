@@ -31,7 +31,8 @@ export default function SearchableSelect({
         } else {
             setFilteredOptions(options);
         }
-    }, [searchTerm, options]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm, JSON.stringify(options)]); // Fix: Use stringified options to avoid infinite loop on new array reference
 
     // Close dropdown when clicking outside
     useEffect(() => {

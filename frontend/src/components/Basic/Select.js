@@ -20,7 +20,7 @@ export default function Select(props) {
                     error ? classes.errorSelect : ""
                 }`}
                 aria-label="Default select example"
-                value={props.value}
+                value={props.value || ""}
                 onChange={(e) => {
                     props.onchange && props.onchange(e.currentTarget.value);
                 }}

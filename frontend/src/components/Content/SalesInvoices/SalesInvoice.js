@@ -104,7 +104,7 @@ export default function SalesInvoice(props) {
                 (v) => v.id === row.volume
             );
             const quantityNum = Number(row.quantity);
-            const volumeValue = volumeObj?.val ?? 0;
+            const volumeValue = volumeObj?.value ?? 0;
             const productRemaining = selectedProduct?.total_remaining ?? 0;
 
             if (!row.product) errors.product = "الرجاء اختيار منتج";
@@ -145,7 +145,7 @@ export default function SalesInvoice(props) {
                     const vol = prod?.values?.find((v) => v.id === r.volume);
                     if (!vol) continue;
 
-                    usedQuantity += Number(r.quantity || 0) * vol.val;
+                    usedQuantity += Number(r.quantity || 0) * vol.value;
                 }
 
                 const thisQuantity = quantityNum * volumeValue;
@@ -402,6 +402,21 @@ export default function SalesInvoice(props) {
         suspendedInvoiceLoaded.current = false;
     }, [props.mode]);
 
+    // Fetch return data for the current invoice
+    const [returnItems, setReturnItems] = useState([]);
+    useEffect(() => {
+        if ((props.mode === "view" || props.mode === "edit") && props.invoice?._id) {
+            axios
+                .get(`${process.env.REACT_APP_BACKEND}return-invoices/sales/${props.invoice._id}`)
+                .then((res) => {
+                    setReturnItems(res.data || []);
+                })
+                .catch((err) => {
+                    console.error("Failed to load return items:", err);
+                });
+        }
+    }, [props.mode, props.invoice]);
+
     // Calculate total whenever rows, invoice type, or offer changes
     useEffect(() => {
         const calculateTotal = () => {
@@ -419,7 +434,7 @@ export default function SalesInvoice(props) {
                 const volumeEntry = product?.values?.find(
                     (v) => v.id === row.volume
                 );
-                const value = Number(volumeEntry?.val || 1);
+                const value = Number(volumeEntry?.value || 1);
 
                 // Calculate volume price
                 const v_price = u_price * value;
@@ -1063,7 +1078,7 @@ export default function SalesInvoice(props) {
                     quantity: salesItem.quantity,
                     v_price: salesItem.v_price,
                     to_return: salesItem.to_return,
-                    soldVolumeValue: soldVolume?.val || soldVolume?.value || 1,
+                    soldVolumeValue: soldVolume?.value || 1,
                     // Add nested structure for compatibility
                     salesItem: {
                         _id: salesItem._id, // Real SalesItem ID
@@ -1072,8 +1087,7 @@ export default function SalesInvoice(props) {
                         quantity: salesItem.quantity,
                         v_price: salesItem.v_price,
                         to_return: salesItem.to_return,
-                        soldVolumeValue:
-                            soldVolume?.val || soldVolume?.value || 1,
+                        soldVolumeValue: soldVolume?.value || 1,
                     },
                 };
 
@@ -1309,6 +1323,7 @@ export default function SalesInvoice(props) {
                                     <th>العبوة</th>
                                     <th>السعر</th>
                                     <th>الإجمالي</th>
+                                    {returnItems.length > 0 && <th>المرتجع</th>}
                                     <th style={{ width: "80px" }}>الإجراءات</th>
                                 </tr>
                             </thead>
@@ -1374,10 +1389,7 @@ export default function SalesInvoice(props) {
                                                                     classes.viewText
                                                                 }
                                                             >
-                                                                {
-                                                                    item.volume
-                                                                        .name
-                                                                }
+                                                                {item.quantity}
                                                             </div>
                                                         </td>
                                                         <td
@@ -1390,7 +1402,10 @@ export default function SalesInvoice(props) {
                                                                     classes.viewText
                                                                 }
                                                             >
-                                                                {item.quantity}
+                                                                {
+                                                                    item.volume
+                                                                        .name
+                                                                }
                                                             </div>
                                                         </td>
                                                         <td
@@ -1426,6 +1441,40 @@ export default function SalesInvoice(props) {
                                                                     : "—"}
                                                             </div>
                                                         </td>
+                                                        {returnItems.length >
+                                                            0 && (
+                                                            <td
+                                                                className={
+                                                                    classes.item
+                                                                }
+                                                            >
+                                                                <div
+                                                                    className={
+                                                                        classes.viewText
+                                                                    }
+                                                                >
+                                                                    {(() => {
+                                                                        const returnedItem = returnItems.filter(
+                                                                            (r) =>
+                                                                                (r.sales_item?._id || r.sales_item) ===
+                                                                                item._id
+                                                                        );
+                                                                        const totalBaseReturned = returnedItem.reduce((sum, r) => {
+                                                                            const returnProd = products.find(p => p._id === (r.product?._id || r.product));
+                                                                            const vId = r.volume?._id || r.volume;
+                                                                            const vEntry = returnProd?.values?.find(v => v.id === vId);
+                                                                            return sum + (Number(r.quantity || 0) * Number(vEntry?.value || 1));
+                                                                        }, 0);
+                                                                        const rowVolumeValue = item.volume?.value || 1;
+                                                                        const normalized = totalBaseReturned / rowVolumeValue;
+                                                                        const unitName = item.volume?.name || "وحدة";
+                                                                        return normalized > 0
+                                                                            ? `${normalized % 1 === 0 ? normalized : normalized.toFixed(2)} ${unitName}`
+                                                                            : "";
+                                                                    })()}
+                                                                </div>
+                                                            </td>
+                                                        )}
                                                         <td
                                                             className={
                                                                 classes.item
@@ -1497,13 +1546,7 @@ export default function SalesInvoice(props) {
                                                                     classes.viewText
                                                                 }
                                                             >
-                                                                {/* Look for volume info in product values */}
-                                                                {product?.values?.find(
-                                                                    (v) =>
-                                                                        v.id ===
-                                                                        row.volume
-                                                                )?.name ||
-                                                                    "غير معروف"}
+                                                                {row.quantity}
                                                             </div>
                                                         </td>
                                                         <td
@@ -1516,7 +1559,13 @@ export default function SalesInvoice(props) {
                                                                     classes.viewText
                                                                 }
                                                             >
-                                                                {row.quantity}
+                                                                {/* Look for volume info in product values */}
+                                                                {product?.values?.find(
+                                                                    (v) =>
+                                                                        v.id ===
+                                                                        row.volume
+                                                                )?.name ||
+                                                                    "غير معروف"}
                                                             </div>
                                                         </td>
                                                         <td
@@ -1552,6 +1601,50 @@ export default function SalesInvoice(props) {
                                                                     : "—"}
                                                             </div>
                                                         </td>
+                                                        {returnItems.length >
+                                                            0 && (
+                                                            <td
+                                                                className={
+                                                                    classes.item
+                                                                }
+                                                            >
+                                                                <div
+                                                                    className={
+                                                                        classes.viewText
+                                                                    }
+                                                                >
+                                                                    {(() => {
+                                                                        const returnedItem = returnItems.filter(
+                                                                            (r) =>
+                                                                                (r.sales_item?._id || r.sales_item) ===
+                                                                                    row._id ||
+                                                                                // Fallback for match
+                                                                                ((r.product?._id || r.product) ===
+                                                                                    row.product &&
+                                                                                    (r.volume?._id || r.volume) ===
+                                                                                        row.volume)
+                                                                        );
+                                                                        const totalBaseReturned = returnedItem.reduce((sum, r) => {
+                                                                            const returnProd = products.find(p => p._id === (r.product?._id || r.product));
+                                                                            const vId = r.volume?._id || r.volume;
+                                                                            const vEntry = returnProd?.values?.find(v => v.id === vId);
+                                                                            return sum + (Number(r.quantity || 0) * Number(vEntry?.value || 1));
+                                                                        }, 0);
+                                                                        
+                                                                        const rowProd = products.find(p => p._id === row.product);
+                                                                        const rowVolEntry = rowProd?.values?.find(v => v.id === row.volume);
+                                                                        const rowVolumeValue = rowVolEntry?.value || 1;
+                                                                        
+                                                                        const normalized = totalBaseReturned / rowVolumeValue;
+                                                                        const unitName = rowVolEntry?.name || "وحدة";
+                                                                        
+                                                                        return normalized > 0
+                                                                            ? `${normalized % 1 === 0 ? normalized : normalized.toFixed(2)} ${unitName}`
+                                                                            : "";
+                                                                    })()}
+                                                                </div>
+                                                            </td>
+                                                        )}
                                                         <td
                                                             className={
                                                                 classes.item
@@ -1607,8 +1700,6 @@ export default function SalesInvoice(props) {
                                         const total =
                                             invoice.quantity * invoice.v_price;
 
-                                        // Debug volume info
-
                                         return (
                                             <tr key={0}>
                                                 <td className={classes.item}>
@@ -1630,12 +1721,7 @@ export default function SalesInvoice(props) {
                                                             classes.viewText
                                                         }
                                                     >
-                                                        {/* Look for volume info in product values */}
-                                                        {product?.values?.find(
-                                                            (v) =>
-                                                                v.id ===
-                                                                invoice.volume
-                                                        )?.name || "غير معروف"}
+                                                        {invoice.quantity}
                                                     </div>
                                                 </td>
                                                 <td className={classes.item}>
@@ -1644,7 +1730,12 @@ export default function SalesInvoice(props) {
                                                             classes.viewText
                                                         }
                                                     >
-                                                        {invoice.quantity}
+                                                        {/* Look for volume info in product values */}
+                                                        {product?.values?.find(
+                                                            (v) =>
+                                                                v.id ===
+                                                                invoice.volume
+                                                        )?.name || "غير معروف"}
                                                     </div>
                                                 </td>
                                                 <td className={classes.item}>
@@ -1672,6 +1763,39 @@ export default function SalesInvoice(props) {
                                                             : "—"}
                                                     </div>
                                                 </td>
+                                                {returnItems.length > 0 && (
+                                                    <td className={classes.item}>
+                                                        <div
+                                                            className={
+                                                                classes.viewText
+                                                            }
+                                                        >
+                                                            {(() => {
+                                                                const returnedItem = returnItems.filter(
+                                                                    (r) =>
+                                                                        r.sales_item ===
+                                                                        invoice._id
+                                                                );
+                                                                const totalBaseReturned = returnedItem.reduce((sum, r) => {
+                                                                    const returnProd = products.find(p => p._id === (r.product?._id || r.product));
+                                                                    const vId = r.volume?._id || r.volume;
+                                                                    const vEntry = returnProd?.values?.find(v => v.id === vId);
+                                                                    return sum + (Number(r.quantity || 0) * Number(vEntry?.value || 1));
+                                                                }, 0);
+
+                                                                const rowVolEntry = product?.values?.find(v => v.id === invoice.volume);
+                                                                const rowVolumeValue = rowVolEntry?.value || 1;
+                                                                
+                                                                const normalized = totalBaseReturned / rowVolumeValue;
+                                                                const unitName = rowVolEntry?.name || "وحدة";
+
+                                                                return normalized > 0
+                                                                    ? `${normalized % 1 === 0 ? normalized : normalized.toFixed(2)} ${unitName}`
+                                                                    : "";
+                                                            })()}
+                                                        </div>
+                                                    </td>
+                                                )}
                                                 <td className={classes.item}>
                                                     <div
                                                         className={
@@ -1748,10 +1872,11 @@ export default function SalesInvoice(props) {
                                 <th style={{ width: "50px" }}>#</th>
                                 <th>الباركود</th>
                                 <th>المنتج</th>
-                                <th>العبوة</th>
                                 <th>الكمية</th>
+                                <th>العبوة</th>
                                 <th>السعر</th>
                                 <th>الإجمالي</th>
+                                {returnItems.length > 0 && <th>المرتجع</th>}
                                 {!isViewMode && (
                                     <th style={{ width: "50px" }}></th>
                                 )}
@@ -1817,6 +1942,7 @@ export default function SalesInvoice(props) {
                                         disabled={getDisabledState()}
                                         viewMode={isViewMode}
                                         totalRows={invoiceRows.length}
+                                        returnItems={returnItems}
                                     />
                                 );
                             })}
@@ -1853,12 +1979,72 @@ export default function SalesInvoice(props) {
                                     )}
                                 </td>
                                 <td
-                                    colSpan={isViewMode ? "3" : "4"}
+                                    colSpan={
+                                        isViewMode
+                                            ? returnItems.length > 0
+                                                ? "4"
+                                                : "3"
+                                            : returnItems.length > 0
+                                            ? "5"
+                                            : "4"
+                                    }
                                     className={classes.totalValue}
                                 >
                                     <strong>{finalTotal.toFixed(2)} ج.م</strong>
                                 </td>
                             </tr>
+                            {/* Return Total Row */}
+                            {returnItems.length > 0 && (
+                                <tr className={classes.totalRow}>
+                                    <td colSpan="4" className={classes.totalLabel}>
+                                        <strong>إجمالي المرتجع:</strong>
+                                    </td>
+                                    <td
+                                        colSpan={isViewMode ? "4" : "5"}
+                                        className={classes.totalValue}
+                                        style={{ color: "var(--accent-red)" }}
+                                    >
+                                        <strong>
+                                            {returnItems
+                                                .reduce(
+                                                    (sum, item) =>
+                                                        sum +
+                                                        item.quantity *
+                                                            item.v_price,
+                                                    0
+                                                )
+                                                .toFixed(2)}{" "}
+                                            ج.م
+                                        </strong>
+                                    </td>
+                                </tr>
+                            )}
+                            {/* After Return Row */}
+                            {returnItems.length > 0 && (
+                                <tr className={classes.totalRow}>
+                                    <td colSpan="4" className={classes.totalLabel}>
+                                        <strong>بعد المرتجع:</strong>
+                                    </td>
+                                    <td
+                                        colSpan={isViewMode ? "4" : "5"}
+                                        className={classes.totalValue}
+                                    >
+                                        <strong>
+                                            {(
+                                                finalTotal -
+                                                returnItems.reduce(
+                                                    (sum, item) =>
+                                                        sum +
+                                                        item.quantity *
+                                                            item.v_price,
+                                                    0
+                                                )
+                                            ).toFixed(2)}{" "}
+                                            ج.م
+                                        </strong>
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </InputTable>
 
@@ -1917,6 +2103,43 @@ export default function SalesInvoice(props) {
                                 </p>
                             </div>
                         </div>
+                        
+                        {/* Return Summary in Card */}
+                        {returnItems.length > 0 && (
+                            <div className="row mt-2 border-top pt-2">
+                                <div className="col-md-6">
+                                    <p className="text-danger">
+                                        <strong>إجمالي المرتجع:</strong>{" "}
+                                        {returnItems
+                                            .reduce(
+                                                (sum, item) =>
+                                                    sum +
+                                                    item.quantity *
+                                                        item.v_price,
+                                                0
+                                            )
+                                            .toFixed(2)}{" "}
+                                        ج.م
+                                    </p>
+                                </div>
+                                <div className="col-md-6">
+                                    <p>
+                                        <strong>بعد المرتجع:</strong>{" "}
+                                        {(
+                                            (props.invoice?.total_selling_price -
+                                                Number(invoice.offer || 0)) -
+                                            returnItems.reduce(
+                                                (sum, item) =>
+                                                    sum +
+                                                    item.quantity * item.v_price,
+                                                0
+                                            )
+                                        ).toFixed(2)}{" "}
+                                        ج.م
+                                    </p>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Profit display for edit mode */}
                         {props.mode === "edit" && (
@@ -1954,7 +2177,21 @@ export default function SalesInvoice(props) {
                                                 </p>
                                             </div>
                                         </div>
+                                        {returnItems.length > 0 && (
+                                            <div
+                                                className="mt-2 text-muted"
+                                                style={{
+                                                    fontSize: "0.85rem",
+                                                    textAlign: "right",
+                                                    borderTop: "1px solid #dee2e6",
+                                                    paddingTop: "5px"
+                                                }}
+                                            >
+                                                * هذا الربح لا يأخذ المرتجعات في الاعتبار
+                                            </div>
+                                        )}
                                     </div>
+                                    {/* Removed from here and moved inside the alert box above */}
                                 </div>
                             </div>
                         )}

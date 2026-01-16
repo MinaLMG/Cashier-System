@@ -54,6 +54,36 @@ exports.getAllReturnInvoices = async (req, res) => {
     }
 };
 
+// Get all return invoices with items (Full)
+exports.getAllReturnInvoicesFull = async (req, res) => {
+    try {
+        const invoices = await ReturnInvoice.find()
+            .populate("sales_invoice")
+            .populate("customer")
+            .populate("user")
+            .sort({ date: -1 });
+
+        const invoicesWithItems = await Promise.all(
+            invoices.map(async (invoice) => {
+                const items = await ReturnItem.find({
+                    return_invoice: invoice._id,
+                })
+                    .populate("product")
+                    .populate("volume");
+                return {
+                    ...invoice.toObject(),
+                    items,
+                };
+            })
+        );
+
+        res.status(200).json({ items: invoicesWithItems });
+    } catch (err) {
+        console.error("Error fetching full return invoices:", err);
+        res.status(500).json({ error: "Failed to fetch return invoices." });
+    }
+};
+
 // Get all return invoices with financial data for reports
 exports.getAllReturnInvoicesForReports = async (req, res) => {
     try {
@@ -66,14 +96,18 @@ exports.getAllReturnInvoicesForReports = async (req, res) => {
         // Calculate financial data for each return invoice
         const invoicesWithFinancialData = await Promise.all(
             invoices.map(async (invoice) => {
-                // Calculate financial data using unified formula: الربح = الصافي - التكلفة
-                // For returns:
-                // الربح (profit) = total_loss = -4
-                // الصافي (final_amount) = total_return_amount + total_loss = 7 + (-4) = 3
-                // التكلفة (total_purchase_cost) = total_return_amount = 7
-                const finalAmount =
-                    invoice.total_return_amount + invoice.total_loss;
-                const purchaseCost = invoice.total_return_amount;
+                // Calculate financial data for reports
+                // Total Return Amount = Revenue Reduction (Negative Sales)
+                // Total Loss = Profit Reduction (Negative Profit)
+                // Cost Reversal = Revenue Reduction - Profit Reduction
+
+                /*
+                    Example: Sold for 100, Cost 80, Profit 20.
+                    Return: Refund 100.
+                    Revenue: -100.
+                    Cost of Goods Sold (Reversed): -80.
+                    Profit: -20.
+                */
 
                 return {
                     _id: invoice._id,
@@ -87,16 +121,16 @@ exports.getAllReturnInvoicesForReports = async (req, res) => {
                     total_revenue_loss: invoice.total_loss,
                     // Add fields to match sales invoice structure for reports
                     type: "return",
-                    total_selling_price: -invoice.total_return_amount, // Negative selling price
-                    offer: 0, // Returns don't have offers
-                    final_amount: finalAmount, // الصافي = return + loss
-                    total_purchase_cost: purchaseCost, // التكلفة = return_amount
-                    profit: invoice.total_loss, // الربح = total_loss
+                    total_selling_price: -invoice.total_return_amount, // Negative Revenue
+                    offer: 0, 
+                    final_amount: -invoice.total_return_amount, // Net Revenue (Negative)
+                    total_purchase_cost: -(invoice.total_return_amount + invoice.total_loss), // Cost Reversal (approx)
+                    profit: invoice.total_loss, // Negative Profit
                 };
             })
         );
 
-        res.status(200).json(invoicesWithFinancialData);
+        res.status(200).json({ items: invoicesWithFinancialData });
     } catch (err) {
         console.error("Error fetching return invoices for reports:", err);
         res.status(500).json({
@@ -125,6 +159,30 @@ exports.getReturnInvoiceById = async (req, res) => {
         res.status(200).json({ invoice, items });
     } catch (err) {
         res.status(500).json({ error: "Failed to fetch return invoice." });
+    }
+};
+
+// Get returns by sales invoice ID
+exports.getReturnsBySalesInvoiceId = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const returnItems = await ReturnItem.find()
+            .populate({
+                path: "return_invoice",
+                match: { sales_invoice: id },
+            })
+            .populate("product")
+            .populate("volume");
+
+        // Filter out items where return_invoice didn't match (populated as null)
+        const validReturns = returnItems.filter(
+            (item) => item.return_invoice != null
+        );
+
+        res.status(200).json(validReturns);
+    } catch (err) {
+        console.error("Error fetching returns for sales invoice:", err);
+        res.status(500).json({ error: "Failed to fetch return items." });
     }
 };
 
@@ -229,6 +287,7 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
         for (const source of sources) {
             const canReturn = Math.min(source.quantity, remainingToReturn);
             if (canReturn > 0) {
+                source.quantity -= canReturn;
                 returnSources.push({
                     purchase_item: source.purchase_item._id,
                     quantity: canReturn,
@@ -327,6 +386,12 @@ exports.createReturnInvoiceFromInvoice = async (req, res) => {
             0
         );
         await returnItem.save();
+
+        // Update sales item to_return field and sources (reduce by return quantity)
+        const returnedBaseQuantity = quantity * returnHasVolume.value;
+        salesItem.to_return -= returnedBaseQuantity;
+        // The sources array was already updated in the loop above
+        const updatedSalesItem = await salesItem.save();
 
         // Update product quantities and prices
         await updateProductPrices(salesItem.product._id);
@@ -474,6 +539,7 @@ exports.createReturnInvoice = async (req, res) => {
             );
 
             if (canReturn > 0) {
+                originalSource.quantity -= canReturn;
                 returnSources.push({
                     purchase_item: purchaseItem._id,
                     quantity: canReturn,
@@ -552,11 +618,11 @@ exports.createReturnInvoice = async (req, res) => {
             });
         }
 
-        // Update sales item to_return field (reduce by return quantity)
+        // Update sales item to_return field and sources (reduce by return quantity)
         const returnedBaseQuantity = quantity * hasVolume.value;
-        await SalesItem.findByIdAndUpdate(salesItem._id, {
-            $inc: { to_return: -returnedBaseQuantity },
-        });
+        salesItem.to_return -= returnedBaseQuantity;
+        // The sources array was already updated in the loop above
+        await salesItem.save();
 
         // Update product quantities and prices
         await updateProductPrices(salesItem.product._id);
@@ -590,41 +656,19 @@ exports.createReturnInvoice = async (req, res) => {
     }
 };
 
+const { deleteReturnInvoiceInternal, updateAffectedProducts } = require("../helpers/invoiceCleanupHelper");
+
 // Delete return invoice
 exports.deleteReturnInvoice = async (req, res) => {
     try {
-        const invoice = await ReturnInvoice.findById(req.params.id);
-
-        if (!invoice) {
-            return res.status(404).json({ error: "Return invoice not found." });
+        const affectedProducts = await deleteReturnInvoiceInternal(req.params.id);
+        
+        if (affectedProducts.size === 0) {
+            const invoice = await ReturnInvoice.findById(req.params.id);
+            if (!invoice) return res.status(404).json({ error: "Return invoice not found." });
         }
 
-        // Get return items to restore purchase item quantities
-        const returnItems = await ReturnItem.find({
-            return_invoice: req.params.id,
-        });
-
-        // Restore purchase item quantities
-        for (const item of returnItems) {
-            for (const source of item.sources) {
-                await PurchaseItem.findByIdAndUpdate(source.purchase_item, {
-                    $inc: { remaining: -source.quantity },
-                });
-            }
-        }
-
-        // Delete return items and invoice
-        await ReturnItem.deleteMany({ return_invoice: req.params.id });
-        await ReturnInvoice.findByIdAndDelete(req.params.id);
-
-        // Update product quantities
-        const affectedProducts = [
-            ...new Set(returnItems.map((item) => item.product.toString())),
-        ];
-        for (const productId of affectedProducts) {
-            await updateProductPrices(productId);
-            await updateProductRemaining(productId);
-        }
+        await updateAffectedProducts(affectedProducts);
 
         res.status(200).json({
             success: true,

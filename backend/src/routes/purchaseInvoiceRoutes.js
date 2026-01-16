@@ -11,11 +11,11 @@ router.get(
     "/price-suggestions/:productId/:volumeId",
     controller.getPriceSuggestions
 );
+router.delete("/:id", controller.deletePurchaseInvoice);
 
 // UNUSED ENDPOINTS - COMMENTED OUT
 // router.get("/", controller.getAllPurchaseInvoices);
 // router.post("/", controller.createPurchaseInvoice);
 // router.put("/:id", controller.updatePurchaseInvoice);
-// router.delete("/:id", controller.deletePurchaseInvoice);
 
 module.exports = router;

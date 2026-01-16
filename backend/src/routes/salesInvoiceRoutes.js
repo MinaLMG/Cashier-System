@@ -9,12 +9,12 @@ router.get(
     "/available-return-volumes-for-invoice-item/:salesItemId",
     controller.getAvailableReturnVolumesForInvoiceItem
 );
+router.delete("/:id", controller.deleteSalesInvoice);
 
 // UNUSED ENDPOINTS - COMMENTED OUT
 // router.get("/", controller.getAllSalesInvoices);
 // router.post("/", controller.createSalesInvoice);
 // router.put("/:id", controller.updateSalesInvoice);
-// router.delete("/:id", controller.deleteSalesInvoice);
 // router.get(
 //     "/available-return-volumes/:salesItemId",
 //     controller.getAvailableReturnVolumes

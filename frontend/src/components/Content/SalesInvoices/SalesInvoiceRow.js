@@ -25,6 +25,7 @@ export default function SalesInvoiceRow({
     onReturn,
     isEditMode = false,
     totalRows,
+    returnItems = [],
 }) {
     const selectedProduct = products.find((p) => p._id === row.product);
     const barcodeTimeoutRef = useRef(null);
@@ -36,7 +37,7 @@ export default function SalesInvoiceRow({
 
     const volumeValue = selectedProduct?.values?.find(
         (v) => v.id === row.volume
-    )?.val;
+    )?.value;
 
     const unitPrice =
         viewMode && row.v_price
@@ -185,6 +186,33 @@ export default function SalesInvoiceRow({
                 )}
             </td>
 
+            {/* Quantity */}
+            <td className={classes.item}>
+                {viewMode ? (
+                    <div className={classes.viewText}>
+                        {row.quantity || "0"}
+                    </div>
+                ) : (
+                    <>
+                        <TextInput
+                            className={classes["no-margin"]}
+                            type="number"
+                            placeholder="الكمية"
+                            value={row.quantity || ""}
+                            onchange={(val) => onChange(index, "quantity", val)}
+                            disabled={disabled}
+                            label="الكمية"
+                            min={0}
+                        />
+                        {errors.quantity && (
+                            <div className={classes.error}>
+                                {errors.quantity}
+                            </div>
+                        )}
+                    </>
+                )}
+            </td>
+
             {/* Volume */}
             <td className={classes.item}>
                 {viewMode ? (
@@ -210,33 +238,6 @@ export default function SalesInvoiceRow({
                         />
                         {errors.volume && (
                             <div className={classes.error}>{errors.volume}</div>
-                        )}
-                    </>
-                )}
-            </td>
-
-            {/* Quantity */}
-            <td className={classes.item}>
-                {viewMode ? (
-                    <div className={classes.viewText}>
-                        {row.quantity || "0"}
-                    </div>
-                ) : (
-                    <>
-                        <TextInput
-                            className={classes["no-margin"]}
-                            type="number"
-                            placeholder="الكمية"
-                            value={row.quantity || ""}
-                            onchange={(val) => onChange(index, "quantity", val)}
-                            disabled={disabled}
-                            label="الكمية"
-                            min={0}
-                        />
-                        {errors.quantity && (
-                            <div className={classes.error}>
-                                {errors.quantity}
-                            </div>
                         )}
                     </>
                 )}
@@ -284,6 +285,51 @@ export default function SalesInvoiceRow({
                 )}
             </td>
 
+            {/* Returned (View Mode only) */}
+            {returnItems && returnItems.length > 0 && (
+                <td className={classes.item}>
+                    <div className={classes.viewText}>
+                        {(() => {
+                            const returned = returnItems.filter(
+                                (r) =>
+                                    (r.sales_item?._id || r.sales_item) === row._id ||
+                                    ((r.product?._id || r.product) === row.product &&
+                                        (r.volume?._id || r.volume) === row.volume)
+                            );
+
+                            const totalBaseReturned = returned.reduce((sum, r) => {
+                                // Find the product for this return item to get its values
+                                const returnProd = products.find(
+                                    (p) => p._id === (r.product?._id || r.product)
+                                );
+                                // Find the specific volume conversion value
+                                const volumeId = r.volume?._id || r.volume;
+                                const volumeEntry = returnProd?.values?.find(
+                                    (v) => v.id === volumeId
+                                );
+                                const factor = Number(volumeEntry?.value || 1);
+                                return sum + Number(r.quantity || 0) * factor;
+                            }, 0);
+
+                            const normalizedReturned = totalBaseReturned / (volumeValue || 1);
+
+                            // Find unit name
+                            const product = products.find(
+                                (p) => p._id === row.product
+                            );
+                            const unitName =
+                                product?.values?.find(
+                                    (v) => v.id === row.volume
+                                )?.name || "وحدة";
+
+                            return normalizedReturned > 0
+                                ? `${normalizedReturned % 1 === 0 ? normalizedReturned : normalizedReturned.toFixed(2)} ${unitName}`
+                                : "";
+                        })()}
+                    </div>
+                </td>
+            )}
+
             {/* Controls */}
             {!viewMode && (
                 <td>
@@ -303,7 +349,7 @@ export default function SalesInvoiceRow({
                                 disabled={disabled}
                             />
                         )}
-                        {isLastRow && (
+                        {isLastRow ? (
                             <button
                                 type="button"
                                 onClick={onAdd}
@@ -317,21 +363,22 @@ export default function SalesInvoiceRow({
                             >
                                 Insert
                             </button>
-                        )}
-                        {canRemove && (
-                            <button
-                                type="button"
-                                onClick={() => onRemove(index)}
-                                className={classes.deleteButton}
-                                disabled={
-                                    typeof disabled === "function"
-                                        ? disabled("remove")
-                                        : disabled
-                                }
-                                title="حذف الصف (Delete) - اضغط Delete لحذف هذا الصف"
-                            >
-                                Del
-                            </button>
+                        ) : (
+                            !viewMode && (
+                                <button
+                                    type="button"
+                                    onClick={() => onRemove(index)}
+                                    className={classes.deleteButton}
+                                    disabled={
+                                        (typeof disabled === "function"
+                                            ? disabled("remove")
+                                            : disabled)
+                                    }
+                                    title="حذف الصف (Delete) - اضغط Delete لحذف هذا الصف"
+                                >
+                                    Del
+                                </button>
+                            )
                         )}
                         {/* {isLastRow && (
                             <IoMdAddCircle

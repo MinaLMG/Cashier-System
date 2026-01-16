@@ -214,7 +214,7 @@ export default function ProductForm({
                         values.push({
                             id: volume._id,
                             name: volume.name,
-                            val: value,
+                            value: value,
                         });
 
                     for (const edge of graph[id] || []) {
@@ -226,7 +226,7 @@ export default function ProductForm({
                     }
                 }
 
-                values.sort((a, b) => a.val - b.val);
+                values.sort((a, b) => a.value - b.value);
                 setProduct((prev) => ({ ...prev, values }));
             } catch (err) {
                 setProduct((prev) => ({

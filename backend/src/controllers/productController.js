@@ -258,12 +258,12 @@ exports.createFullProduct = async (req, res) => {
         });
 
         // Step 2: Prepare hasVolume entries
-        const volumeRecords = values.map(({ id, val }) => {
+        const volumeRecords = values.map(({ id, value }) => {
             const conversion = conversions.find((c) => c.from === id);
             return {
                 product: newProduct._id,
                 volume: id,
-                value: val,
+                value: value,
                 barcode: conversion?.barcode?.trim() || null,
             };
         });
@@ -463,7 +463,7 @@ exports.updateFullProduct = async (req, res) => {
                         filter: { _id: existing._id },
                         update: {
                             $set: {
-                                value: val.val,
+                                value: val.value,
                                 barcode: conversion.barcode?.trim() || null,
                             },
                         },
@@ -474,7 +474,7 @@ exports.updateFullProduct = async (req, res) => {
                 inserts.push({
                     product: productId,
                     volume: val.id,
-                    value: val.val,
+                    value: val.value,
                     barcode: conversion.barcode?.trim() || null,
                 });
             }
@@ -582,7 +582,7 @@ exports.getFullProductById = async (req, res) => {
         const values = volumeEntries.map((entry) => ({
             id: entry.volume._id,
             name: entry.volume.name,
-            val: entry.value,
+            value: entry.value,
             barcode: entry.barcode || null,
         }));
 
@@ -673,7 +673,7 @@ exports.getAllFullProducts = async (req, res) => {
                     const values = hasVolumes.map((hv) => ({
                         id: hv.volume._id,
                         name: hv.volume.name,
-                        val: hv.value,
+                        value: hv.value,
                         barcode: hv.barcode || null,
                     }));
                     return {
@@ -721,7 +721,7 @@ exports.getAllFullProducts = async (req, res) => {
                 const values = hasVolumes.map((hv) => ({
                     id: hv.volume._id,
                     name: hv.volume.name,
-                    val: hv.value,
+                    value: hv.value,
                     barcode: hv.barcode || null,
                 }));
                 return {

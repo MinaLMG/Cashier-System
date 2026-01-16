@@ -8,6 +8,8 @@ const Customer = require("../models/Customer");
 const updateProductRemaining = require("../helpers/updateProductRemaining");
 const updateProductPrices = require("../helpers/productPricing");
 const ReturnItem = require("../models/ReturnItem");
+const ReturnInvoice = require("../models/ReturnInvoice");
+const { deleteSalesInvoiceInternal, updateAffectedProducts } = require("../helpers/invoiceCleanupHelper");
 
 // Helper function to generate serial number
 const generateSalesInvoiceSerial = async (date) => {
@@ -257,12 +259,25 @@ exports.updateSalesInvoice = async (req, res) => {
 
 exports.deleteSalesInvoice = async (req, res) => {
     try {
-        const invoice = await SalesInvoice.findByIdAndDelete(req.params.id);
-        if (!invoice)
-            return res.status(404).json({ error: "Sales invoice not found." });
-        res.status(200).json({ message: "Sales invoice deleted." });
+        const affectedProducts = await deleteSalesInvoiceInternal(req.params.id);
+        
+        if (affectedProducts.size === 0) {
+            // Check if it simply didn't exist
+            const invoice = await SalesInvoice.findById(req.params.id);
+            if (!invoice) return res.status(404).json({ error: "Sales invoice not found." });
+        }
+
+        await updateAffectedProducts(affectedProducts);
+
+        res.status(200).json({ 
+            message: "تم حذف الفاتورة وجميع المرتجعات المرتبطة بها بنجاح وتم تحديث المخزون." 
+        });
     } catch (err) {
-        res.status(500).json({ error: "Failed to delete sales invoice." });
+        console.error("Delete sales invoice error:", err);
+        res.status(500).json({
+            error: "فشل في حذف فاتورة المبيعات",
+            details: err.message,
+        });
     }
 };
 
@@ -439,13 +454,13 @@ exports.createFullSalesInvoice = async (req, res) => {
                 quantity: Number(row.quantity),
                 u_price,
                 sources,
-                val: hasVolume.value,
+                value: hasVolume.value,
             });
         }
 
         // Step 4: Calculate total selling price
         const total_selling_price = salesItems.reduce((sum, item) => {
-            return sum + item.quantity * item.u_price * item.val;
+            return sum + item.quantity * item.u_price * item.value;
         }, 0);
 
         if (Number(offer || 0) > total_selling_price) {
@@ -512,7 +527,7 @@ exports.createFullSalesInvoice = async (req, res) => {
                 product: item.product,
                 volume: item.volume,
                 quantity: item.quantity, // Initialize with total returnable quantity in base units
-                v_price: item.u_price * item.val,
+                v_price: item.u_price * item.value,
                 sources: item.sources,
             });
         }

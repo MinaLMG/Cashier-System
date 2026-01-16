@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import { IoMdAddCircle } from "react-icons/io";
 import { MdDelete } from "react-icons/md";
 import { FaCircle } from "react-icons/fa";
@@ -143,6 +143,16 @@ export default function InvoiceRow(props) {
         totalRows,
     ]);
 
+    // Memoize product options
+    const productOptions = useMemo(
+        () =>
+            products.map((p) => ({
+                value: p._id,
+                label: p.name,
+            })),
+        [products]
+    );
+
     return (
         <tr>
             <th className={classes.item} scope="row">
@@ -185,24 +195,51 @@ export default function InvoiceRow(props) {
                 {viewMode ? (
                     <div className={classes.viewText}>{productName}</div>
                 ) : (
-                    <>
+                    <div>
                         <SearchableSelect
                             className={`${classes["no-margin"]} tableCellContainer`}
                             label=""
                             placeholder="اختر المنتج"
                             value={row.product}
                             onchange={(val) => onChange(index, "product", val)}
-                            options={products.map((p) => ({
-                                value: p._id,
-                                label: p.name,
-                            }))}
+                            options={productOptions}
                             disabled={
-                                typeof disabled === "function"
+                                (typeof disabled === "function"
                                     ? disabled("product")
-                                    : disabled
+                                    : disabled) || props.disableProduct
                             }
                             error={errors.product || ""}
                         />
+                    </div>
+                )}
+            </td>
+
+            {/* Quantity */}
+            <td className={classes.item}>
+                {viewMode ? (
+                    <div className={classes.viewText}>{row.quantity}</div>
+                ) : (
+                    <>
+                        <TextInput
+                            className={classes["no-margin"]}
+                            type="number"
+                            placeholder="الكمية"
+                            label="الكمية"
+                            id={`quantity` + index}
+                            value={row.quantity}
+                            onchange={(val) => onChange(index, "quantity", val)}
+                            disabled={
+                                typeof disabled === "function"
+                                    ? disabled("quantity")
+                                    : disabled
+                            }
+                            min={0}
+                        />
+                        {errors.quantity && (
+                            <div className={classes.error}>
+                                {errors.quantity}
+                            </div>
+                        )}
                     </>
                 )}
             </td>
@@ -237,36 +274,6 @@ export default function InvoiceRow(props) {
                         />
                         {errors.volume && (
                             <div className={classes.error}>{errors.volume}</div>
-                        )}
-                    </>
-                )}
-            </td>
-
-            {/* Quantity */}
-            <td className={classes.item}>
-                {viewMode ? (
-                    <div className={classes.viewText}>{row.quantity}</div>
-                ) : (
-                    <>
-                        <TextInput
-                            className={classes["no-margin"]}
-                            type="number"
-                            placeholder="الكمية"
-                            label="الكمية"
-                            id={`quantity` + index}
-                            value={row.quantity}
-                            onchange={(val) => onChange(index, "quantity", val)}
-                            disabled={
-                                typeof disabled === "function"
-                                    ? disabled("quantity")
-                                    : disabled
-                            }
-                            min={0}
-                        />
-                        {errors.quantity && (
-                            <div className={classes.error}>
-                                {errors.quantity}
-                            </div>
                         )}
                     </>
                 )}
@@ -536,7 +543,7 @@ export default function InvoiceRow(props) {
                             justifyContent: "center",
                         }}
                     >
-                        {isLastRow && (
+                        {isLastRow ? (
                             <button
                                 type="button"
                                 disabled={
@@ -550,21 +557,22 @@ export default function InvoiceRow(props) {
                             >
                                 Insert
                             </button>
-                        )}
-                        {canRemove && (
-                            <button
-                                type="button"
-                                onClick={() => onRemove(index)}
-                                className={classes.deleteButton}
-                                disabled={
-                                    typeof disabled === "function"
-                                        ? disabled("remove")
-                                        : disabled
-                                }
-                                title="حذف الصف (Delete) - اضغط Delete لحذف هذا الصف"
-                            >
-                                Del
-                            </button>
+                        ) : (
+                            !viewMode && (
+                                <button
+                                    type="button"
+                                    onClick={() => onRemove(index)}
+                                    className={classes.deleteButton}
+                                    disabled={
+                                        (typeof disabled === "function"
+                                            ? disabled("remove")
+                                            : disabled)
+                                    }
+                                    title="حذف الصف (Delete) - اضغط Delete لحذف هذا الصف"
+                                >
+                                    Del
+                                </button>
+                            )
                         )}
                     </div>
                     {/* {isLastRow && (

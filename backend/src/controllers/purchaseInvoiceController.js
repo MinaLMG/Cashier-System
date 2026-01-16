@@ -10,6 +10,7 @@ const updateProductRemaining = require("../helpers/updateProductRemaining");
 const {
     updateSuggestedPricesForInvoice,
 } = require("../helpers/updateSuggestedPrices");
+const { updateAffectedProducts } = require("../helpers/invoiceCleanupHelper");
 
 // Helper function to generate serial number
 const generatePurchaseInvoiceSerial = async (date) => {
@@ -122,13 +123,62 @@ exports.updatePurchaseInvoice = async (req, res) => {
 
 exports.deletePurchaseInvoice = async (req, res) => {
     try {
-        const invoice = await PurchaseInvoice.findByIdAndDelete(req.params.id);
+        const invoice = await PurchaseInvoice.findById(req.params.id);
         if (!invoice)
             return res
                 .status(404)
                 .json({ error: "Purchase invoice not found." });
+
+        // Find all items for this invoice
+        const items = await PurchaseItem.find({ purchase_invoice: invoice._id });
+        
+        // Check if any item has been used (sold/moved)
+        // Logic: if remaining != quantity * volume_value, it means it's used.
+        console.log(items);
+        for (const item of items) {
+             const hasVolume = await HasVolume.findOne({
+                product: item.product,
+                volume: item.volume,
+            });
+            
+            // If hasVolume is missing, something is wrong, but safety first - block delete
+            if (!hasVolume) {
+                 return res.status(400).json({
+                    error: "خطأ في البيانات: لا يمكن العثور على معلومات الحجم للمنتج",
+                    details: `المنتج: ${item.product}`
+                });
+            }
+
+            const totalBaseQuantity = item.quantity * hasVolume.value;
+            
+            // Allow small floating point difference
+            if (Math.abs(item.remaining - totalBaseQuantity) > 0.001) {
+                return res.status(400).json({
+                    error: "لا يمكن حذف الفاتورة لأن بعض عناصرها تم استخدامها او بيعها",
+                    details: `المنتج: ${item.product} - الكمية المتبقية ${item.remaining} أقل من الكمية الأصلية ${totalBaseQuantity}`
+                });
+            }
+        }
+
+        // If safe, delete all items and the invoice
+        await PurchaseItem.deleteMany({ purchase_invoice: invoice._id });
+        
+        // Update product prices/remaining for all affected products
+        // Note: Since we verified no active sales exist, we can safely remove these sources.
+        // However, we should technically remove these purchase items from any "fully_returned" sales items references if we wanted perfect cleanup,
+        // but keeping the reference might be better for history even if the PI is gone?
+        // Actually, if we delete the PI, we destroy the history of where the goods came from. 
+        // But the user asked to delete the invoice.
+        
+        const productIds = new Set(items.map(i => i.product.toString()));
+        await PurchaseInvoice.findByIdAndDelete(invoice._id);
+
+        // Recalculate product data
+        await updateAffectedProducts(productIds);
+
         res.status(200).json({ message: "Purchase invoice deleted." });
     } catch (err) {
+        console.error("Delete invoice error:", err);
         res.status(500).json({ error: "Failed to delete purchase invoice." });
     }
 };
@@ -469,6 +519,23 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
 
         for (const item of oldItems) {
             const incoming = incomingItemMap.get(item._id.toString());
+            
+            // Validation: Check if item has been used (remaining != quantity * volume).
+            const hasVolume = await HasVolume.findOne({
+                product: item.product,
+                volume: item.volume,
+            });
+
+            if (!hasVolume) {
+                 return res.status(400).json({
+                    error: "خطأ في البيانات: لا يمكن العثور على معلومات الحجم للمنتج",
+                    details: `المنتج: ${item.product}`
+                });
+            }
+
+            const totalBaseQuantity = item.quantity * hasVolume.value;
+            // Allow small floating point difference
+            const isUsed = Math.abs(item.remaining - totalBaseQuantity) > 0.001;
 
             if (incoming) {
                 // Ensure product/volume don't change
@@ -481,15 +548,22 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                     });
                 }
 
-                // Get hasVolume to calculate base units
-                const hasVolume = await HasVolume.findOne({
-                    product: item.product,
-                    volume: item.volume,
-                });
+                // Price locked if item is used
+                const pricesChanged = 
+                    item.v_buy_price !== Number(incoming.v_buy_price) || 
+                    item.v_pharmacy_price !== Number(incoming.v_pharmacy_price) ||
+                    item.v_walkin_price !== Number(incoming.v_walkin_price) ||
+                    item.v_guidal_price !== Number(incoming.v_guidal_price);
+
+                if (pricesChanged && isUsed) {
+                    return res.status(400).json({
+                        error: "لا يمكن تعديل الأسعار لأن هذا المنتج تم استخدامه أو بيعه جزئياً",
+                        details: `المنتج: ${item.product}`
+                    });
+                }
 
                 // Calculate burnt quantity in base units
-                const originalTotalUnits = item.quantity * hasVolume.value;
-                const burntQuantity = originalTotalUnits - item.remaining;
+                const burntQuantity = totalBaseQuantity - item.remaining;
 
                 // Calculate new remaining based on new quantity minus burnt quantity
                 const newQuantity = Number(incoming.quantity);
@@ -518,13 +592,15 @@ exports.updateFullPurchaseInvoice = async (req, res) => {
                 updatedIds.add(item._id.toString());
             } else {
                 // Item removed by user
-                // Check if item has been partially used
-                if (item.quantity > item.remaining) {
-                    return res.status(400).json({
-                        error: "لا يمكن حذف عنصر تم استخدامه بالفعل في المبيعات",
-                        details: `المنتج: ${item.product}`,
+                
+                // Block if item is used
+                if (isUsed) {
+                     return res.status(400).json({
+                        error: "لا يمكن حذف عنصر تم استخدامه أو بيعه جزئياً",
+                        details: `المنتج: ${item.product}`
                     });
                 }
+
                 await PurchaseItem.findByIdAndDelete(item._id);
             }
         }
